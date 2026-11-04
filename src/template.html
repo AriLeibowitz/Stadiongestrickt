@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stadion gestrickt</title>
+<meta name="description" content="Prototyp: ein persönlicher FC-Bayern-Schal, gestrickt aus den Spielen, die du live erlebt hast. Gemini schlägt die Highlights vor.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>/*CSS*/</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <div class="mark" title="Platzhalter – kein offizielles Vereinswappen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l7 7 7-7M5 12l7 7 7-7"/></svg>
+      </div>
+      <div>
+        <h1>Stadion gestrickt</h1>
+        <div class="sub">DEIN SAISONSCHAL AUS JEDEM SPIEL, DAS DU LIVE ERLEBT HAST</div>
+      </div>
+    </div>
+    <span class="pill">Prototyp · FC Bayern AI-deation 2026</span>
+  </div>
+</header>
+<div class="notice"><div class="notice-inner">
+  <b>Konzept-Prototyp, keine offizielle FC-Bayern-Anwendung.</b> Spielplan, Ergebnisse und Fan-Historien sind <b>synthetische Beispieldaten</b>.
+  Gegner erscheinen nur als neutrales Schild mit Kürzel. <b>Die Rechte an Vereinslogos und -namen sind noch nicht geklärt.</b>
+</div></div>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <h2>Ein Schal pro Saison. Ein Streifen pro Spiel. <em>Kein Schal wie deiner.</em></h2>
+      <p>Gib einen Fan-Code ein und wähl eine Saison. Aus allen Spielen, bei denen du in dieser Saison im Stadion warst, entsteht ein Strickmuster mit höchstens 5 Garnfarben. Saison-Meilensteine schalten neue Design-Elemente frei, und Gemini erzählt, wie deine Saison war, und schlägt deine 5 größten Momente für die Highlight-Felder vor. Gestrickt wird erst auf Bestellung.</p>
+    </div>
+  </section>
+
+  <div class="workspace">
+    <aside class="stack">
+      <div class="card">
+        <h3>Fan-Code</h3>
+        <form class="code-input" id="codeForm" autocomplete="off">
+          <input id="codeIn" spellcheck="false" placeholder="FCB-XXXX-XXXX" aria-label="Fan-Code">
+          <button class="btn" type="submit">Laden</button>
+        </form>
+        <div class="err" id="codeErr"></div>
+        <div class="presets" id="presets"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost sm" id="randomBtn" type="button">Zufälliger Fan</button>
+          <span class="tiny muted">Jeder gültige Code ergibt immer denselben Schal.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row between"><h3 style="margin:0">Fan</h3><span class="tiny muted" id="who"></span></div>
+        <div class="stats" id="stats" style="margin-top:10px"></div>
+        <label class="tiny muted" for="nameIn" style="display:block;margin:10px 0 4px;font-weight:600">Name auf der Rückseite</label>
+        <input class="name-input" id="nameIn" maxlength="10">
+      </div>
+
+      <div class="card">
+        <h3>Saisonschal</h3>
+        <div class="opt"><label for="seasonSel">Saison</label><select id="seasonSel" class="name-input" style="text-transform:none"></select></div>
+        <div class="opt"><label>Seite</label><div class="seg" id="sideSeg"><button data-v="front" class="on">Vorderseite</button><button data-v="back">Rückseite</button></div></div>
+        <div class="opt"><label>Ansicht</label><div class="seg" id="viewSeg"><button data-v="knit" class="on">Strick</button><button data-v="flat">Raster</button></div></div>
+        <div class="opt"><label>Länge</label><div class="seg" id="lenSeg"><button data-v="150" class="on">150 cm</button><button data-v="180">180</button><button data-v="220">220</button></div></div>
+        <div class="opt"><label>Bahnen</label><div class="seg" id="segSeg"><button data-v="1">1</button><button data-v="2" class="on">2</button><button data-v="3">3</button><button data-v="4">4</button></div></div>
+      </div>
+
+      <div class="card">
+        <h3>Garn</h3>
+        <div class="yarns" id="yarns"></div>
+        <div class="okline" id="yarnOk"></div>
+        <div class="tiny muted" style="margin-top:6px">Die Strickerei verarbeitet höchstens 5 Farben pro Schal. Gold kommt nur über Meilensteine dazu.</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost sm" id="dlTxt" type="button">Strickdatei (.txt)</button>
+          <button class="btn ghost sm" id="dlPng" type="button">Muster (.png)</button>
+        </div>
+      </div>
+    </aside>
+
+    <section class="stack" style="min-width:0">
+      <div class="card scarf-card">
+        <div class="scarf-head">
+          <h3 id="scarfTitle">Vorderseite</h3>
+          <span class="chip" id="densityChip"></span>
+          <span class="chip green" id="codeChip"></span>
+          <span class="chip gold" id="elChip"></span>
+        </div>
+        <div class="scarf-stage" id="stage">
+          <canvas id="scarf"></canvas>
+          <canvas id="hover"></canvas>
+          <div class="tip" id="tip"></div>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="under">
+          <div class="reader" id="reader"><h4>Schal lesen</h4><span class="muted">Fahr über den Schal oder tipp auf einen Streifen. Die App erzählt dir, welches Spiel das war.</span></div>
+          <div class="lens-wrap"><canvas id="lens"></canvas><span>Lupe</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-tab="ai">KI-Kurator</button>
+    <button class="tab" data-tab="ms">Meilensteine <span class="count" id="msCount"></span></button>
+    <button class="tab" data-tab="pot">Schalpotenzial &amp; Umfrage</button>
+    <button class="tab" data-tab="games">Spiele <span class="count" id="gCount"></span></button>
+    <button class="tab" data-tab="rules">Regelwerk</button>
+  </nav>
+
+  <section class="panel on" id="p-ai">
+    <div class="ai-grid">
+      <div>
+        <div class="story" id="story"></div>
+        <div class="hl-list" id="hlList"></div>
+      </div>
+      <div class="stack">
+        <div class="card keybox">
+          <h3>Gemini</h3>
+          <p class="small muted" style="margin:0">Gemini sieht alle Spiele des Fans in der gewählten Saison, schlägt bis zu 5 Highlights vor, begründet die Auswahl und erzählt, wie die Saison war. Es wählt nur aus echten Spielen aus. Ergebnisse und Muster sind regelbasiert.</p>
+          <label for="keyIn">Gemini-API-Key</label>
+          <input id="keyIn" type="password" placeholder="AIza…" autocomplete="off">
+          <label for="modelIn">Modell</label>
+          <input id="modelIn" value="gemini-2.5-flash">
+          <label class="check" style="font-weight:500;display:flex;gap:6px;align-items:center"><input type="checkbox" id="keyRemember" style="width:auto"> Key in diesem Browser merken</label>
+          <div class="row" style="margin-top:10px">
+            <button class="btn red" id="geminiBtn" type="button">Mit Gemini auswählen</button>
+            <button class="btn ghost" id="offlineBtn" type="button">Offline-Kurator</button>
+          </div>
+          <div class="status" id="aiStatus"></div>
+          <p class="tiny muted">Ohne Key läuft der Offline-Kurator: eine regelbasierte Simulation derselben Aufgabe, damit der Prototyp auch ohne Internet funktioniert. Der Key geht nur direkt an Google.</p>
+        </div>
+        <div class="card">
+          <details class="prompt"><summary>Was Gemini sieht (Prompt)</summary><pre id="promptPre"></pre></details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-ms">
+    <div class="ms-toolbar">
+      <div class="seg" id="msMode"><button data-v="auto" class="on">Automatisch (Fan-Status)</button><button data-v="all">Alle an</button><button data-v="none">Alle aus</button></div>
+      <span class="small muted" id="msSummary"></span>
+    </div>
+    <div class="ms-cats" id="msCats"></div>
+  </section>
+
+  <section class="panel" id="p-pot">
+    <div class="pot-grid">
+      <div class="stack">
+        <div class="card">
+          <h3>Wie wächst dein Schal?</h3>
+          <p class="small muted" style="margin:0 0 8px">Für die laufende Saison 26/27: Simuliere die nächsten Spiele, die dieser Fan wahrscheinlich besucht. Sie erscheinen blass auf dem Schal, weil ihr Ergebnis noch offen ist. Die offene Fläche wird gestrichelt markiert.</p>
+          <div class="row between"><b id="futureLabel">+0 Spiele</b><label class="small row"><input type="checkbox" id="potView"> Offene Fläche zeigen</label></div>
+          <input type="range" id="futureIn" min="0" max="20" value="0">
+          <div id="unlocks" class="small"></div>
+        </div>
+        <div class="teaser" id="teaser"></div>
+      </div>
+      <div class="card survey">
+        <h3>Umfrage: Würdest du ihn kaufen?</h3>
+        <p class="small muted" style="margin:0">Interessentest, bevor der erste Schal gestrickt wird. Im Prototyp werden die Antworten nur lokal in diesem Browser gespeichert.</p>
+        <form id="survey">
+          <label class="q">Würdest du diesen Schal kaufen?</label>
+          <div class="choices" data-name="buy">
+            <label><input type="radio" name="buy" value="5">Ja, sicher</label><label><input type="radio" name="buy" value="4">Eher ja</label><label><input type="radio" name="buy" value="3">Unsicher</label><label><input type="radio" name="buy" value="2">Eher nein</label><label><input type="radio" name="buy" value="1">Nein</label>
+          </div>
+          <label class="q">Was wäre er dir wert? <span id="priceOut">69 €</span></label>
+          <input type="range" name="price" id="priceIn" min="29" max="149" step="5" value="69">
+          <label class="q">Würdest du öfter ins Stadion gehen, um Meilensteine freizuschalten?</label>
+          <div class="choices"><label><input type="radio" name="more" value="ja">Ja</label><label><input type="radio" name="more" value="vielleicht">Vielleicht</label><label><input type="radio" name="more" value="nein">Nein</label></div>
+          <label class="q">Was macht den Schal für dich wertvoll? (mehrere möglich)</label>
+          <div class="choices">
+            <label><input type="checkbox" name="why" value="highlights">Meine Highlights</label><label><input type="checkbox" name="why" value="beweis">Beweis meiner Treue</label><label><input type="checkbox" name="why" value="milestones">Meilensteine sammeln</label><label><input type="checkbox" name="why" value="geschichte">KI-Geschichte</label><label><input type="checkbox" name="why" value="nachhaltig">Nur auf Bestellung</label><label><input type="checkbox" name="why" value="geschenk">Als Geschenk</label>
+          </div>
+          <label class="q" for="note">Was fehlt dir?</label>
+          <textarea id="note" name="note" maxlength="500"></textarea>
+          <div class="row" style="margin-top:10px"><button class="btn red" type="submit">Antwort speichern</button><span class="small" id="surveyMsg"></span></div>
+        </form>
+        <div class="results" id="results"></div>
+        <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="csvBtn" type="button">Antworten als CSV</button><button class="btn ghost sm" id="clearBtn" type="button">Antworten löschen</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-games">
+    <div class="row" style="margin-bottom:10px">
+      <select id="fComp"><option value="">Alle Wettbewerbe</option><option value="BL">Bundesliga</option><option value="DFB">DFB-Pokal</option><option value="CL">Champions League</option><option value="SC">Supercup</option></select>
+      <select id="fVenue"><option value="">Heim, Auswärts &amp; Neutral</option><option value="H">Heim</option><option value="A">Auswärts</option><option value="N">Neutral</option></select>
+      <span class="small muted">Mit ★ setzt du ein Spiel selbst als Highlight, höchstens 5.</span>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>#</th><th>★</th><th>Datum</th><th>Saison</th><th>Wettbewerb</th><th>Runde</th><th>Ort</th><th>Ergebnis</th><th></th><th>Merkmale</th></tr></thead><tbody id="gBody"></tbody></table></div>
+  </section>
+
+  <section class="panel" id="p-rules"><div class="rules" id="rules"></div></section>
+</main>
+<footer>
+  Stadion gestrickt ist ein Konzept-Prototyp für die FC Bayern AI-deation 2026. Alle Spiel- und Fandaten sind synthetisch. Die Strickvorgaben (5 Farben, Einzelfertigung, Doppeljacquard) orientieren sich an heutigen On-Demand-Strickereien. Die Rechte an Vereinslogos und -namen sind noch nicht geklärt. Das Rondell im Kopfteil ist ein Platzhalter.
+</footer>
+<script>/*JS*/</script>
+</body>
+</html>
