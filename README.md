@@ -12,18 +12,24 @@ Direktlink auf Fan und Saison: `…/stadion-gestrickt.html#FCB-STAM-M105/2025`
 
 ## Was man ausprobieren kann
 
-| Bereich | Inhalt |
-|---|---|
-| **Fan-Code** | 5 Beispiel-Fans (Neumitglied, Dauerkarte, Auswärtsfahrerin, Europapokal-Reisender, Allesfahrer), ein Zufallsfan oder ein eigener Code im Format `FCB-XXXX-XXXX` mit Prüfzeichen |
-| **Saison** | Jede Saison, in der der Fan im Stadion war, ergibt einen eigenen Schal. 26/27 läuft noch. |
-| **Schal** | Vorderseite (Meilenstein-Design) und Rückseite (Highlights und Statistik), Strick- oder Rasteransicht, 150, 180 oder 220 cm, Lupe. „Schal lesen“: Beim Hover über ein Element zeigt die App, welcher Meilenstein es freigeschaltet hat. |
-| **Garn** | Genau 5 Garnfarben (Strickerei-Limit), Anteile und Gramm. Gold gibt es nur über Meilensteine. |
-| **KI-Kurator** | Gemini (eigener API-Key) oder Offline-Kurator. Highlights lassen sich tauschen oder entfernen, jedes Spiel kann zum Herzstück werden, und der vollständige Prompt ist einsehbar. |
-| **Meilensteine** | 30 Saison-Meilensteine in 5 Kategorien und 34 Design-Elemente. Jedes Element lässt sich auf Auto, An oder Aus stellen, dazu „Alle an“ und „Alle aus“. |
-| **Schalpotenzial & Umfrage** | Für die laufende Saison die nächsten Spiele simulieren. Neu freigeschaltete Elemente werden auf dem Schal gelb markiert, dazu ein App-Teaser. Dazu eine Kauf-Umfrage mit CSV-Export (lokal gespeichert). |
-| **Spiele** | Alle Spiele der Saison, Highlights per ★ setzen |
-| **Regelwerk** | Das komplette, festgelegte System: Fan-Code, Maße, Aufbau, Spuren, Dichte und alle Meilensteine. Es wird aus demselben Code erzeugt, der den Schal strickt. |
-| **Export** | Strickdatei (`.txt`, eine Zeile pro Reihe, ein Buchstabe pro Masche) und Muster als PNG |
+Die Seite hat drei Bereiche, von oben nach unten:
+
+1. **Der Schal:** Vorder- und Rückseite in voller Länge, wie er heute für die gewählte Saison gestrickt würde. Fährt man darüber, zeigt die App jedes Element und den Meilenstein, der es freigeschaltet hat. Die Lupe zeigt echte Maschen. Für die laufende Saison 26/27 lassen sich kommende Spiele simulieren, und neu freigeschaltete Elemente werden gelb markiert.
+2. **Meilensteine:** 30 Meilensteine in 5 Reihen. Ein Klick wählt einen Meilenstein an oder ab. Der Punkt zeigt, ob der Fan ihn wirklich erreicht hat. Dazu gibt es „Fan-Status“, „Alle“ und „Keine“.
+3. **Die wichtigsten Spiele:** Gemini (oder der Offline-Kurator) wählt bis zu 5 Spiele für die Rückseite und erzählt die Saison. Spiele lassen sich tauschen, entfernen oder zum Herzstück machen.
+
+Unter „Mehr“ stehen alle Spiele der Saison, die Kauf-Umfrage (mit CSV-Export) und das Regelwerk. Oben wählt man Fan (5 Beispiel-Fans, eigener Code oder Zufall), Saison, Länge (150, 180 oder 220 cm) und den Namen für die Rückseite. Exportieren lassen sich die Strickdatei (`.txt`, ein Buchstabe pro Masche) und das Muster als PNG.
+
+## Design-System
+
+- **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm. Schrift (Barlow Condensed, eingebettet) und Symbole werden als Vektoren in Zentimetern gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt.
+- **Vorderseite:** Sie startet einfarbig rot. Die fünf Meilenstein-Reihen legen Ebenen darüber:
+  - **Treue:** Schriftzug, Endstreifen, Blockstreifen, Rand, Goldgarn, Medaillon, Rauten-Mitte
+  - **Wettbewerbe:** Pokal, Sternenband, vier Sterne, Pokal und Schale im Medaillon
+  - **Auswärts:** Naht, Fransenfarbe, Rauten-Enden, Stadion-Punkte, goldene Naht und Fransen
+  - **Momente:** 7 Muster in den Streifenbändern
+  - **Saison komplett:** AUG–MAI, Krone
+- **Rückseite:** Sie ist ebenfalls rot. Der Meilenstein „Europapokal-Abende“ ändert ihre Grundfarbe zu Nachtblau mit Sternenhimmel. Sie zeigt die KI-Highlights, das Fan-Etikett, Reise-Feld, Kalender, Gegner-Sammlung und den Strickcode.
 
 ## Wie die KI eingebunden ist
 

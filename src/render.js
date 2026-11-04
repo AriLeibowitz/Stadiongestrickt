@@ -3,8 +3,8 @@
    ========================================================================= */
 'use strict';
 
-const FRINGE = 14;          // Fransenlänge in Reihen-Einheiten
-const STITCH_ASPECT = 0.8;  // Masche: Höhe (entlang der Länge) / Breite
+const FRINGE = 6 * ROWS_PER_CM;   // 6 cm Fransen
+const STITCH_ASPECT = ST_PER_CM / ROWS_PER_CM;  // Reihenhöhe / Maschenbreite
 
 const HEX = CI_KEYS.map(k => YARN[k].hex);
 const SHADE = CI_KEYS.map(k => YARN[k].shade);
@@ -40,7 +40,7 @@ function drawScarf(canvas, model, opts) {
     ctx.font = '600 11px system-ui, sans-serif';
     ctx.textBaseline = 'bottom';
     const range = `${Math.round(x0 * cmPerRow)}–${Math.round(x1 * cmPerRow)} cm`;
-    const label = (s === 0 ? 'Ende A · ' : '') + (lay.segs > 1 ? `Bahn ${s + 1}/${lay.segs} · ${range}` : range);
+    const label = opts.title && lay.segs === 1 ? `${opts.title}  ·  Ende A` : (s === 0 ? 'Ende A · ' : '') + (lay.segs > 1 ? `Bahn ${s + 1}/${lay.segs} · ${range}` : range);
     ctx.textAlign = 'left';
     ctx.fillText(label, s === 0 ? 0 : o.x, o.y - 4);
     if (x1 === model.L) { ctx.textAlign = 'right'; ctx.fillText('Ende B', lay.width, o.y - 4); ctx.textAlign = 'left'; }
@@ -199,7 +199,7 @@ function drawLens(canvas, model, x, y, knit) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#e9e5dc'; ctx.fillRect(0, 0, w, h);
-  const cy = 15, cx = cy * STITCH_ASPECT;
+  const cy = 9, cx = cy * STITCH_ASPECT;
   const nx = Math.ceil(w / cx), ny = Math.ceil(h / cy);
   const x0 = Math.max(0, Math.min(model.L - nx, x - Math.floor(nx / 2)));
   const y0 = Math.max(0, Math.min(model.W - ny, y - Math.floor(ny / 2)));

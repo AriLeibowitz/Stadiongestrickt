@@ -10,7 +10,10 @@ html = (SRC / "template.html").read_text(encoding="utf-8")
 css = (SRC / "styles.css").read_text(encoding="utf-8")
 js = "\n".join((SRC / f).read_text(encoding="utf-8") for f in JS_ORDER)
 js = js.replace("</script", "<\\/script")
-out = html.replace("/*CSS*/", css).replace("/*JS*/", js)
+import base64
+font = base64.b64encode((SRC / "fonts" / "BarlowCondensed-Bold.woff2").read_bytes()).decode()
+font_css = f"@font-face{{font-family:'ScarfFont';font-weight:700;font-style:normal;src:url(data:font/woff2;base64,{font}) format('woff2');}}"
+out = html.replace("/*FONT*/", font_css).replace("/*CSS*/", css).replace("/*JS*/", js)
 
 (ROOT / "dist").mkdir(exist_ok=True)
 (ROOT / "dist" / "stadion-gestrickt.html").write_text(out, encoding="utf-8")

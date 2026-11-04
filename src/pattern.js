@@ -1,39 +1,26 @@
 /* =========================================================================
-   Stadion gestrickt – Muster-Generator (Ebenen-Design)
-   Vorderseite: startet einfarbig rot. Jeder Meilenstein legt eine Ebene
-                darüber (Streifen, Symbole, Musterbänder, Rauten, Gold).
-   Rückseite:   persönliche Geschichte (KI-Highlights, Etikett, Statistik).
-   Koordinaten: x = Reihe entlang der Schallänge (0 = Ende A),
-                y = Masche quer über die Breite (0 = obere Kante).
-   Jede Masche trägt ein Etikett (tag), damit „Schal lesen“ weiß,
-   welches Element an dieser Stelle sitzt.
+   Stadion gestrickt – Muster-Generator
+   Feines Maschenraster (6 Maschen/cm quer, 8 Reihen/cm längs). Schrift und
+   Symbole werden als Vektoren in Zentimetern gezeichnet und auf das Raster
+   übertragen (eine Garnfarbe pro Masche, keine Zwischentöne).
+   Vorderseite: startet einfarbig rot, Meilensteine legen Ebenen darüber.
+   Rückseite:   rot (oder nachtblau), KI-Highlights, Etikett, Statistik.
+   x = Reihe entlang der Länge (0 = Ende A), y = Masche quer (0 = obere Kante).
    ========================================================================= */
 'use strict';
 
-const STITCHES = 72;        // 18 cm Breite bei 4 Maschen/cm
-const ROWS_PER_CM = 5;      // 5 Reihen pro cm (Maschen sind breiter als hoch)
+const ROWS_PER_CM = 8, ST_PER_CM = 6, WIDTH_CM = 18;
+const STITCHES = WIDTH_CM * ST_PER_CM;   // 108
 const CI = { R: 0, W: 1, N: 2, B: 3, G: 4 };
 const CI_KEYS = ['R', 'W', 'N', 'B', 'G'];
-const PANEL_LEN = 42, HEART_LEN = 50;
+const SCARF_FONT = '"ScarfFont", "Barlow Condensed", Impact, "Arial Narrow", sans-serif';
 
-/* ---- Feste Maße der Vorderseite (in Reihen ab jedem Ende) -------------- */
+/* ---- Lage der Vorderseiten-Ebenen (cm ab jedem Ende) ------------------- */
 const FRONT = {
-  rauten: [2, 13],          // Auswärts-Rauten
-  stripeA: [16, 21],        // Endstreifen außen
-  zone: [24, 115],          // Endfeld (Schriftzug, Symbole)
-  stripeB: [118, 123],      // Endstreifen innen
-  flood: [[125, 126], [145, 146]],
-  starBand: [128, 143],
-  bodyStart: 152,           // Beginn des Mittelteils
-  bandLen: 16, bandPeriod: 48,
-  medalR: 27,               // Medaillon-Radius in Maschen
-  rautenHalf: 76,           // halbe Länge des Rauten-Mittelfelds
+  rauten: [0.4, 2.6], stripeA: [3.0, 3.8], stripeB: [19.4, 20.2],
+  zoneC: 11.6, starBand: [21.0, 24.2], bodyStart: 26, bandLen: 3, bandPeriod: 9,
+  centerHalf: 15.5, medalR: 7.4, rautenHalf: 14,
 };
-const ASPECT = 1.25;        // Reihen pro Masche für runde Formen (5 R/cm : 4 M/cm)
-
-function transliterate(s) {
-  return String(s).toUpperCase().replace(/Ä/g, 'AE').replace(/Ö/g, 'OE').replace(/Ü/g, 'UE').replace(/ß/g, 'SS').replace(/É/g, 'E').replace(/[^A-Z0-9 :.\-\/+#·'×]/g, '');
-}
 
 class Grid {
   constructor(L) {
@@ -47,72 +34,129 @@ class Grid {
   get(x, y) { return CI_KEYS[this.cells[x * this.W + y]]; }
   tagAt(x, y) { return this.tagList[this.tags[x * this.W + y]]; }
   rect(x0, x1, y0, y1, c) { for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) this.set(x, y, c); }
-  rows(x0, len, c) { this.rect(x0, x0 + len - 1, 0, this.W - 1, c); }
 }
 
-/* ---- Text & Motive ----------------------------------------------------- */
-function glyph(ch) { return FONT[ch] || FONT[' ']; }
-function textWidth(str, scale = 1) {
-  let w = 0; const s = transliterate(str);
-  for (let i = 0; i < s.length; i++) w += glyph(s[i])[0].length * scale + (i < s.length - 1 ? scale : 0);
-  return w;
-}
-function drawText(g, str, x, y, color, scale = 1) {
-  const s = transliterate(str); let cx = x;
-  for (const ch of s) {
-    const gl = glyph(ch);
-    for (let r = 0; r < 5; r++) for (let c = 0; c < gl[r].length; c++)
-      if (gl[r][c] === '1') g.rect(cx + c * scale, cx + c * scale + scale - 1, y + r * scale, y + r * scale + scale - 1, color);
-    cx += gl[0].length * scale + scale;
+/* ---- Rasterisierung: Vektorzeichnung in cm → Maschen -------------------- */
+let _rasterCanvas = null;
+class Raster {
+  constructor(g) {
+    this.g = g; this.Lcm = g.L / ROWS_PER_CM;
+    if (!_rasterCanvas) _rasterCanvas = document.createElement('canvas');
+    const cv = _rasterCanvas;
+    if (cv.width !== g.L || cv.height !== g.W) { cv.width = g.L; cv.height = g.W; }
+    this.ctx = cv.getContext('2d', { willReadFrequently: true });
   }
-  return cx - x - scale;
-}
-function drawTextCentered(g, str, x0, len, y, color, scale = 1) {
-  const w = textWidth(str, scale);
-  drawText(g, str, x0 + Math.floor((len - w) / 2), y, color, scale);
-}
-function drawIcon(g, icon, x, y, map = {}) {
-  icon.forEach((row, r) => { for (let c = 0; c < row.length; c++) { const ch = row[c]; if (ch !== '.') g.set(x + c, y + r, map[ch] || ch); } });
-}
-function iconW(icon) { return icon[0].length; }
-
-function drawRauten(g, x0, len, y0 = 0, y1 = STITCHES - 1) {
-  for (let x = x0; x < x0 + len; x++) for (let y = y0; y <= y1; y++) {
-    const a = Math.floor((x + y) / 6), b = Math.floor((x - y + 600) / 6);
-    g.set(x, y, (a + b) % 2 ? 'B' : 'W');
+  // fn(ctx) zeichnet in cm (u entlang, v quer). [u0, u1] begrenzt den Bereich (schneller).
+  paint(color, fn, u0 = 0, u1 = this.Lcm) {
+    const { ctx, g } = this;
+    const x0 = Math.max(0, Math.floor(u0 * ROWS_PER_CM) - 2), x1 = Math.min(g.L, Math.ceil(u1 * ROWS_PER_CM) + 2), w = x1 - x0;
+    if (w <= 0) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(x0, 0, w, g.W);
+    ctx.setTransform(ROWS_PER_CM, 0, 0, ST_PER_CM, 0, 0);
+    ctx.fillStyle = ctx.strokeStyle = '#fff';
+    ctx.save(); ctx.beginPath(); fn(ctx); ctx.restore();
+    const d = ctx.getImageData(x0, 0, w, g.W).data;
+    for (let y = 0; y < g.W; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] >= 128) g.set(x0 + x, y, color);
+  }
+  rect(color, u0, u1, v0, v1) { this.paint(color, c => c.fillRect(u0, v0, u1 - u0, v1 - v0), u0, u1); }
+  // Text mit Großbuchstaben-Höhe h (cm), zentriert auf (u, v), höchstens maxW breit
+  text(color, str, u, v, h, maxW = 99) {
+    const s = String(str).toUpperCase();
+    const fs = h / 0.7;
+    let wCm = 0;
+    this.paint(color, c => {
+      c.scale(1 / ST_PER_CM, 1 / ST_PER_CM);
+      c.font = `700 ${fs * ST_PER_CM}px ${SCARF_FONT}`;
+      const m = c.measureText(s);
+      // Schrift ist in Einheiten von 1/6 cm angelegt → Breite in cm = width / 6
+      const natW = m.width / ST_PER_CM;
+      const sx = Math.min(1, maxW / natW);
+      wCm = natW * sx;
+      c.translate(u * ST_PER_CM, v * ST_PER_CM);
+      c.scale(sx, 1);
+      c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+      const asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent;
+      c.fillText(s, 0, (asc - desc) / 2);
+    }, u - maxW / 2 - 1, u + maxW / 2 + 1);
+    return wCm;
   }
 }
 
-/* Motive für die Streifenbänder ('1' = Motivfarbe) */
-const MOTIFS = {
-  mHearts: { color: 'R', icon: ['.11.11.', '1111111', '1111111', '.11111.', '..111..', '...1...'] },
-  mCross: { color: 'N', icon: ['1...1', '.1.1.', '..1..', '.1.1.', '1...1'] },
-  mSparks: { color: 'gold', icon: ['...1...', '.1.1.1.', '..111..', '1111111', '..111..', '.1.1.1.', '...1...'] },
-  mArrows: { color: 'R', icon: ['..1..', '.111.', '11111', '..1..', '..1..'] },
-  mDiamonds: { color: 'N', icon: ['...1...', '..1.1..', '.1...1.', '1..1..1', '.1...1.', '..1.1..', '...1...'] },
-  mRain: { color: 'B', fn: (g, s, len, c) => { for (let x = s; x < s + len; x++) for (let y = 6; y < 66; y++) if ((x - s + y) % 5 === 0) g.set(x, y, c); } },
-  mZigzag: { color: 'gold', fn: (g, s, len, c) => { for (let y = 5; y < 67; y++) { const t = y % 12, off = t < 6 ? t : 12 - t; g.rect(s + 4 + off, s + 5 + off, y, y, c); } } },
+/* ---- Vektor-Symbole (Mittelpunkt u, v; Größe in cm) --------------------- */
+const SHAPES = {
+  star(c, u, v, r) {
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.42 : r;
+      const p = [u + Math.cos(a) * rr, v + Math.sin(a) * rr];
+      i ? c.lineTo(...p) : c.moveTo(...p);
+    }
+    c.closePath(); c.fill();
+  },
+  heart(c, u, v, s) {
+    c.moveTo(u, v + s * 0.45);
+    c.bezierCurveTo(u - s * 0.9, v - s * 0.1, u - s * 0.45, v - s * 0.75, u, v - s * 0.3);
+    c.bezierCurveTo(u + s * 0.45, v - s * 0.75, u + s * 0.9, v - s * 0.1, u, v + s * 0.45);
+    c.fill();
+  },
+  cross(c, u, v, s) { c.lineWidth = s * 0.28; c.lineCap = 'square'; c.moveTo(u - s / 2, v - s / 2); c.lineTo(u + s / 2, v + s / 2); c.moveTo(u + s / 2, v - s / 2); c.lineTo(u - s / 2, v + s / 2); c.stroke(); },
+  arrow(c, u, v, s) { c.moveTo(u, v - s / 2); c.lineTo(u + s * 0.45, v); c.lineTo(u + s * 0.17, v); c.lineTo(u + s * 0.17, v + s / 2); c.lineTo(u - s * 0.17, v + s / 2); c.lineTo(u - s * 0.17, v); c.lineTo(u - s * 0.45, v); c.closePath(); c.fill(); },
+  diamond(c, u, v, s) { c.lineWidth = s * 0.2; c.moveTo(u, v - s / 2); c.lineTo(u + s / 2, v); c.lineTo(u, v + s / 2); c.lineTo(u - s / 2, v); c.closePath(); c.stroke(); c.beginPath(); c.arc(u, v, s * 0.1, 0, 7); c.fill(); },
+  spark(c, u, v, s) {
+    c.lineWidth = s * 0.14; c.lineCap = 'round';
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 4, d = i % 2 ? s * 0.32 : s * 0.5; c.moveTo(u - Math.cos(a) * d, v - Math.sin(a) * d); c.lineTo(u + Math.cos(a) * d, v + Math.sin(a) * d); }
+    c.stroke();
+  },
+  cup(c, u, v, h) { // Pokal, Höhe h
+    const w = h * 0.62, t = v - h / 2;
+    c.moveTo(u - w / 2, t); c.lineTo(u + w / 2, t);
+    c.quadraticCurveTo(u + w / 2, t + h * 0.55, u + w * 0.1, t + h * 0.62);
+    c.lineTo(u + w * 0.1, t + h * 0.8); c.lineTo(u + w * 0.32, t + h * 0.86); c.lineTo(u + w * 0.32, t + h); c.lineTo(u - w * 0.32, t + h); c.lineTo(u - w * 0.32, t + h * 0.86); c.lineTo(u - w * 0.1, t + h * 0.8); c.lineTo(u - w * 0.1, t + h * 0.62);
+    c.quadraticCurveTo(u - w / 2, t + h * 0.55, u - w / 2, t); c.fill();
+    c.beginPath(); c.lineWidth = h * 0.08;
+    c.ellipse(u - w / 2, t + h * 0.2, w * 0.2, h * 0.14, 0, Math.PI * 0.5, Math.PI * 1.5);
+    c.moveTo(u + w / 2, t + h * 0.06); c.ellipse(u + w / 2, t + h * 0.2, w * 0.2, h * 0.14, 0, -Math.PI * 0.5, Math.PI * 0.5); c.stroke();
+  },
+  plate(c, u, v, r) { c.lineWidth = r * 0.16; c.arc(u, v, r * 0.92, 0, 7); c.stroke(); c.beginPath(); c.arc(u, v, r * 0.55, 0, 7); c.stroke(); c.beginPath(); c.arc(u, v, r * 0.2, 0, 7); c.fill(); },
+  crown(c, u, v, w) {
+    const h = w * 0.6, l = u - w / 2, b = v + h / 2, t = v - h / 2;
+    c.moveTo(l, b); c.lineTo(l, t + h * 0.1); c.lineTo(l + w * 0.25, t + h * 0.55); c.lineTo(u, t); c.lineTo(l + w * 0.75, t + h * 0.55); c.lineTo(l + w, t + h * 0.1); c.lineTo(l + w, b); c.closePath(); c.fill();
+  },
+  shield(c, u, v, w) {
+    const h = w * 1.2, t = v - h / 2;
+    c.moveTo(u - w / 2, t); c.lineTo(u + w / 2, t); c.lineTo(u + w / 2, t + h * 0.55);
+    c.quadraticCurveTo(u + w / 2, t + h * 0.85, u, t + h); c.quadraticCurveTo(u - w / 2, t + h * 0.85, u - w / 2, t + h * 0.55); c.closePath(); c.fill();
+  },
 };
 
-/* ---- Strickcode -------------------------------------------------------- */
-const CODE_Y = 10, CODE_BITS = 53;
+// Bayerische Rauten im Rechteck: schräges Schachbrett aus blauen und weißen Rauten,
+// direkt im Maschenraster berechnet (gestochen scharf)
+function paintRauten(r, u0, u1, v0, v1, s = 1.1) {
+  const g = r.g, su = s * 0.62, sv = s * 0.95, shear = 0.42;
+  const x0 = Math.max(0, Math.round(u0 * ROWS_PER_CM)), x1 = Math.min(g.L, Math.round(u1 * ROWS_PER_CM));
+  const y0 = Math.max(0, Math.round(v0 * ST_PER_CM)), y1 = Math.min(g.W, Math.round(v1 * ST_PER_CM));
+  for (let x = x0; x < x1; x++) for (let y = y0; y < y1; y++) {
+    const u = (x + 0.5) / ROWS_PER_CM, v = (y + 0.5) / ST_PER_CM, uu = u + v * shear;
+    const a = Math.floor(uu / su + v / sv), b = Math.floor(uu / su - v / sv);
+    g.set(x, y, ((a + b) % 2 + 2) % 2 ? 'B' : 'W');
+  }
+}
+
+/* ---- Strickcode (direkt im Raster) -------------------------------------- */
+const CODE_BITS = 53, CODE_Y = 1;
 function seasonBits(season) { const v = season - FIRST_SEASON; return [4, 3, 2, 1, 0].map(b => (v >> b) & 1); }
 function drawCodeBand(g, x0, raw, season, side) {
-  // 12 Reihen: Start-Wächter 1101 | 40 Bit Fan-Code | 5 Bit Saison | End-Wächter 1011
+  // 12 Reihen: Start 1101 | 40 Bit Fan-Code | 5 Bit Saison | Ende 1011, je 2 Maschen
   g.use({ type: 'code', side });
-  g.rows(x0, 12, 'N');
+  g.rect(x0, x0 + 11, 0, STITCHES - 1, 'N');
   const bits = [1, 1, 0, 1, ...codeBits(raw), ...seasonBits(season), 1, 0, 1, 1];
-  for (let x = x0 + 2; x < x0 + 10; x++) {
-    bits.forEach((b, i) => g.set(x, CODE_Y + i, b ? 'W' : 'N'));
-    g.set(x, CODE_Y - 2, 'R'); g.set(x, CODE_Y + CODE_BITS + 1, 'R');
-  }
+  for (let x = x0 + 2; x < x0 + 10; x++) bits.forEach((b, i) => { if (b) { g.set(x, CODE_Y + i * 2, 'W'); g.set(x, CODE_Y + i * 2 + 1, 'W'); } });
 }
 function decodeCodeBand(model) {
   for (let x = 0; x < model.L; x++) {
     const t = model.tagList[model.tags[x * STITCHES]];
     if (t && t.type === 'code') {
       const row = x + 5, bits = [];
-      for (let i = 0; i < CODE_BITS; i++) bits.push(model.cells[row * STITCHES + CODE_Y + i] === CI.W ? 1 : 0);
+      for (let i = 0; i < CODE_BITS; i++) bits.push(model.cells[row * STITCHES + CODE_Y + i * 2] === CI.W ? 1 : 0);
       if (bits.slice(0, 4).join('') !== '1101' || bits.slice(49).join('') !== '1011') return null;
       const p = parseCode(bitsToCode(bits.slice(4, 44)));
       const season = FIRST_SEASON + bits.slice(44, 49).reduce((v, b) => (v << 1) | b, 0);
@@ -122,295 +166,261 @@ function decodeCodeBand(model) {
   return null;
 }
 
+/* ---- Motive der Streifenbänder ----------------------------------------- */
+const MOTIFS = {
+  mHearts: { color: 'R', shape: 'heart', size: 2.0 },
+  mCross: { color: 'N', shape: 'cross', size: 1.4 },
+  mSparks: { color: 'gold', shape: 'spark', size: 2.0 },
+  mArrows: { color: 'R', shape: 'arrow', size: 1.9 },
+  mDiamonds: { color: 'N', shape: 'diamond', size: 2.0 },
+  mRain: { color: 'B', fn: (c, s, len) => { c.lineWidth = 0.22; c.rect(s, 0.9, len, 16.2); c.clip(); c.beginPath(); for (let k = -20; k < 20; k++) { c.moveTo(s + k * 0.9, 0.9); c.lineTo(s + k * 0.9 + 4, 17.1); } c.stroke(); } },
+  mZigzag: { color: 'gold', fn: (c, s, len) => { c.lineWidth = 0.4; c.lineJoin = 'miter'; c.moveTo(s + 0.6, 1.2); for (let i = 1; i <= 10; i++) c.lineTo(i % 2 ? s + len - 0.6 : s + 0.6, 1.2 + i * 1.56); c.stroke(); } },
+};
+
 /* ---- Vorderseite ------------------------------------------------------- */
 function goldAvailable(act) { return GOLD_ELEMENTS.some(k => act[k]); }
 
 function buildFront(ctx) {
   const { act, stats, lengthCm, season } = ctx;
-  const L = lengthCm * ROWS_PER_CM, C = Math.floor(L / 2);
-  const g = new Grid(L);
+  const L = lengthCm * ROWS_PER_CM, C = lengthCm / 2;
+  const g = new Grid(L), r = new Raster(g);
   const goldOn = goldAvailable(act);
   const el = (id, extra) => g.use({ el: id, ...extra });
-  // Spiegelung: d = Abstand vom jeweiligen Ende
-  const span = (end, d0, d1) => end === 0 ? [d0, d1] : [L - 1 - d1, L - 1 - d0];
-  const at = (end, d, w) => end === 0 ? d : L - d - w;   // Startreihe eines Objekts der Breite w
-  const endRows = (end, d0, d1, c) => { const [a, b] = span(end, d0, d1); g.rect(a, b, 0, STITCHES - 1, c); };
+  const uOf = (end, d) => end === 0 ? d : lengthCm - d;              // Position ab Ende
+  const band = (end, a, b) => end === 0 ? [a, b] : [lengthCm - b, lengthCm - a];
 
-  // Ebene 0: Vereinsrot
-  el('base', { layer: 'body' }); g.rows(0, L, 'R');
+  el('base', { layer: 'body' }); g.rect(0, L - 1, 0, STITCHES - 1, 'R');
 
-  // Rauten-Mittelfeld
   if (act.rautenField) {
     el('rautenField');
-    const h = Math.min(FRONT.rautenHalf, C - FRONT.bodyStart - 10);
-    drawRauten(g, C - h, 2 * h);
-    g.rect(C - h - 2, C - h - 1, 0, STITCHES - 1, 'W'); g.rect(C + h, C + h + 1, 0, STITCHES - 1, 'W');
+    paintRauten(r, C - FRONT.rautenHalf, C + FRONT.rautenHalf, 0, WIDTH_CM);
+    r.rect('W', C - FRONT.rautenHalf - 0.6, C - FRONT.rautenHalf, 0, WIDTH_CM);
+    r.rect('W', C + FRONT.rautenHalf, C + FRONT.rautenHalf + 0.6, 0, WIDTH_CM);
   }
 
-  // Streifenbänder im Mittelteil (symmetrisch zu beiden Enden)
+  // Streifenbänder (symmetrisch)
   const motifs = MOTIF_ORDER.filter(id => act[id]);
-  const bodyEnd = C - (act.rautenField ? FRONT.rautenHalf + 6 : FRONT.medalR * ASPECT + 8);
-  const bodyLen = Math.max(0, bodyEnd - FRONT.bodyStart);
-  // Mehr Muster als Bänder: Ende B bekommt die übrigen Muster (sonst symmetrisch)
-  const nb = Math.max(1, Math.round(bodyLen / FRONT.bandPeriod), Math.min(Math.ceil(motifs.length / 2), Math.floor(bodyLen / (FRONT.bandLen + 10))));
-  const bands = [];
-  if (bodyLen > FRONT.bandLen + 4 && (act.blocks || motifs.length)) {
+  const bodyLen = C - FRONT.centerHalf - FRONT.bodyStart;
+  const nb = Math.max(1, Math.round(bodyLen / FRONT.bandPeriod), Math.min(Math.ceil(motifs.length / 2), Math.floor(bodyLen / (FRONT.bandLen + 2))));
+  if (act.blocks || motifs.length) {
     for (let k = 0; k < nb; k++) {
-      const c = FRONT.bodyStart + (k + 0.5) * bodyLen / nb;
-      bands.push({ k, d: Math.round(c - FRONT.bandLen / 2) });
-    }
-  }
-  for (const end of [0, 1]) for (const b of bands) {
-    const s = at(end, b.d, FRONT.bandLen);
-    const slot = end === 1 && motifs.length > nb ? b.k + nb : b.k;
-    const motif = motifs.length ? motifs[slot % motifs.length] : null;
-    el(act.blocks ? 'blocks' : motif, { layer: 'body' });
-    g.rows(s, FRONT.bandLen, 'W');
-    if (motif) {
-      const m = MOTIFS[motif];
-      const col = m.color === 'gold' ? (goldOn ? 'G' : 'R') : m.color;
-      el(motif, { layer: 'body' });
-      if (m.fn) m.fn(g, s, FRONT.bandLen, col);
-      else {
-        const w = m.icon[0].length, h = m.icon.length, step = h + 3;
-        const n = Math.floor((60 + 3) / step), y0 = 6 + Math.floor((60 - (n * step - 3)) / 2);
-        for (let i = 0; i < n; i++) drawIcon(g, m.icon, s + Math.floor((FRONT.bandLen - w) / 2), y0 + i * step, { 1: col });
+      const dMid = FRONT.bodyStart + (k + 0.5) * bodyLen / nb;
+      for (const end of [0, 1]) {
+        const s = uOf(end, dMid) - FRONT.bandLen / 2, e = s + FRONT.bandLen;
+        const slot = end === 1 && motifs.length > nb ? k + nb : k;
+        const motif = motifs.length ? motifs[slot % motifs.length] : null;
+        el(act.blocks ? 'blocks' : motif, { layer: 'body' }); r.rect('W', s, e, 0, WIDTH_CM);
+        if (motif) {
+          const m = MOTIFS[motif], col = m.color === 'gold' ? (goldOn ? 'G' : 'R') : m.color;
+          el(motif, { layer: 'body' });
+          if (m.fn) r.paint(col, c => m.fn(c, s, FRONT.bandLen), s, e);
+          else r.paint(col, c => { for (let i = 0; i < 5; i++) { c.beginPath(); SHAPES[m.shape](c, s + FRONT.bandLen / 2, 2.2 + i * 3.4, m.size); } }, s, e);
+        }
+        if (act.gold) { el('gold'); r.rect('G', s - 0.65, s - 0.35, 0, WIDTH_CM); r.rect('G', e + 0.35, e + 0.65, 0, WIDTH_CM); }
       }
     }
-    if (act.gold) { el('gold'); g.rows(s - 2, 1, 'G'); g.rows(s + FRONT.bandLen + 1, 1, 'G'); }
   }
 
-  // Medaillon in der Mitte
+  // Medaillon
   if (act.medal || act.cup || act.plate) {
+    const R = FRONT.medalR, cv = WIDTH_CM / 2;
     el(act.medal ? 'medal' : act.plate ? 'plate' : 'cup');
-    const R = FRONT.medalR, cy = (STITCHES - 1) / 2, rx = Math.ceil(R * ASPECT) + 1;
-    for (let x = C - rx; x <= C + rx; x++) for (let y = 0; y < STITCHES; y++) {
-      const d = Math.hypot((x - C) / ASPECT, y - cy);
-      if (d <= R - 3) g.set(x, y, 'N');
-      else if (d <= R) g.set(x, y, goldOn ? 'G' : 'W');
-    }
-    const icons = [];
-    if (act.plate) icons.push(['plate', ICONS.plate]);
-    if (act.cup) icons.push(['cup', ICONS.cup]);
-    const iw = icons.length * 9 + (icons.length - 1) * 3;
-    const yIcon = act.medal ? 14 : 31;
-    icons.forEach(([id, ic], i) => { el(id); drawIcon(g, ic, C - Math.floor(iw / 2) + i * 12, yIcon, { G: 'G' }); });
+    r.paint(goldOn ? 'G' : 'W', c => { c.arc(C, cv, R, 0, 7); c.fill(); }, C - R, C + R);
+    r.paint('N', c => { c.arc(C, cv, R - 0.55, 0, 7); c.fill(); }, C - R, C + R);
+    const icons = [act.plate && 'plate', act.cup && 'cup'].filter(Boolean);
+    const vi = act.medal ? 4.6 : cv;
+    icons.forEach((id, i) => {
+      el(id);
+      const u = C + (i - (icons.length - 1) / 2) * 3.4;
+      r.paint('G', c => id === 'plate' ? SHAPES.plate(c, u, vi, act.medal ? 1.35 : 2.2) : SHAPES.cup(c, u, vi, act.medal ? 2.6 : 4.2), u - 3, u + 3);
+    });
     if (act.medal) {
       el('medal');
-      const yN = icons.length ? 26 : 23;
-      drawTextCentered(g, String(stats.total), C - 20, 41, yN, 'W', 2);
-      drawTextCentered(g, 'SPIELE', C - 20, 41, yN + 13, goldOn ? 'G' : 'W', 1);
+      const vn = icons.length ? 9.6 : 8.4;
+      r.text('W', String(stats.total), C, vn, icons.length ? 3.6 : 4.6, 9);
+      r.text(goldOn ? 'G' : 'W', 'SPIELE', C, vn + (icons.length ? 3.4 : 4.1), 1.15, 8);
     }
   }
 
   // Enden
-  const dc = Math.round((FRONT.zone[0] + FRONT.zone[1]) / 2);
   for (const end of [0, 1]) {
-    if (act.awayRauten) { el('awayRauten'); const [a, b] = span(end, ...FRONT.rauten); drawRauten(g, a, b - a + 1); }
-    if (act.endStripes) { el('endStripes'); endRows(end, ...FRONT.stripeA, 'W'); endRows(end, ...FRONT.stripeB, 'W'); }
+    const uc = uOf(end, FRONT.zoneC);
+    if (act.awayRauten) { el('awayRauten'); const [a, b] = band(end, ...FRONT.rauten); paintRauten(r, a, b, 0, WIDTH_CM, 1.0); }
+    if (act.endStripes) { el('endStripes'); for (const st of [FRONT.stripeA, FRONT.stripeB]) { const [a, b] = band(end, ...st); r.rect('W', a, b, 0, WIDTH_CM); } }
     if (act.starBand) {
-      el('starBand'); endRows(end, ...FRONT.starBand, 'N');
-      const [a] = span(end, ...FRONT.starBand);
-      for (let y = 6; y < 64; y += 9) { drawIcon(g, ICONS.starSmall, a + 3, y, { W: 'W' }); drawIcon(g, ICONS.starSmall, a + 10, y + 4, { W: 'W' }); }
+      el('starBand'); const [a, b] = band(end, ...FRONT.starBand);
+      r.rect('N', a, b, 0, WIDTH_CM);
+      r.paint('W', c => { for (let i = 0; i < 6; i++) { c.beginPath(); SHAPES.star(c, a + 1.0, 1.6 + i * 3.0, 0.62); c.beginPath(); SHAPES.star(c, a + 2.2, 3.1 + i * 3.0, 0.62); } }, a, b);
+      if (act.gold) { el('gold'); r.rect('G', a - 0.5, a - 0.25, 0, WIDTH_CM); r.rect('G', b + 0.25, b + 0.5, 0, WIDTH_CM); }
     }
-    if (act.floodlight) { el('floodlight'); for (const f of FRONT.flood) endRows(end, ...f, 'G'); }
-    if (act.fourStars) {
-      el('fourStars');
-      const w = 4 * 5 + 3 * 5;
-      for (let i = 0; i < 4; i++) drawIcon(g, ICONS.star, at(end, dc - Math.floor(w / 2), w) + i * 10, 13, { G: 'G' });
-    }
-    if (act.season) {
-      el(act.monthSeal ? 'monthSeal' : 'season');
-      const t = seasonLabel(season), w = textWidth(t, 3);
-      drawText(g, t, at(end, dc - Math.floor(w / 2), w), 21, act.monthSeal ? 'G' : 'W', 3);
-    }
-    if (act.monthSeal) {
-      el('monthSeal');
-      const t = 'AUG-MAI', w = textWidth(t, 1);
-      drawText(g, t, at(end, dc - Math.floor(w / 2), w), 41, 'G', 1);
-    }
-    const syms = [];
-    if (act.cupIcon) syms.push(['cupIcon', ICONS.cup, { G: 'W' }]);
-    if (act.crown) syms.push(['crown', ICONS.crown, { G: 'G' }]);
-    const sw = syms.reduce((s, x) => s + iconW(x[1]), 0) + Math.max(0, syms.length - 1) * 6;
-    let sx = at(end, dc - Math.floor(sw / 2), sw);
-    for (const [id, ic, map] of syms) { el(id); drawIcon(g, ic, sx, id === 'crown' ? 53 : 50, map); sx += iconW(ic) + 6; }
+    if (act.fourStars) { el('fourStars'); r.paint('G', c => { for (let i = 0; i < 4; i++) { c.beginPath(); SHAPES.star(c, uc + (i - 1.5) * 2.3, 2.75, 0.9); } }, uc - 5, uc + 5); }
+    if (act.season) { el(act.gold ? 'gold' : 'season'); r.text(act.gold ? 'G' : 'W', seasonLabel(season), uc, 7.9, 5.4, 13.4); }
+    if (act.monthSeal) { el('monthSeal'); r.text('G', 'AUG – MAI', uc, 12.2, 1.15, 10); }
+    const syms = [act.cupIcon && 'cupIcon', act.crown && 'crown'].filter(Boolean);
+    syms.forEach((id, i) => {
+      el(id);
+      const u = uc + (i - (syms.length - 1) / 2) * 3.6;
+      r.paint(id === 'crown' ? 'G' : 'W', c => id === 'crown' ? SHAPES.crown(c, u, 14.6, 2.6) : SHAPES.cup(c, u, 14.6, 2.3), u - 2, u + 2);
+    });
     if (act.stadiumDots) {
       el('stadiumDots');
-      const n = Math.min(stats.stadiums.size, 22), w = n * 4 - 2;
-      const x0 = at(end, dc - Math.floor(w / 2), w);
-      for (let i = 0; i < n; i++) g.rect(x0 + i * 4, x0 + i * 4 + 1, 61, 62, 'W');
+      const n = Math.min(stats.stadiums.size, 22), w = (n - 1) * 0.6;
+      r.paint('W', c => { for (let i = 0; i < n; i++) { c.moveTo(uc - w / 2 + i * 0.6 + 0.22, 16.75); c.arc(uc - w / 2 + i * 0.6, 16.75, 0.22, 0, 7); } c.fill(); }, uc - 8, uc + 8);
     }
   }
 
   // Längskanten
   if (act.awaySeam || act.tour) {
     el(act.tour ? 'tour' : 'awaySeam');
+    const dash = ROWS_PER_CM / 2;
     for (let x = 0; x < L; x++) {
-      if (x % 4 >= 2) continue;
-      for (const y of [4, 67]) {
+      if (Math.floor(x / dash) % 2) continue;
+      for (const y of [5, 6, 101, 102]) {
         const t = g.tagAt(x, y);
         if (!t || t.layer !== 'body') continue;
         g.set(x, y, act.tour ? 'G' : (g.get(x, y) === 'W' ? 'R' : 'W'));
       }
     }
   }
-  if (act.border) { el('border'); g.rect(0, L - 1, 0, 1, 'W'); g.rect(0, L - 1, 70, 71, 'W'); }
+  if (act.border) { el('border'); g.rect(0, L - 1, 0, 2, 'W'); g.rect(0, L - 1, STITCHES - 3, STITCHES - 1, 'W'); }
 
-  return finishModel(g, { L, lengthCm, bands: bands.length * 2, motifs }, fringeColors(act));
+  return finishModel(g, { L, lengthCm, motifs }, fringeColors(act));
 }
 
 function fringeColors(act) {
-  if (act.gold) return act.endStripes ? ['G', 'R'] : ['G', 'W'];
-  if (act.endStripes) return ['R', 'W'];
-  return ['W'];
-}
-
-/* ---- Highlight-Felder (Rückseite) ------------------------------------ */
-function drawPanel(g, x0, len, m, isHeart, act, gold) {
-  g.use({ type: 'panel', game: m, heart: isHeart });
-  g.rows(x0, len, 'N');
-  const frame = { W: 'R', D: 'W', L: 'B' }[m.result] || 'W';
-  g.rows(x0, 2, frame); g.rows(x0 + len - 2, 2, frame);
-  if (isHeart) { g.rows(x0 + 3, 1, gold); g.rows(x0 + len - 4, 1, gold); }
-  const off = isHeart ? 6 : 4;
-  const sx = x0 + off, sy = 4;
-  drawIcon(g, ICONS.shield, sx, sy, {});
-  drawTextCentered(g, clubAbbr(m.opp).slice(0, 3), sx + 1, 13, sy + 3, 'W', 1);
-  const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
-  const scx = sx + 17;
-  drawTextCentered(g, score, scx, x0 + len - off - scx, 6, 'W', 2);
-  const inner0 = x0 + off, innerLen = len - 2 * off;
-  drawTextCentered(g, shortRound(m), inner0, innerLen, 22, 'W', 1);
-  drawTextCentered(g, fmtDate(m.date), inner0, innerLen, 30, 'W', 1);
-  let icon = null;
-  if (m.final) icon = ICONS.cup;
-  else if (m.titleClinch) icon = ICONS.plate;
-  else if (m.comp === 'CL') icon = ICONS.star;
-  if (icon) drawIcon(g, icon, x0 + Math.floor((len - iconW(icon)) / 2), 38, { G: gold });
-  else drawTextCentered(g, m.venue === 'H' ? 'HEIM' : m.venue === 'A' ? 'AUSWAERTS' : 'FINALE', inner0, innerLen, 40, 'R', 1);
-  drawTextCentered(g, `NR ${m.nr}`, inner0, innerLen, 50, gold, 1);
-  drawTextCentered(g, transliterate(m.city).slice(0, 10), inner0, innerLen, 58, 'B', 1);
-  if (isHeart) drawIcon(g, ICONS.heart, x0 + Math.floor((len - 5) / 2), 65, { R: 'R' });
-}
-
-function shortRound(m) {
-  const c = { BL: 'BL', DFB: 'DFB', CL: 'CL', SC: 'SUPERCUP' }[m.comp];
-  if (m.final) return m.comp === 'DFB' ? 'POKALFINALE' : 'CL-FINALE';
-  if (m.comp === 'SC') return 'SUPERCUP';
-  if (m.comp === 'BL') return `BL ${m.round.split('.')[0]}`;
-  const map = { 'Achtelfinale': 'AF', 'Viertelfinale': 'VF', 'Halbfinale': 'HF', '1. Runde': 'R1', '2. Runde': 'R2' };
-  for (const [k, v] of Object.entries(map)) if (m.round.startsWith(k)) return `${c} ${v}`;
-  return `${c} ${m.round.replace(/\D/g, '')}`.trim();
-}
-
-function textBox(g, x, w) {
-  g.rect(x, x + w - 1, 3, 68, 'N');
-  g.rect(x, x + w - 1, 3, 3, 'W'); g.rect(x, x + w - 1, 68, 68, 'W');
-  g.rect(x, x, 3, 68, 'W'); g.rect(x + w - 1, x + w - 1, 3, 68, 'W');
+  if (act.tour) return ['G', 'R'];
+  const base = act.fringeRW ? ['R', 'W'] : ['W'];
+  return act.gold ? [...base, base[0], 'G'] : base;
 }
 
 /* ---- Rückseite --------------------------------------------------------- */
+const HL_LEN = 10.5, HEART_LEN = 13, HL_GAP = 1;
+
+function frame(r, color, u0, u1, t = 0.35) {
+  r.paint(color, c => { c.rect(u0, 0.8, u1 - u0, WIDTH_CM - 1.6); c.rect(u0 + t, 0.8 + t, u1 - u0 - 2 * t, WIDTH_CM - 1.6 - 2 * t); c.fill('evenodd'); }, u0, u1);
+}
+
+function drawPanel(g, r, u0, len, m, isHeart, gold, bg) {
+  g.use({ type: 'panel', game: m, heart: isHeart });
+  const u1 = u0 + len, uc = u0 + len / 2;
+  frame(r, isHeart ? gold : 'W', u0, u1, isHeart ? 0.5 : 0.35);
+  if (isHeart) frame(r, 'W', u0 + 0.8, u1 - 0.8, 0.2);
+  // Gegner-Schild (neutral, kein Vereinswappen) + Ergebnis
+  const su = u0 + (isHeart ? 2.6 : 2.2);
+  r.paint('W', c => SHAPES.shield(c, su, 3.1, 2.4), su - 2, su + 2);
+  r.text(bg, clubAbbr(m.opp).slice(0, 3), su, 2.7, 0.75, 2.0);
+  const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
+  r.text('W', score, (su + 1.4 + u1 - 0.8) / 2, 3.1, 2.4, u1 - su - 2.4);
+  r.text('W', shortRound(m), uc, 6.6, 1.25, len - 1.6);
+  r.text('W', fmtDateLong(m.date), uc, 8.6, 1.1, len - 1.6);
+  if (m.final) r.paint(gold, c => SHAPES.cup(c, uc, 11.1, 2.6), uc - 2, uc + 2);
+  else if (m.titleClinch) r.paint(gold, c => SHAPES.plate(c, uc, 11.1, 1.3), uc - 2, uc + 2);
+  else if (m.comp === 'CL') r.paint('W', c => SHAPES.star(c, uc, 11.1, 1.2), uc - 2, uc + 2);
+  else r.text(bg === 'N' ? 'B' : 'N', m.venue === 'H' ? 'HEIM' : m.venue === 'A' ? 'AUSWÄRTS' : 'FINALE', uc, 11.1, 1.05, len - 1.6);
+  r.text(gold, `NR. ${m.nr}`, uc, 13.4, 1.0, len - 2);
+  r.text('W', m.city, uc, 15.3, 1.0, len - 1.6);
+  if (isHeart) r.paint(bg === 'R' ? 'W' : 'R', c => SHAPES.heart(c, uc, 16.6, 1.1), uc - 1, uc + 1);
+}
+
+function shortRound(m) {
+  if (m.final) return m.comp === 'DFB' ? 'POKALFINALE' : 'CL-FINALE';
+  if (m.comp === 'SC') return 'SUPERCUP';
+  if (m.comp === 'BL') return `${m.round.split('.')[0]}. SPIELTAG`;
+  const c = m.comp === 'CL' ? 'CL' : 'POKAL';
+  const map = { 'Achtelfinale': 'ACHTELFINALE', 'Viertelfinale': 'VIERTELFINALE', 'Halbfinale': 'HALBFINALE', '1. Runde': '1. RUNDE', '2. Runde': '2. RUNDE' };
+  for (const [k, v] of Object.entries(map)) if (m.round.startsWith(k)) return `${c} ${v}`;
+  return `${c} ${m.round.replace(/\D/g, '')}. SPIEL`;
+}
+
 function buildBack(ctx) {
   const { profile, act, lengthCm, stats, highlights } = ctx;
-  const L = lengthCm * ROWS_PER_CM, C = Math.floor(L / 2);
-  const g = new Grid(L);
-  const goldOn = goldAvailable(act);
-  const gold = goldOn ? 'G' : 'W';
-  g.use({ type: 'backBase' });
-  g.rows(0, L, 'N'); for (let x = 7; x < L; x += 14) g.rows(x, 1, 'R');
+  const L = lengthCm * ROWS_PER_CM, C = lengthCm / 2;
+  const g = new Grid(L), r = new Raster(g);
+  const gold = goldAvailable(act) ? 'G' : 'W';
+  const bg = act.night ? 'N' : 'R';
+  g.use(act.night ? { el: 'night' } : { type: 'backBase' });
+  g.rect(0, L - 1, 0, STITCHES - 1, bg);
 
-  // Info-Boxen: links und rechts der Highlights
   const left = [], right = [];
-  const box = (list, w, el, fn) => list.push({ w, el, fn });
-  const name = transliterate(ctx.name || profile.name || 'FAN').slice(0, 10);
-  if (act.backInfo) {
-    const lines = [[name, 3], [`SAISON ${seasonLabel(ctx.season)}`, 1], [profile.code, 1], [`${stats.total} SPIELE`, 1], [`${stats.W} S  ${stats.D} U  ${stats.L} N`, 1]];
-    const w = Math.max(...lines.map(([t, s]) => textWidth(t, s))) + 10;
-    box(left, w, 'backInfo', x => {
-      textBox(g, x, w);
-      drawTextCentered(g, lines[0][0], x, w, 8, 'W', 3);
-      drawTextCentered(g, lines[1][0], x, w, 28, 'R', 1);
-      drawTextCentered(g, lines[2][0], x, w, 36, 'B', 1);
-      drawTextCentered(g, lines[3][0], x, w, 48, 'W', 1);
-      drawTextCentered(g, lines[4][0], x, w, 56, 'W', 1);
-    });
-  }
-  if (act.km) {
-    const km = stats.km.toLocaleString('de-DE');
-    const w = Math.max(textWidth(`${km} KM`, 2), textWidth('AUSWAERTS', 1)) + 10;
-    box(left, w, 'km', x => { textBox(g, x, w); drawTextCentered(g, 'AUSWAERTS', x, w, 18, 'R', 1); drawTextCentered(g, `${km} KM`, x, w, 28, 'W', 2); drawTextCentered(g, `${stats.away} FAHRTEN`, x, w, 46, 'W', 1); });
-  }
-  if (act.countries) {
+  const box = (list, w, id, fn) => list.push({ w, id, fn });
+  if (act.backInfo) box(left, 17, 'backInfo', u0 => {
+    frame(r, 'W', u0, u0 + 17);
+    r.text('W', ctx.name || profile.name || 'FAN', u0 + 8.5, 4.6, 3.4, 14.5);
+    r.text(bg === 'R' ? 'N' : 'R', `SAISON ${seasonLabel(ctx.season)}`, u0 + 8.5, 8.4, 1.25, 14);
+    r.text('W', profile.code, u0 + 8.5, 10.6, 1.0, 14);
+    r.text('W', `${stats.total} SPIELE`, u0 + 8.5, 13.0, 1.25, 14);
+    r.text('W', `${stats.W} S · ${stats.D} U · ${stats.L} N`, u0 + 8.5, 15.2, 1.05, 14);
+  });
+  if (act.travel) box(left, 13, 'travel', u0 => {
+    frame(r, 'W', u0, u0 + 13);
+    r.text(bg === 'R' ? 'N' : 'R', 'AUSWÄRTS', u0 + 6.5, 3.0, 1.05, 11);
+    r.text('W', `${stats.km.toLocaleString('de-DE')} KM`, u0 + 6.5, 5.9, 2.0, 11.6);
+    r.text('W', `${stats.away} FAHRTEN`, u0 + 6.5, 8.6, 1.0, 11);
     const cs = [...stats.awayCountries];
-    const rowsC = []; for (let i = 0; i < cs.length; i += 3) rowsC.push(cs.slice(i, i + 3).join(' '));
-    const shown = rowsC.slice(0, 5);
-    const w = Math.max(textWidth('LAENDER', 1), ...shown.map(t => textWidth(t, 1)), 20) + 10;
-    box(left, w, 'countries', x => { textBox(g, x, w); drawTextCentered(g, 'LAENDER', x, w, 10, 'R', 1); shown.forEach((t, i) => drawTextCentered(g, t, x, w, 20 + i * 8, 'W', 1)); });
-  }
-  if (act.calendar) {
+    for (let i = 0; i < Math.min(3, Math.ceil(cs.length / 3)); i++) r.text('W', cs.slice(i * 3, i * 3 + 3).join(' '), u0 + 6.5, 11.4 + i * 2, 1.15, 11);
+    if (!cs.length) r.text('W', 'DEUTSCHLAND', u0 + 6.5, 11.4, 1.0, 11);
+  });
+  if (act.calendar) box(right, 12.5, 'calendar', u0 => {
+    frame(r, 'W', u0, u0 + 12.5);
+    r.text(bg === 'R' ? 'N' : 'R', 'KALENDER', u0 + 6.25, 2.9, 1.05, 10);
     const max = Math.max(1, ...stats.months.values());
-    const w = SEASON_MONTHS.length * 6 + 12;
-    box(right, w, 'calendar', x => {
-      textBox(g, x, w);
-      drawTextCentered(g, 'KALENDER', x, w, 8, 'R', 1);
-      const sx = x + 7;
-      SEASON_MONTHS.forEach((mo, i) => {
-        const n = stats.months.get(mo) || 0;
-        const h = n ? 2 + Math.round(34 * n / max) : 0;
-        if (h) g.rect(sx + i * 6, sx + i * 6 + 3, 54 - h, 53, n === max ? gold : 'W');
-        else g.rect(sx + i * 6, sx + i * 6 + 3, 53, 53, 'B');
-        drawText(g, MONTH_SHORT[mo][0], sx + i * 6 + 1, 58, 'B', 1);
-      });
+    SEASON_MONTHS.forEach((mo, i) => {
+      const n = stats.months.get(mo) || 0, u = u0 + 1.3 + i * 1.03, h = n ? 0.4 + 8.6 * n / max : 0.2;
+      r.rect(n === max ? gold : 'W', u, u + 0.72, 14.0 - h, 14.0);
+      r.text('W', MONTH_SHORT[mo][0], u + 0.36, 15.5, 0.8, 1);
     });
-  }
-  if (act.collection) {
-    const w = 9 * 8 + 8;
-    const opps = ctx.blOpponents || CURRENT_BL;
-    box(right, w, 'collection', x => {
-      textBox(g, x, w);
-      drawTextCentered(g, `GEGNER ${stats.blOpp.size}/17`, x, w, 10, 'R', 1);
-      opps.forEach((id, i) => {
-        const row = i < 9 ? 0 : 1, col = i < 9 ? i : i - 9;
-        const bx = x + 5 + col * 8 + (row ? 4 : 0), by = 22 + row * 14;
-        g.rect(bx, bx + 5, by, by + 9, stats.blOpp.has(id) ? 'R' : 'N');
-        g.rect(bx, bx + 5, by, by, 'W'); g.rect(bx, bx + 5, by + 9, by + 9, 'W'); g.rect(bx, bx, by, by + 9, 'W'); g.rect(bx + 5, bx + 5, by, by + 9, 'W');
-      });
-      drawTextCentered(g, 'GESEHEN', x, w, 52, 'W', 1);
+  });
+  if (act.collection) box(right, 14, 'collection', u0 => {
+    frame(r, 'W', u0, u0 + 14);
+    r.text(bg === 'R' ? 'N' : 'R', `GEGNER ${stats.blOpp.size}/17`, u0 + 7, 2.9, 1.05, 12);
+    (ctx.blOpponents || CURRENT_BL).forEach((id, i) => {
+      const row = i < 9 ? 0 : 1, col = row ? i - 9 : i;
+      const u = u0 + 1.5 + col * 1.37 + (row ? 0.68 : 0), v = 6.6 + row * 3.6;
+      r.paint(stats.blOpp.has(id) ? 'W' : (bg === 'R' ? 'N' : 'B'), c => SHAPES.shield(c, u, v, 1.05), u - 1, u + 1);
     });
-  }
-  if (act.rautenField) {
-    const w = textWidth('ALLESFAHRER', 1) + 14;
-    box(right, w, 'rautenField', x => { textBox(g, x, w); drawRauten(g, x + 2, w - 4, 5, 18); drawRauten(g, x + 2, w - 4, 53, 66); drawTextCentered(g, 'ALLESFAHRER', x, w, 28, gold, 1); drawTextCentered(g, `${stats.total}`, x, w, 37, 'W', 1); });
-  }
+    r.text('W', 'GESEHEN', u0 + 7, 14.8, 1.0, 12);
+  });
+  if (act.rautenField) box(right, 11, 'rautenField', u0 => {
+    frame(r, 'W', u0, u0 + 11);
+    paintRauten(r, u0 + 0.6, u0 + 10.4, 1.4, 4.6, 0.8); paintRauten(r, u0 + 0.6, u0 + 10.4, 13.4, 16.6, 0.8);
+    r.text(gold, 'ALLESFAHRER', u0 + 5.5, 8.0, 1.2, 9.6);
+    r.text('W', `${stats.total} SPIELE`, u0 + 5.5, 10.6, 1.0, 9);
+  });
 
-  // Highlights: Herzstück in der Mitte, die übrigen chronologisch links/rechts
+  // Highlights in der Mitte
   const hl = act.highlights ? highlights.slice(0, 5) : [];
-  let hlStart = C, hlEnd = C;
+  let hs = C, he = C;
   if (hl.length) {
-    const heart = hl[0];
     const side = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
     const nA = Math.ceil(side.length / 2);
-    const hA = side.slice(0, nA), hB = side.slice(nA);
-    const h0 = C - Math.floor(HEART_LEN / 2);
-    drawPanel(g, h0, HEART_LEN, heart, true, act, gold);
-    hlStart = h0; hlEnd = h0 + HEART_LEN;
-    for (let i = hA.length - 1; i >= 0; i--) { hlStart -= PANEL_LEN + 3; drawPanel(g, hlStart, PANEL_LEN, hA[i], false, act, gold); }
-    for (const m of hB) { hlEnd += 3; drawPanel(g, hlEnd, PANEL_LEN, m, false, act, gold); hlEnd += PANEL_LEN; }
+    hs = C - HEART_LEN / 2; he = C + HEART_LEN / 2;
+    drawPanel(g, r, hs, HEART_LEN, hl[0], true, gold, bg);
+    for (const m of side.slice(0, nA).reverse()) { hs -= HL_LEN + HL_GAP; drawPanel(g, r, hs, HL_LEN, m, false, gold, bg); }
+    for (const m of side.slice(nA)) { drawPanel(g, r, he + HL_GAP, HL_LEN, m, false, gold, bg); he += HL_LEN + HL_GAP; }
   }
-
-  const ends = act.code ? 14 : 2;
+  const ends = act.code ? 2.4 : 0.5;
   const place = (list, a, b) => {
     const items = list.slice();
-    while (items.length && items.reduce((s, it) => s + it.w, 0) + 4 * (items.length + 1) > b - a) items.pop();
-    const free = (b - a) - items.reduce((s, it) => s + it.w, 0);
-    const gap = Math.floor(free / (items.length + 1));
-    let x = a + gap;
-    for (const it of items) { g.use({ el: it.el }); it.fn(x); x += it.w + gap; }
+    while (items.length && items.reduce((s, it) => s + it.w, 0) + 1 * (items.length + 1) > b - a) items.pop();
+    const gap = ((b - a) - items.reduce((s, it) => s + it.w, 0)) / (items.length + 1);
+    let u = a + gap;
+    for (const it of items) { g.use({ el: it.id }); it.fn(u); u += it.w + gap; }
     return list.length - items.length;
   };
-  const dropped = place(left, ends, hlStart) + place(right, hlEnd, L - ends);
-  if (act.code) { drawCodeBand(g, 2, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 14, profile.raw, ctx.season, 'B'); }
+  const dropped = place(left, ends, hs) + place(right, he, lengthCm - ends);
+  if (act.night) {
+    // Sternenhimmel nur auf freier Fläche (nicht in Feldern und Texten)
+    const rnd = rng('night-' + profile.raw), baseTag = g.tags[0];
+    g.use({ el: 'night' });
+    for (let i = 0; i < lengthCm * 1.4; i++) {
+      const x = Math.floor(rnd() * L), y = 4 + Math.floor(rnd() * (STITCHES - 8)), big = rnd() < 0.3;
+      const pts = big ? [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]] : [[0, 0]];
+      const ok = pts.every(([dx, dy]) => x + dx >= 0 && x + dx < L && g.tags[(x + dx) * STITCHES + y + dy] === baseTag)
+        && [[2, 0], [-2, 0], [0, 2], [0, -2]].every(([dx, dy]) => x + dx >= 0 && x + dx < L && g.tags[(x + dx) * STITCHES + y + dy] === baseTag);
+      if (ok) for (const [dx, dy] of pts) g.set(x + dx, y + dy, 'W');
+    }
+  }
+  if (act.code) { drawCodeBand(g, 4, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 16, profile.raw, ctx.season, 'B'); }
   return finishModel(g, { L, lengthCm, back: true, dropped }, fringeColors(act));
 }
 
@@ -422,21 +432,18 @@ function finishModel(g, info, fringe) {
 
 function buildScarf(ctx) { return { front: buildFront(ctx), back: buildBack(ctx) }; }
 
-// Garnfarben über beide Seiten + Fransen
 function yarnUsage(scarf) {
-  const used = new Set();
-  const counts = [0, 0, 0, 0, 0];
+  const used = new Set(), counts = [0, 0, 0, 0, 0];
   for (const side of [scarf.front, scarf.back]) side.counts.forEach((c, i) => { counts[i] += c; if (c) used.add(CI_KEYS[i]); });
   scarf.front.fringe.forEach(c => used.add(c));
   return { used: CI_KEYS.filter(k => used.has(k)), counts };
 }
 
-// Strickdatei: eine Zeile pro Reihe, ein Buchstabe pro Masche
 function knitFile(scarf, meta) {
   const lines = [
     '# Stadion gestrickt – Strickdatei (Prototyp)',
     `# Fan-Code: ${meta.code} · Saison ${seasonLabel(meta.season)}`,
-    `# Maße: ${meta.lengthCm} cm x 18 cm · ${scarf.front.L} Reihen x ${STITCHES} Maschen · Doppeljacquard`,
+    `# Maße: ${meta.lengthCm} x ${WIDTH_CM} cm · ${scarf.front.L} Reihen x ${STITCHES} Maschen (${ROWS_PER_CM} R/cm, ${ST_PER_CM} M/cm) · Doppeljacquard`,
     `# Farben: ${Object.entries(YARN).map(([k, v]) => `${k}=${v.name} ${v.hex}`).join(', ')}`,
     `# Fransen: ${scarf.front.fringe.join('/')}`, '',
   ];
