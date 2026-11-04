@@ -9,27 +9,43 @@ const STITCH_ASPECT = ST_PER_CM / ROWS_PER_CM;  // Reihenhöhe / Maschenbreite
 const HEX = CI_KEYS.map(k => YARN[k].hex);
 const SHADE = CI_KEYS.map(k => YARN[k].shade);
 
-function layoutCanvas(model, cssWidth, segs) {
+function layoutCanvas(model, cssWidth, segs, orient = null) {
   const segLen = Math.ceil(model.L / segs);
   const units = segLen + FRINGE * 2;
   const cx = cssWidth / units;            // px pro Reihe (entlang x)
   const cy = cx / STITCH_ASPECT;          // px pro Masche (quer)
-  const labelH = 18, gap = 14;
+  const labelH = orient ? 8 : 18, gap = 14;
   const segH = model.W * cy;
-  const height = segs * (segH + labelH) + (segs - 1) * gap + 4;
-  return { segs, segLen, cx, cy, labelH, gap, segH, width: cssWidth, height, ox: FRINGE * cx };
+  const height = segs * (segH + labelH) + (segs - 1) * gap + (orient ? 8 : 4);
+  return { segs, segLen, cx, cy, labelH, gap, segH, width: cssWidth, height, ox: FRINGE * cx, orient };
+}
+
+// Hochkant-Ansicht: 'A' = Ende A unten (Drehung −90°), 'B' = Ende B unten (+90°)
+function setupCanvas(canvas, lay) {
+  const dpr = window.devicePixelRatio || 1, v = !!lay.orient;
+  const sw = v ? lay.height : lay.width, sh = v ? lay.width : lay.height;
+  canvas.width = Math.round(sw * dpr); canvas.height = Math.round(sh * dpr);
+  canvas.style.width = sw + 'px'; canvas.style.height = sh + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, sw, sh);
+  if (lay.orient === 'A') ctx.setTransform(0, -dpr, dpr, 0, 0, lay.width * dpr);
+  if (lay.orient === 'B') ctx.setTransform(0, dpr, -dpr, 0, lay.height * dpr, 0);
+  return ctx;
+}
+function toLayout(lay, px, py) {
+  if (lay.orient === 'A') return [lay.width - py, px];
+  if (lay.orient === 'B') return [py, lay.height - px];
+  return [px, py];
 }
 
 function segOrigin(lay, i) { return { x: lay.ox, y: i * (lay.segH + lay.labelH + lay.gap) + lay.labelH }; }
 
 function drawScarf(canvas, model, opts) {
   const dpr = window.devicePixelRatio || 1;
-  const lay = layoutCanvas(model, opts.width, opts.segs);
-  canvas.width = Math.round(lay.width * dpr); canvas.height = Math.round(lay.height * dpr);
-  canvas.style.width = lay.width + 'px'; canvas.style.height = lay.height + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, lay.width, lay.height);
+  const lay = layoutCanvas(model, opts.width, opts.segs, opts.orient);
+  const ctx = setupCanvas(canvas, lay);
+  void dpr;
   const cmPerRow = 1 / ROWS_PER_CM;
   for (let s = 0; s < lay.segs; s++) {
     const x0 = s * lay.segLen, x1 = Math.min(model.L, x0 + lay.segLen);
@@ -41,9 +57,11 @@ function drawScarf(canvas, model, opts) {
     ctx.textBaseline = 'bottom';
     const range = `${Math.round(x0 * cmPerRow)}–${Math.round(x1 * cmPerRow)} cm`;
     const label = opts.title && lay.segs === 1 ? `${opts.title}  ·  Ende A` : (s === 0 ? 'Ende A · ' : '') + (lay.segs > 1 ? `Bahn ${s + 1}/${lay.segs} · ${range}` : range);
-    ctx.textAlign = 'left';
-    ctx.fillText(label, s === 0 ? 0 : o.x, o.y - 4);
-    if (x1 === model.L) { ctx.textAlign = 'right'; ctx.fillText('Ende B', lay.width, o.y - 4); ctx.textAlign = 'left'; }
+    if (!lay.orient) {
+      ctx.textAlign = 'left';
+      ctx.fillText(label, s === 0 ? 0 : o.x, o.y - 4);
+      if (x1 === model.L) { ctx.textAlign = 'right'; ctx.fillText('Ende B', lay.width, o.y - 4); ctx.textAlign = 'left'; }
+    }
     // Schatten
     ctx.save();
     ctx.shadowColor = 'rgba(10,20,40,.22)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
@@ -166,6 +184,7 @@ const THREAD = {
   N: { hi: '#33507E', lo: '#0B1B35', edge: 'rgba(0,0,0,.6)' },
   R: { hi: '#FF5570', lo: '#BE0329', edge: 'rgba(80,0,15,.6)' },
   B: { hi: '#3D9BE6', lo: '#005CA3', edge: 'rgba(0,30,70,.6)' },
+  S: { hi: '#FFFFFF', lo: '#9CA5AF', edge: 'rgba(40,50,60,.55)' },
 };
 
 function overlayText(ctx, o, ox, oy, k, color, opts = {}) {
@@ -226,18 +245,15 @@ function drawPatchReal(ctx, o, ox, oy, k) {
     ctx.setLineDash([k * 0.22, k * 0.14]); ctx.strokeStyle = P.stitch; ctx.lineWidth = Math.max(0.5, k * 0.06); ctx.stroke(); ctx.setLineDash([]);
     const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
     if (o.heart) {
-      localShape(ctx, k, P.shield, c => SHAPES.shield(c, -5.9, -0.35, 1.9));
-      localText(ctx, k, o.abbr, -5.9, -0.7, 0.5, 1.6, P.abbr);
-      localText(ctx, k, score, -3.0, -0.3, 2.3, 4.2, P.score);
+      localText(ctx, k, score, -4.0, -0.5, 2.5, 5.6, P.score);
+      localText(ctx, k, clubName(m.opp), -4.0, 1.75, 0.5, 6.0, P.dim);
       localText(ctx, k, o.title || o.round, 3.5, -1.75, 0.72, 7.4, P.score);
       localText(ctx, k, o.round, 3.5, -0.55, 0.62, 7.4, P.text);
       localText(ctx, k, fmtDateLong(m.date), 3.5, 0.45, 0.5, 7, P.dim);
       localText(ctx, k, m.city, 3.5, 1.5, 0.64, 7, P.text);
-      localShape(ctx, k, '#C8102E', c => SHAPES.heart(c, -3.0, 2.15, 0.55));
+      localShape(ctx, k, '#C8102E', c => SHAPES.heart(c, -4.0, -2.35, 0.5));
     } else {
-      localShape(ctx, k, P.shield, c => SHAPES.shield(c, -2.55, -0.45, 1.25));
-      localText(ctx, k, o.abbr, -2.55, -0.68, 0.32, 1.05, P.abbr);
-      localText(ctx, k, score, -0.75, -0.4, 1.3, 2.4, P.score);
+      localText(ctx, k, score, -1.65, -0.35, 1.4, 3.0, P.score);
       localText(ctx, k, o.round, 2.05, -0.95, 0.42, 2.9, P.text);
       localText(ctx, k, fmtDate(m.date), 2.05, -0.2, 0.36, 2.9, P.dim);
       localText(ctx, k, m.city, 2.05, 0.6, 0.42, 2.9, P.text);
@@ -248,7 +264,7 @@ function drawPatchReal(ctx, o, ox, oy, k) {
 
 // Gesticktes Moment-Zeichen: schlichtes Symbol + Schriftzug, Version 1–3
 function drawMarkReal(ctx, o, ox, oy, k) {
-  const th = o.version === 3 ? THREAD.G : THREAD.W, pip = o.version >= 2 ? THREAD.G.lo : THREAD.W.lo;
+  const th = o.version === 3 ? THREAD.G : o.version === 2 ? THREAD.S : THREAD.W;
   withLocal(ctx, o, ox, oy, k, () => {
     ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(0.8, k * 0.06); ctx.shadowOffsetY = Math.max(0.5, k * 0.04);
     localShape(ctx, k, th.hi, c => {
@@ -267,8 +283,7 @@ function drawMarkReal(ctx, o, ox, oy, k) {
       c.stroke();
     });
     ctx.shadowColor = 'transparent';
-    localText(ctx, k, o.label, 0, 0.85, 0.42, 4.6, th.hi);
-    localShape(ctx, k, pip, c => { for (let i = 0; i < o.version; i++) { c.moveTo((i - (o.version - 1) / 2) * 0.4 + 0.09, 1.55); c.arc((i - (o.version - 1) / 2) * 0.4, 1.55, 0.09, 0, 7); } c.fill(); });
+    localText(ctx, k, o.label, 0, 0.95, 0.46, 4.6, o.version === 2 ? '#D9DEE3' : th.hi);
   });
 }
 
@@ -283,7 +298,7 @@ function drawShapeReal(ctx, o, ox, oy, k) {
     ctx.setTransform(ctx.getTransform()); // Verlauf in cm-Koordinaten
     const g2 = ctx.createLinearGradient(0, -s / 2, 0, s / 2); g2.addColorStop(0, th.hi); g2.addColorStop(0.6, th.lo); g2.addColorStop(1, th.hi);
     ctx.fillStyle = ctx.strokeStyle = g2;
-    if (o.shape === 'cup') SHAPES.cup(ctx, 0, 0, s); else if (o.shape === 'plate') SHAPES.plate(ctx, 0, 0, s); else SHAPES.star(ctx, 0, 0, s);
+    if (SHAPES[o.shape]) SHAPES[o.shape](ctx, 0, 0, s); else SHAPES.star(ctx, 0, 0, s);
     ctx.restore();
   });
 }
@@ -307,7 +322,7 @@ function overlayBox(o) {
   if (o.kind === 'bar') return [o.u0, o.u1, o.v0, o.v1];
   if (o.kind === 'patch') return box(o.w, o.h);
   if (o.kind === 'mark') return box(5.0, 3.3);
-  if (o.kind === 'shape') { const s = o.shape === 'plate' ? o.size * 2.1 : o.size * 1.3; return box(s, s); }
+  if (o.kind === 'shape') { const s = o.shape === 'plate' ? o.size * 2.1 : o.shape === 'bigEars' ? o.size * 1.6 : o.size * 1.3; return box(s, s); }
   const w = o.w != null ? o.w : Math.min(o.maxW, o.text.length * o.h * 0.55);
   return box(w + 0.3, o.h + 0.4);
 }
@@ -361,12 +376,7 @@ function tagAtCell(model, x, y) { return model.tagList[model.tags[x * model.W + 
 
 // Hebt alle Maschen hervor, die zum selben Element gehören wie die Masche (x, y)
 function drawHover(canvas, lay, model, hit) {
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(lay.width * dpr); canvas.height = Math.round(lay.height * dpr);
-  canvas.style.width = lay.width + 'px'; canvas.style.height = lay.height + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, lay.width, lay.height);
+  const ctx = setupCanvas(canvas, lay);
   if (!hit) return;
   if (hit.item) {
     const [u0, u1, v0, v1] = overlayBox(hit.item), k = lay.cx * ROWS_PER_CM, o = segOrigin(lay, 0);

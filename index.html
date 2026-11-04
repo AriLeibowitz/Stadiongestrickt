@@ -291,6 +291,15 @@ details.more h3 { margin-bottom: 8px; }
 .reader .tech { background: #EEF2F8; color: var(--ink); }
 .ms-row.tiered .ms-chips { align-items: center; }
 .ms-row .arrow { color: #B9BFC9; font-weight: 700; margin: 0 -2px; }
+
+/* ---- Hochkant-Ansicht ---- */
+.scarf-layout { display: flex; gap: 22px; align-items: flex-start; margin-top: 12px; }
+.scarf-col { display: flex; flex-direction: column; align-items: center; flex: none; }
+.col-label { font-family: var(--display); font-size: 17px; text-transform: uppercase; margin-bottom: 2px; }
+.end-label { font-size: 11.5px; color: var(--muted); font-weight: 600; margin: 2px 0; }
+.scarf-side { flex: 1; min-width: 260px; position: sticky; top: 12px; }
+.scarf-side .lens-wrap canvas { height: 220px; }
+@media (max-width: 760px) { .scarf-layout { flex-wrap: wrap; justify-content: center; } .scarf-side { position: static; min-width: 100%; } }
 </style>
 </head>
 <body>
@@ -337,25 +346,37 @@ details.more h3 { margin-bottom: 8px; }
       <span class="chip" id="sumChip"></span>
       <span class="chip green" id="codeChip"></span>
       <span class="grow"></span>
-      <div class="seg" id="viewSeg" title="Realistisch: so sieht der fertige Schal aus. Produktion: was gestrickt wird, gelb umrandet, was gestickt oder aufgenäht wird."><button data-v="real" class="on">Realistisch</button><button data-v="raster">Produktion</button></div>
+      <div class="seg" id="viewSeg" title="Realistisch: so sieht der fertige Schal aus. Produktion: gelb umrandet, was gestickt oder aufgenäht wird."><button data-v="real" class="on">Realistisch</button><button data-v="raster">Produktion</button></div>
+      <div class="seg" id="orientSeg" title="Drehen: Die Schrift an Ende A und Ende B ist jeweils lesbar, wenn dieses Ende unten hängt."><button data-v="A" class="on">⟲ Ende A unten</button><button data-v="B">⟳ Ende B unten</button></div>
+      <div class="seg" id="sizeSeg"><button data-v="900">S</button><button data-v="1300" class="on">M</button><button data-v="2000">L</button></div>
     </div>
-    <div class="scarf-stage" id="stageFront"><canvas class="scarf" data-side="front"></canvas><canvas class="hover"></canvas></div>
-    <div class="scarf-stage" id="stageBack"><canvas class="scarf" data-side="back"></canvas><canvas class="hover"></canvas></div>
-    <div class="tip" id="tip"></div>
-    <div class="techline small"><span>🧶 <b>Gestrickt:</b> Grundfarbe, Streifen, Rauten, Goldfäden, Wappen</span><span>🪡 <b>Gestickt:</b> Name, Saison, Trophäen, Momente-Zeichen, Silberkordel</span><span>🏷️ <b>Aufgenäht:</b> 5 Spiele-Patches an Ende B</span></div>
-
-    <div class="under">
-      <div class="stack">
+    <div class="scarf-layout">
+      <div class="scarf-col">
+        <div class="col-label">Vorderseite</div>
+        <div class="end-label" data-end="top"></div>
+        <div class="scarf-stage" id="stageFront"><canvas class="scarf" data-side="front"></canvas><canvas class="hover"></canvas></div>
+        <div class="end-label" data-end="bottom"></div>
+      </div>
+      <div class="scarf-col">
+        <div class="col-label">Rückseite</div>
+        <div class="end-label" data-end="top"></div>
+        <div class="scarf-stage" id="stageBack"><canvas class="scarf" data-side="back"></canvas><canvas class="hover"></canvas></div>
+        <div class="end-label" data-end="bottom"></div>
+      </div>
+      <div class="scarf-side stack">
         <div class="future" id="future">
           <div class="row between"><b id="futureLabel"></b><label class="small row nowrap"><input type="checkbox" id="markNew" checked> Neues markieren</label></div>
           <input type="range" id="futureIn" min="0" max="20" value="0" aria-label="Kommende Spiele simulieren">
           <div id="unlocks" class="small"></div>
         </div>
         <div class="reader" id="reader"><span class="muted">Fahr über den Schal: Die App zeigt, welches Element es ist und welcher Meilenstein es freigeschaltet hat. Mit einem Klick hältst du die Auswahl fest.</span></div>
-        <div class="row small yarnrow"><span id="yarns"></span><span class="grow"></span><button class="btn ghost sm" id="dlTxt" type="button">Strickdatei</button><button class="btn ghost sm" id="dlSvg" type="button">Stickdatei</button><button class="btn ghost sm" id="dlPng" type="button">PNG</button></div>
+        <div class="lens-wrap"><canvas id="lens"></canvas><span>Lupe · echte Maschen</span></div>
+        <div class="techline small"><span>🧶 <b>Gestrickt:</b> Grundfarbe, Streifen, Rauten, Goldfäden, Wappen</span><span>🪡 <b>Gestickt:</b> Name, Saison, Reise-Zeile, Trophäen, Momente-Zeichen, Silberkordel</span><span>🏷️ <b>Aufgenäht:</b> 5 Spiele-Patches an Ende B</span></div>
+        <div class="small yarnrow" id="yarns"></div>
+        <div class="row"><button class="btn ghost sm" id="dlTxt" type="button">Strickdatei</button><button class="btn ghost sm" id="dlSvg" type="button">Stickdatei</button><button class="btn ghost sm" id="dlPng" type="button">PNG</button></div>
       </div>
-      <div class="lens-wrap"><canvas id="lens"></canvas><span>Lupe · echte Maschen</span></div>
     </div>
+    <div class="tip" id="tip"></div>
   </section>
 
   <!-- 3 · Meilensteine -->
@@ -1054,7 +1075,7 @@ function computeStats(games) {
     byComp: { BL: 0, DFB: 0, CL: 0, SC: 0 }, home: 0, away: 0, neutral: 0,
     awayCountries: new Set(), stadiums: new Set(), awayBLOpp: new Set(), blOpp: new Set(),
     months: new Map(), km: 0, finals: 0, titles: 0, comebacks: 0, late: 0,
-    rain: 0, snow: 0, klassiker: 0, fest: 0, pens: 0, homeBL: 0,
+    rain: 0, snow: 0, klassiker: 0, fest: 0, pens: 0, homeBL: 0, dfbWon: 0, clWon: 0, scWon: 0,
     longestUnbeaten: { len: 0, from: -1, to: -1 }, fullHomeSeason: false, firstVisit: new Set(),
   };
   let run = 0, runStart = 0;
@@ -1073,6 +1094,10 @@ function computeStats(games) {
     s[g.result]++;
     s.goalsFor += g.fcbGoals; s.goalsAgainst += g.oppGoals;
     if (g.final) s.finals++;
+    const won = g.result === 'W' || g.pens === 'W';
+    if (g.final && won && g.comp === 'DFB') s.dfbWon++;
+    if (g.final && won && g.comp === 'CL') s.clWon++;
+    if (g.comp === 'SC' && won) s.scWon++;
     if (g.titleClinch) s.titles++;
     if (g.comeback) s.comebacks++;
     if (g.lateWinner) s.late++;
@@ -1104,35 +1129,35 @@ const ELEMENTS = [
   { id: 'code', name: 'Strickcode', basis: true, where: 'Rückseite, beide Enden', desc: 'Fan-Code und Saison als 45-Bit-Muster. Die App erkennt den Schal daran wieder.' },
   // Reihe Treue (Stufen: immer nur eine aktiv)
   { id: 'stripe1', name: 'Stufe 1: 1 Streifen', where: 'Vorderseite, Enden', desc: 'Ein breiter weißer Querstreifen an jedem Ende.' },
-  { id: 'stripe3', name: 'Stufe 2: 3 Streifen', where: 'Vorderseite, Enden', desc: 'Drei weiße Querstreifen an jedem Ende, das klassische Rot-Weiß.' },
-  { id: 'blocks', name: 'Stufe 3: Blockstreifen', where: 'Vorderseite', desc: '3 Endstreifen und breite weiße Blockstreifen im Mittelteil.' },
-  { id: 'border', name: 'Stufe 4: Weißer Rand', where: 'Vorderseite', desc: 'Wie Stufe 3, dazu eine weiße Kante entlang beider Längsseiten.' },
-  { id: 'gold', name: 'Stufe 5: Goldstreifen', where: 'Vorderseite, Fransen', desc: 'Die Endstreifen bekommen goldene Nadelstreifen, in die Fransen kommt Gold.' },
-  { id: 'centerStripe', name: 'Stufe 6: Mittelstreifen', where: 'Vorderseite, Mitte', desc: 'Ein breiter weißer Mittelstreifen mit Goldkanten, auch die Blockstreifen werden golden gerahmt.' },
-  { id: 'rautenField', name: 'Stufe 7: Rauten-Mitte', where: 'Vorderseite, Mitte', desc: 'Die Schalmitte wird blau-weiß gerautet, das höchste Treue-Abzeichen.' },
+  { id: 'stripe3', name: 'Stufe 2: 3 Streifen', where: 'Vorderseite, Enden', desc: 'Statt des einen Streifens drei schmale weiße Streifen an jedem Ende.' },
+  { id: 'blocks', name: 'Stufe 3: Blockstreifen', where: 'Vorderseite, Mittelteil', desc: 'Die Endstreifen fallen weg. Stattdessen sitzen breite weiße Blockstreifen weiter zur Mitte.' },
+  { id: 'bigBlocks', name: 'Stufe 4: Zwei große Blöcke', where: 'Vorderseite, Mittelteil', desc: 'Der Platz zwischen den Blockstreifen wird weiß aufgefüllt, so entstehen zwei große weiße Blöcke.' },
+  { id: 'gold', name: 'Stufe 5: Goldstreifen', where: 'Vorderseite, Fransen', desc: 'Goldene Streifen rahmen die großen Blöcke. Die Goldstreifen bleiben ab jetzt in allen höheren Stufen erhalten, dazu kommt Gold in die Fransen.' },
+  { id: 'centerStripe', name: 'Stufe 6: Mittelstreifen', where: 'Vorderseite, Mitte', desc: 'Die Blöcke weichen einem breiten weißen Mittelstreifen. Die Goldstreifen bleiben.' },
+  { id: 'rautenField', name: 'Stufe 7: Rauten-Mitte', where: 'Vorderseite, Mitte', desc: 'Die Schalmitte wird blau-weiß gerautet, das höchste Treue-Abzeichen. Die Goldstreifen bleiben.' },
   // Reihe Wettbewerbe
-  { id: 'cupIcon', name: 'Pokal über dem Wappen', where: 'Rückseite, über dem Wappen', desc: 'Ein kleiner Pokal, eingestickt über dem Wappen.' },
-  { id: 'silverBar', name: 'Silberfaden', where: 'Vorderseite, Enden', desc: 'Ein dünner Silberfaden quer über beide Enden, aufgestickt wie eine Kordel.' },
+  { id: 'silverBar', name: 'Silberkordel', where: 'Vorderseite, Enden', desc: 'Eine dünne Silberkordel quer über beide Enden, aufgestickt.' },
   { id: 'night', name: 'Europapokal-Nacht', where: 'Rückseite', desc: 'Die Grundfarbe der Rückseite wechselt von Rot zu Nachtblau mit Sternenhimmel.' },
-  { id: 'fourStars', name: 'Vier Sterne', where: 'Rückseite, über dem Wappen', desc: 'Vier goldene Sterne über dem Wappen, einer pro Wettbewerb.' },
-  { id: 'cup', name: 'Finalpokal', where: 'Rückseite, über dem Wappen', desc: 'Ein goldener Pokal, eingestickt über dem Wappen.' },
-  { id: 'plate', name: 'Meisterschale', where: 'Rückseite, über dem Wappen', desc: 'Die Meisterschale, eingestickt über dem Wappen.' },
+  { id: 'trophyMeister', name: 'Meisterschale', where: 'Rückseite, über dem Wappen', desc: 'Die Meisterschale, eingestickt über dem Wappen. Nur wenn du beim Spiel der Titelentscheidung dabei warst.' },
+  { id: 'trophyDFB', name: 'DFB-Pokal', where: 'Rückseite, über dem Wappen', desc: 'Der DFB-Pokal, eingestickt über dem Wappen. Nur wenn du beim gewonnenen Finale dabei warst.' },
+  { id: 'trophyCL', name: 'Henkelpott', where: 'Rückseite, über dem Wappen', desc: 'Der Champions-League-Pokal, eingestickt über dem Wappen. Nur wenn du beim gewonnenen Finale dabei warst.' },
+  { id: 'trophySC', name: 'Supercup', where: 'Rückseite, über dem Wappen', desc: 'Der Supercup, eingestickt über dem Wappen. Nur wenn du beim gewonnenen Supercup dabei warst.' },
   // Reihe Auswärts
   { id: 'awaySeam', name: 'Auswärtsnaht', where: 'Vorderseite, Längskanten', desc: 'Eine gestrichelte Naht entlang beider Längsseiten.' },
   { id: 'fringeRW', name: 'Rot-weiße Fransen', where: 'Fransen', desc: 'Die Fransen werden abwechselnd rot und weiß.' },
   { id: 'awayRauten', name: 'Rauten-Enden', where: 'Vorderseite, Enden', desc: 'Ein blau-weißes Rautenband direkt an den Fransen.' },
-  { id: 'travel', name: 'Reise-Feld', where: 'Rückseite, Mitte', desc: 'Deine Reisekilometer der Saison und die Länder, in denen du warst, eingestickt.' },
+  { id: 'travel', name: 'Reise-Zeile', where: 'Rückseite, Ende A', desc: 'Reisekilometer, Fahrten und Länder der Saison, eingestickt unter dem Namen und hängend lesbar.' },
   { id: 'stadiumDots', name: 'Stadion-Punkte', where: 'Vorderseite, Enden', desc: 'Eine Punktreihe im mittleren Endstreifen: ein Punkt pro besuchtem Stadion.' },
   { id: 'tour', name: 'Goldene Naht & Fransen', where: 'Vorderseite, Fransen', desc: 'Die Auswärtsnaht wird golden, die Fransen gold-rot.' },
   // Reihe Momente: gestickte Zeichen in 3 Versionen (1×, 2×, 3×)
-  { id: 'bStreak', name: 'Ungeschlagen', mark: { icon: 'zigzag', label: 'UNGESCHLAGEN' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 10 Spiele ohne Niederlage. Version 2 ab 20, Version 3 ab 30 Spielen.' },
-  { id: 'bFest', name: 'Torfestival', mark: { icon: 'spark', label: 'TORFESTIVAL' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Spiel mit 5+ Toren. Version 2 und 3 bei zwei und drei solchen Spielen.' },
-  { id: 'bKlassiker', name: 'Klassiker', mark: { icon: 'cross', label: 'KLASSIKER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für beide Klassiker gegen Dortmund. Weitere Versionen mit Pokal- und Supercup-Duellen.' },
-  { id: 'bComeback', name: 'Comeback', mark: { icon: 'arrow', label: 'COMEBACK' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für einen Sieg nach Rückstand, Version 2 und 3 bei zwei und drei Comebacks.' },
-  { id: 'bLate', name: 'Last Minute', mark: { icon: 'heart', label: 'LAST MINUTE' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Siegtor in letzter Minute, Version 2 und 3 bei mehreren.' },
-  { id: 'bRain', name: 'Allwetter', mark: { icon: 'rain', label: 'ALLWETTER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 3 Regenspiele, Version 2 ab 6, Version 3 ab 9.' },
-  { id: 'bLoyal', name: 'Trotzdem da', mark: { icon: 'diamond', label: 'TROTZDEM DA' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen: Du warst auch bei Niederlagen da (3, 6 oder 9).' },
-  { id: 'bHome', name: 'Dauerbrenner', mark: { icon: 'home', label: 'DAUERBRENNER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für alle 17 Bundesliga-Heimspiele.' },
+  { id: 'bStreak', name: 'Ungeschlagen', mark: { icon: 'zigzag', label: 'UNGESCHLAGEN' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 10 Spiele ohne Niederlage. Silber ab 20, Gold ab 30 Spielen.' },
+  { id: 'bFest', name: 'Torfestival', mark: { icon: 'spark', label: 'TORFESTIVAL' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Spiel mit 5+ Toren. Silber bei 2, Gold bei 3 solchen Spielen.' },
+  { id: 'bKlassiker', name: 'Klassiker', mark: { icon: 'cross', label: 'KLASSIKER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für beide Klassiker gegen Dortmund. Silber ab 4, Gold ab 6 Duellen.' },
+  { id: 'bComeback', name: 'Comeback', mark: { icon: 'arrow', label: 'COMEBACK' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für einen Sieg nach Rückstand, Silber bei 2, Gold bei 3 Comebacks.' },
+  { id: 'bLate', name: 'Last Minute', mark: { icon: 'heart', label: 'LAST MINUTE' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Siegtor in letzter Minute, Silber bei 2, Gold bei 3.' },
+  { id: 'bRain', name: 'Allwetter', mark: { icon: 'rain', label: 'ALLWETTER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 3 Regenspiele, Silber ab 6, Gold ab 9.' },
+  { id: 'bLoyal', name: 'Trotzdem da', mark: { icon: 'diamond', label: 'TROTZDEM DA' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen: Du warst auch bei Niederlagen da (weiß ab 3, silber ab 6, gold ab 9).' },
+  { id: 'bHome', name: 'Dauerbrenner', mark: { icon: 'home', label: 'DAUERBRENNER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für alle 17 Bundesliga-Heimspiele (gold, da nur einmal pro Saison möglich).' },
   // Reihe Gegner-Sammler (Stufen)
   { id: 'threads1', name: 'Goldfäden I', where: 'Rückseite, Mitte', desc: '2 hauchdünne goldene Fäden laufen längs durch die Mitte der Rückseite.' },
   { id: 'threads2', name: 'Goldfäden II', where: 'Rückseite, Mitte', desc: 'Upgrade auf 4 goldene Längsfäden.' },
@@ -1147,9 +1172,9 @@ const TIERED = ['treue', 'sammlung', 'mitglied'];   // Reihen, in denen immer nu
 
 const MILESTONE_CATEGORIES = [
   ['treue', 'Treue', 'Eine Stufe, die mit jedem Spiel wächst'],
-  ['wettbewerbe', 'Wettbewerbe', 'Silberfaden, Grundfarbe, Trophäen über dem Wappen'],
+  ['wettbewerbe', 'Wettbewerbe', 'Silberkordel, Grundfarbe und Trophäen (nur beim entscheidenden Spiel)'],
   ['auswaerts', 'Auswärts', 'Kanten, Enden und Fransen'],
-  ['momente', 'Momente', 'Gestickte Zeichen in 3 Versionen'],
+  ['momente', 'Momente', 'Gestickte Zeichen: weiß, silber oder gold'],
   ['sammlung', 'Gegner-Sammler', 'Goldfäden in 3 Stufen'],
   ['mitglied', 'Mitgliedschaft', 'Das Wappen wird älter mit dir'],
 ];
@@ -1158,16 +1183,16 @@ const MILESTONES = [
   { id: 'first', cat: 'treue', name: 'Saisonstart', cond: '1 Spiel in der Saison', target: 1, value: s => s.total, element: 'stripe1' },
   { id: 'g5', cat: 'treue', name: 'Wiederholungstäter', cond: '5 Spiele in der Saison', target: 5, value: s => s.total, element: 'stripe3' },
   { id: 'g10', cat: 'treue', name: 'Zweistellig', cond: '10 Spiele in der Saison', target: 10, value: s => s.total, element: 'blocks' },
-  { id: 'g20', cat: 'treue', name: 'Kurvengesicht', cond: '20 Spiele in der Saison', target: 20, value: s => s.total, element: 'border' },
+  { id: 'g20', cat: 'treue', name: 'Kurvengesicht', cond: '20 Spiele in der Saison', target: 20, value: s => s.total, element: 'bigBlocks' },
   { id: 'g30', cat: 'treue', name: 'Goldenes Garn', cond: '30 Spiele in der Saison', target: 30, value: s => s.total, element: 'gold' },
   { id: 'g40', cat: 'treue', name: 'Vierziger', cond: '40 Spiele in der Saison', target: 40, value: s => s.total, element: 'centerStripe' },
   { id: 'g50', cat: 'treue', name: 'Allesfahrer', cond: '50 Spiele in der Saison', target: 50, value: s => s.total, element: 'rautenField' },
-  { id: 'dfb1', cat: 'wettbewerbe', name: 'Pokalnacht', cond: '1 DFB-Pokalspiel', target: 1, value: s => s.byComp.DFB, element: 'cupIcon' },
   { id: 'cl1', cat: 'wettbewerbe', name: 'Hymne live', cond: '1 Champions-League-Spiel', target: 1, value: s => s.byComp.CL, element: 'silverBar' },
   { id: 'cl5', cat: 'wettbewerbe', name: 'Europapokal-Abende', cond: '5 Champions-League-Spiele', target: 5, value: s => s.byComp.CL, element: 'night' },
-  { id: 'comp4', cat: 'wettbewerbe', name: 'Grand Slam', cond: 'In allen 4 Wettbewerben (BL, Pokal, CL, Supercup)', target: 4, value: s => Object.values(s.byComp).filter(n => n > 0).length, element: 'fourStars' },
-  { id: 'final', cat: 'wettbewerbe', name: 'Endspiel', cond: '1 Finale live', target: 1, value: s => s.finals, element: 'cup' },
-  { id: 'title', cat: 'wettbewerbe', name: 'Meister-Moment', cond: 'Beim Spiel der Titelentscheidung dabei', target: 1, value: s => s.titles, element: 'plate' },
+  { id: 'title', cat: 'wettbewerbe', name: 'Meister-Moment', cond: 'Beim Spiel der Titelentscheidung dabei', target: 1, value: s => s.titles, element: 'trophyMeister' },
+  { id: 'dfbWin', cat: 'wettbewerbe', name: 'Pokalsieg live', cond: 'Beim gewonnenen DFB-Pokalfinale dabei', target: 1, value: s => s.dfbWon, element: 'trophyDFB' },
+  { id: 'clWin', cat: 'wettbewerbe', name: 'Henkelpott live', cond: 'Beim gewonnenen Champions-League-Finale dabei', target: 1, value: s => s.clWon, element: 'trophyCL' },
+  { id: 'scWin', cat: 'wettbewerbe', name: 'Supercup live', cond: 'Beim gewonnenen Supercup dabei', target: 1, value: s => s.scWon, element: 'trophySC' },
   { id: 'a1', cat: 'auswaerts', name: 'Erste Auswärtsfahrt', cond: '1 Auswärtsspiel', target: 1, value: s => s.away, element: 'awaySeam' },
   { id: 'a5', cat: 'auswaerts', name: 'Vielfahrer', cond: '5 Auswärtsspiele', target: 5, value: s => s.away, element: 'fringeRW' },
   { id: 'a10', cat: 'auswaerts', name: 'Auswärtsfahrer', cond: '10 Auswärtsspiele', target: 10, value: s => s.away, element: 'awayRauten' },
@@ -1189,8 +1214,8 @@ const MILESTONES = [
   { id: 'member10', cat: 'mitglied', name: '10 Jahre dabei', cond: 'Seit mindestens 10 Jahren Mitglied', target: 10, value: s => s.memberYears || 0, element: 'crestRetro' },
 ];
 
-// Version eines Moment-Zeichens: 1×, 2× oder 3× das Ziel erreicht
-function markVersion(m) { return !m || !m.reached ? 1 : m.current >= 3 * m.target ? 3 : m.current >= 2 * m.target ? 2 : 1; }
+// Farbe eines Moment-Zeichens: 1× Ziel = weiß, 2× = silber, 3× = gold (Dauerbrenner direkt gold)
+function markVersion(m) { if (!m || !m.reached) return 1; if (m.id === 'fullSeason') return 3; return m.current >= 3 * m.target ? 3 : m.current >= 2 * m.target ? 2 : 1; }
 
 function evaluateMilestones(stats) {
   return MILESTONES.map(m => {
@@ -1242,7 +1267,7 @@ const SCARF_FONT = '"ScarfFont", "Barlow Condensed", Impact, "Arial Narrow", san
 const FRONT = {
   rauten: [0.4, 2.6],
   stripe1: [10.4, 13.4],                                 // 1 breiter Streifen
-  stripes3: [[5.0, 7.0], [10.4, 13.4], [16.8, 18.8]],    // 3 Streifen
+  stripes3: [[5.35, 6.65], [11.25, 12.55], [17.15, 18.45]], // 3 schmale Streifen
   gapA: 8.7, gapB: 15.1,                                 // rote Felder für Symbole
   zoneC: 11.9, starBand: [21.0, 24.2], bodyStart: 26,
   blockLen: 4, centerHalf: 15.5, medalR: 7.4, rautenHalf: 14,
@@ -1380,6 +1405,23 @@ const SHAPES = {
     const h = w * 0.6, l = u - w / 2, b = v + h / 2, t = v - h / 2;
     c.moveTo(l, b); c.lineTo(l, t + h * 0.1); c.lineTo(l + w * 0.25, t + h * 0.55); c.lineTo(u, t); c.lineTo(l + w * 0.75, t + h * 0.55); c.lineTo(l + w, t + h * 0.1); c.lineTo(l + w, b); c.closePath(); c.fill();
   },
+  bigEars(c, u, v, h) { // Henkelpott: Pokal mit großen Henkeln
+    const w = h * 0.5, t = v - h / 2;
+    c.moveTo(u - w / 2, t); c.lineTo(u + w / 2, t);
+    c.quadraticCurveTo(u + w / 2, t + h * 0.55, u + w * 0.12, t + h * 0.64);
+    c.lineTo(u + w * 0.12, t + h * 0.82); c.lineTo(u + w * 0.38, t + h * 0.88); c.lineTo(u + w * 0.38, t + h); c.lineTo(u - w * 0.38, t + h); c.lineTo(u - w * 0.38, t + h * 0.88); c.lineTo(u - w * 0.12, t + h * 0.82); c.lineTo(u - w * 0.12, t + h * 0.64);
+    c.quadraticCurveTo(u - w / 2, t + h * 0.55, u - w / 2, t); c.fill();
+    c.beginPath(); c.lineWidth = h * 0.075;
+    c.ellipse(u - w * 0.78, t + h * 0.33, w * 0.34, h * 0.3, 0, 0, 7);
+    c.moveTo(u + w * 1.12, t + h * 0.33); c.ellipse(u + w * 0.78, t + h * 0.33, w * 0.34, h * 0.3, 0, 0, 7); c.stroke();
+  },
+  scCup(c, u, v, h) { // Supercup: schlanker Pokal mit Deckel
+    const w = h * 0.42, t = v - h / 2;
+    c.moveTo(u, t); c.lineTo(u + w * 0.18, t + h * 0.12); c.lineTo(u + w / 2, t + h * 0.16);
+    c.lineTo(u + w * 0.42, t + h * 0.5); c.lineTo(u + w * 0.12, t + h * 0.62); c.lineTo(u + w * 0.12, t + h * 0.84);
+    c.lineTo(u + w * 0.4, t + h); c.lineTo(u - w * 0.4, t + h); c.lineTo(u - w * 0.12, t + h * 0.84); c.lineTo(u - w * 0.12, t + h * 0.62);
+    c.lineTo(u - w * 0.42, t + h * 0.5); c.lineTo(u - w / 2, t + h * 0.16); c.lineTo(u - w * 0.18, t + h * 0.12); c.closePath(); c.fill();
+  },
   shield(c, u, v, w) {
     const h = w * 1.2, t = v - h / 2;
     c.moveTo(u - w / 2, t); c.lineTo(u + w / 2, t); c.lineTo(u + w / 2, t + h * 0.55);
@@ -1461,7 +1503,7 @@ function decodeCodeBand(model) {
 }
 
 /* ---- Vorderseite ------------------------------------------------------- */
-const TREUE_IDS = ['stripe1', 'stripe3', 'blocks', 'border', 'gold', 'centerStripe', 'rautenField'];
+const TREUE_IDS = ['stripe1', 'stripe3', 'blocks', 'bigBlocks', 'gold', 'centerStripe', 'rautenField'];
 function treueLevel(act) { return TREUE_IDS.reduce((lv, id, i) => act[id] ? i + 1 : lv, 0); }
 function goldAvailable(act) { return GOLD_ELEMENTS.some(k => act[k]); }
 
@@ -1480,32 +1522,36 @@ function buildFront(ctx) {
 
   el('base', { layer: 'body' }); g.rect(0, L - 1, 0, STITCHES - 1, 'R');
 
-  // Treue: genau eine Stufe
-  if (lv >= 3) {
-    const bodyLen = C - FRONT.centerHalf - FRONT.bodyStart;
-    const n = Math.max(1, Math.round(bodyLen / 18));
-    for (let k = 0; k < n; k++) for (const end of [0, 1]) {
-      const d = FRONT.bodyStart + (k + 0.5) * bodyLen / n;
-      const [a, b] = band(end, d - FRONT.blockLen / 2, d + FRONT.blockLen / 2);
-      stripe(a, b, lv >= 6);
+  // Treue: genau eine Stufe. Jede Stufe ersetzt die vorige; nur die Goldstreifen (ab Stufe 5) bleiben.
+  const bodyLen = C - FRONT.centerHalf - FRONT.bodyStart;
+  const nBlocks = Math.max(2, Math.round(bodyLen / 18));
+  const blockD = k => FRONT.bodyStart + (k + 0.5) * bodyLen / nBlocks;
+  const bigA = blockD(0) - FRONT.blockLen / 2, bigB = blockD(nBlocks - 1) + FRONT.blockLen / 2;   // große Blöcke (ab Ende)
+  const goldLine = (a, b) => { el('gold', { layer: 'body' }); r.rect('G', a, b, 0, WIDTH_CM); };
+  for (const end of [0, 1]) {
+    if (lv === 1) { const [a, b] = band(end, ...FRONT.stripe1); stripe(a, b, false); }
+    if (lv === 2) for (const st of FRONT.stripes3) { const [a, b] = band(end, ...st); stripe(a, b, false); }
+    if (lv === 3) for (let k = 0; k < nBlocks; k++) { const [a, b] = band(end, blockD(k) - FRONT.blockLen / 2, blockD(k) + FRONT.blockLen / 2); stripe(a, b, false); }
+    if (lv === 4 || lv === 5) { const [a, b] = band(end, bigA, bigB); stripe(a, b, false); }
+    if (lv >= 5) { // Goldstreifen an den Kanten der großen Blöcke, bleiben in Stufe 6 und 7
+      for (const d of [bigA - 0.7, bigB + 0.3]) { const [a, b] = band(end, d, d + 0.4); goldLine(a, b); }
     }
   }
-  if (lv === 6) stripe(C - 3, C + 3, true);
+  if (lv === 6) { stripe(C - 3, C + 3, false); goldLine(C - 3.7, C - 3.3); goldLine(C + 3.3, C + 3.7); }
   if (lv === 7) {
     el('rautenField');
     paintRauten(r, C - FRONT.rautenHalf, C + FRONT.rautenHalf, 0, WIDTH_CM);
     for (const [a, b] of [[C - FRONT.rautenHalf - 0.9, C - FRONT.rautenHalf], [C + FRONT.rautenHalf, C + FRONT.rautenHalf + 0.9]]) { r.rect('W', a, b, 0, WIDTH_CM); r.rect('G', a + 0.3, b - 0.3, 0, WIDTH_CM); }
   }
   for (const end of [0, 1]) {
-    if (lv === 1) { const [a, b] = band(end, ...FRONT.stripe1); stripe(a, b, false); }
-    if (lv >= 2) for (const st of FRONT.stripes3) { const [a, b] = band(end, ...st); stripe(a, b, lv >= 5); }
     if (act.awayRauten) { el('awayRauten'); const [a, b] = band(end, ...FRONT.rauten); paintRauten(r, a, b, 0, WIDTH_CM, 1.0); }
     if (act.silverBar) { const [a, b] = band(end, 21.3, 21.75); overlay.push({ kind: 'bar', tag: { el: 'silverBar' }, u0: a, u1: b, v0: 0.5, v1: WIDTH_CM - 0.5 }); }
     if (act.stadiumDots) {
       el('stadiumDots');
-      const [a, b] = band(end, ...FRONT.stripe1), uc = (a + b) / 2;
+      const inStripe = lv === 1 || lv === 2;
+      const [a, b] = band(end, ...(lv === 2 ? FRONT.stripes3[1] : FRONT.stripe1)), uc = (a + b) / 2;
       const n = Math.min(stats.stadiums.size, 24), h = (n - 1) * 0.65;
-      r.paint(lv >= 1 ? 'R' : 'W', c => { for (let i = 0; i < n; i++) { const v = 9 - h / 2 + i * 0.65; c.moveTo(uc + 0.22, v); c.arc(uc, v, 0.22, 0, 7); } c.fill(); }, uc - 1, uc + 1);
+      r.paint(inStripe ? 'R' : 'W', c => { for (let i = 0; i < n; i++) { const v = 9 - h / 2 + i * 0.65; c.moveTo(uc + 0.2, v); c.arc(uc, v, 0.2, 0, 7); } c.fill(); }, uc - 1, uc + 1);
     }
   }
   // Längskanten
@@ -1521,7 +1567,6 @@ function buildFront(ctx) {
       }
     }
   }
-  if (lv >= 4) { el(lvId); g.rect(0, L - 1, 0, 2, 'W'); g.rect(0, L - 1, STITCHES - 3, STITCHES - 1, 'W'); }
   return finishModel(g, { L, lengthCm, level: lv }, fringeColors(act), overlay);
 }
 
@@ -1560,31 +1605,34 @@ function buildBack(ctx) {
   // Ende A liest sich hängend mit Oberkante zur Mitte (+u): Drehung +90°; Ende B: −90°
   const ROT_A = Math.PI / 2, ROT_B = -Math.PI / 2;
 
-  /* --- Ende A: Name, Wappen, Trophäen darüber --- */
-  let aEnd = ends;
+  /* --- Ende A: Reise-Zeile, Name, Wappen, Trophäen darüber (alles hängend lesbar) --- */
+  let aEnd = ends, crestU = null;
+  if (act.travel) {
+    const t = { el: 'travel' }, cs = [...stats.awayCountries];
+    overlay.push(emb(t, 'W', `${stats.km.toLocaleString('de-DE')} KM AUSWÄRTS · ${stats.away} ${stats.away === 1 ? 'FAHRT' : 'FAHRTEN'}`, aEnd + 1.6, vc, 0.62, 15, ROT_A));
+    overlay.push(emb(t, 'W', cs.length ? cs.join(' · ') : 'DEUTSCHLAND', aEnd + 0.6, vc, 0.5, 14, ROT_A));
+    aEnd += 2.4;
+  }
   if (act.backInfo) {
     const t = { el: 'backInfo' }, since = Math.min(profile.start || ctx.season, ctx.season);
-    overlay.push(emb(t, 'W', ctx.name || profile.name || 'FAN', ends + 7.6, vc, 2.4, 15, ROT_A));
-    overlay.push(emb(t, 'W', `SAISON ${seasonLabel(ctx.season)}`, ends + 5.2, vc, 0.95, 14, ROT_A));
-    overlay.push(emb(t, 'W', `MITGLIED SEIT ${since}`, ends + 3.75, vc, 0.72, 14, ROT_A));
-    overlay.push(emb(t, 'W', `${stats.total} ${stats.total === 1 ? 'SPIEL' : 'SPIELE'} · ${stats.W} S  ${stats.D} U  ${stats.L} N`, ends + 2.5, vc, 0.66, 14, ROT_A));
-    aEnd = ends + 9.4;
+    overlay.push(emb(t, 'W', `${stats.total} ${stats.total === 1 ? 'SPIEL' : 'SPIELE'} · ${stats.W} S  ${stats.D} U  ${stats.L} N`, aEnd + 0.6, vc, 0.66, 14, ROT_A));
+    overlay.push(emb(t, 'W', `MITGLIED SEIT ${since}`, aEnd + 1.85, vc, 0.72, 14, ROT_A));
+    overlay.push(emb(t, 'W', `SAISON ${seasonLabel(ctx.season)}`, aEnd + 3.3, vc, 0.95, 14, ROT_A));
+    overlay.push(emb(t, 'W', ctx.name || profile.name || 'FAN', aEnd + 5.7, vc, 2.4, 15, ROT_A));
+    aEnd += 7.4;
   }
   if (act.crest) {
     const variant = act.crestRetro ? 'retro' : act.crestTradition ? 'tradition' : 'modern';
     g.use({ el: act.crestRetro ? 'crestRetro' : act.crestTradition ? 'crestTradition' : 'crest' });
     paintCrest(r, aEnd + 7.0, vc, 6.5, variant, ROT_A);
+    crestU = aEnd + 7.0;
     aEnd += 14.2;
   }
-  // Trophäen und Sterne, eingestickt über dem Wappen (Richtung Schalmitte)
-  const trophies = [act.cupIcon && ['cupIcon', 'cup', 'W', 1.9], act.cup && ['cup', 'cup', 'G', 2.5], act.plate && ['plate', 'plate', 'G', 1.15]].filter(Boolean);
+  // Trophäen: nur wenn man beim entscheidenden Spiel dabei war, eingestickt über dem Wappen
+  const trophies = [act.trophyMeister && ['trophyMeister', 'plate', 1.25], act.trophyDFB && ['trophyDFB', 'cup', 2.6], act.trophyCL && ['trophyCL', 'bigEars', 2.6], act.trophySC && ['trophySC', 'scCup', 2.2]].filter(Boolean);
   if (trophies.length) {
-    trophies.forEach(([id, shape, color, size], i) => overlay.push({ kind: 'shape', tag: { el: id }, shape, color, size, u: aEnd + 1.8, v: vc + (i - (trophies.length - 1) / 2) * 3.6, rot: ROT_A }));
-    aEnd += 3.6;
-  }
-  if (act.fourStars) {
-    for (let i = 0; i < 4; i++) overlay.push({ kind: 'shape', tag: { el: 'fourStars' }, shape: 'star', color: 'G', size: 0.75, u: aEnd + 1.0, v: vc + (i - 1.5) * 2.2, rot: ROT_A });
-    aEnd += 2.0;
+    trophies.forEach(([id, shape, size], i) => overlay.push({ kind: 'shape', tag: { el: id }, shape, color: 'G', size, u: aEnd + 1.9, v: vc + (i - (trophies.length - 1) / 2) * 3.7, rot: ROT_A }));
+    aEnd += 3.8;
   }
 
   /* --- Ende B: Herzstück allein, darüber Spiele zu zweit, darüber Momente --- */
@@ -1593,7 +1641,7 @@ function buildBack(ctx) {
   const hl = act.highlights ? highlights.slice(0, 5) : [];
   if (hl.length) {
     const hh = 6.6;
-    overlay.push({ kind: 'patch', tag: { type: 'panel', game: hl[0], heart: true }, game: hl[0], heart: true, u: uB(bEnd + 0.6 + hh / 2), v: vc, w: 15.4, h: hh, rot: ROT_B, round: shortRound(hl[0]), abbr: clubAbbr(hl[0].opp).slice(0, 3) });
+    overlay.push({ kind: 'patch', tag: { type: 'panel', game: hl[0], heart: true }, game: hl[0], heart: true, title: (ctx.hlTitles || {})[hl[0].nr], u: uB(bEnd + 0.6 + hh / 2), v: vc, w: 15.4, h: hh, rot: ROT_B, round: shortRound(hl[0]), abbr: clubAbbr(hl[0].opp).slice(0, 3) });
     bEnd += 0.6 + hh;
     const rest = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
     for (let i = 0; i < rest.length; i += 2) {
@@ -1619,17 +1667,8 @@ function buildBack(ctx) {
     bEnd += Math.ceil(marks.length / per) * mh;
   }
 
-  /* --- Mitte: Reise-Feld und Goldfäden (stören sich nicht) --- */
-  let travelBox = null;
-  if (act.travel) {
-    const t = { el: 'travel' }, accent = bg === 'R' ? 'N' : 'R';
-    overlay.push(emb(t, accent, 'AUSWÄRTS', C, 4.4, 0.8, 10));
-    overlay.push(emb(t, 'W', `${stats.km.toLocaleString('de-DE')} KM`, C, 7.3, 1.8, 12));
-    overlay.push(emb(t, 'W', `${stats.away} FAHRTEN`, C, 9.8, 0.75, 10));
-    const cs = [...stats.awayCountries];
-    overlay.push(emb(t, 'W', cs.length ? cs.join(' · ') : 'DEUTSCHLAND', C, 12.2, 0.75, 13));
-    travelBox = [C - 7.5, C + 7.5];
-  }
+  /* --- Mitte: Goldfäden --- */
+  const travelBox = null;
   const tiers = ['threads1', 'threads2', 'threads3'].filter(id => act[id]).length ? ['threads1', 'threads2', 'threads3'].findIndex(id => act[id]) + 1 : 0;
   if (tiers) {
     g.use({ el: ['threads1', 'threads2', 'threads3'][tiers - 1] });
@@ -1643,7 +1682,7 @@ function buildBack(ctx) {
   if (act.code) { drawCodeBand(g, 4, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 16, profile.raw, ctx.season, 'B'); }
 
   if (act.night) {
-    const free = (u, v) => !overlay.some(o => { const [a, b, c, d] = overlayBox(o); return u > a - 0.4 && u < b + 0.4 && v > c - 0.4 && v < d + 0.4; }) && u > ends + 9.4 + 14.6 && u < lengthCm - ends;
+    const free = (u, v) => !overlay.some(o => { const [a, b, c, d] = overlayBox(o); return u > a - 0.4 && u < b + 0.4 && v > c - 0.4 && v < d + 0.4; }) && !(crestU && Math.hypot(u - crestU, v - vc) < 7.1) && u > ends && u < lengthCm - ends;
     const rnd = rng('night-' + profile.raw);
     g.use({ el: 'night' });
     for (let i = 0; i < lengthCm * 1.4; i++) {
@@ -1914,27 +1953,43 @@ const STITCH_ASPECT = ST_PER_CM / ROWS_PER_CM;  // Reihenhöhe / Maschenbreite
 const HEX = CI_KEYS.map(k => YARN[k].hex);
 const SHADE = CI_KEYS.map(k => YARN[k].shade);
 
-function layoutCanvas(model, cssWidth, segs) {
+function layoutCanvas(model, cssWidth, segs, orient = null) {
   const segLen = Math.ceil(model.L / segs);
   const units = segLen + FRINGE * 2;
   const cx = cssWidth / units;            // px pro Reihe (entlang x)
   const cy = cx / STITCH_ASPECT;          // px pro Masche (quer)
-  const labelH = 18, gap = 14;
+  const labelH = orient ? 8 : 18, gap = 14;
   const segH = model.W * cy;
-  const height = segs * (segH + labelH) + (segs - 1) * gap + 4;
-  return { segs, segLen, cx, cy, labelH, gap, segH, width: cssWidth, height, ox: FRINGE * cx };
+  const height = segs * (segH + labelH) + (segs - 1) * gap + (orient ? 8 : 4);
+  return { segs, segLen, cx, cy, labelH, gap, segH, width: cssWidth, height, ox: FRINGE * cx, orient };
+}
+
+// Hochkant-Ansicht: 'A' = Ende A unten (Drehung −90°), 'B' = Ende B unten (+90°)
+function setupCanvas(canvas, lay) {
+  const dpr = window.devicePixelRatio || 1, v = !!lay.orient;
+  const sw = v ? lay.height : lay.width, sh = v ? lay.width : lay.height;
+  canvas.width = Math.round(sw * dpr); canvas.height = Math.round(sh * dpr);
+  canvas.style.width = sw + 'px'; canvas.style.height = sh + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, sw, sh);
+  if (lay.orient === 'A') ctx.setTransform(0, -dpr, dpr, 0, 0, lay.width * dpr);
+  if (lay.orient === 'B') ctx.setTransform(0, dpr, -dpr, 0, lay.height * dpr, 0);
+  return ctx;
+}
+function toLayout(lay, px, py) {
+  if (lay.orient === 'A') return [lay.width - py, px];
+  if (lay.orient === 'B') return [py, lay.height - px];
+  return [px, py];
 }
 
 function segOrigin(lay, i) { return { x: lay.ox, y: i * (lay.segH + lay.labelH + lay.gap) + lay.labelH }; }
 
 function drawScarf(canvas, model, opts) {
   const dpr = window.devicePixelRatio || 1;
-  const lay = layoutCanvas(model, opts.width, opts.segs);
-  canvas.width = Math.round(lay.width * dpr); canvas.height = Math.round(lay.height * dpr);
-  canvas.style.width = lay.width + 'px'; canvas.style.height = lay.height + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, lay.width, lay.height);
+  const lay = layoutCanvas(model, opts.width, opts.segs, opts.orient);
+  const ctx = setupCanvas(canvas, lay);
+  void dpr;
   const cmPerRow = 1 / ROWS_PER_CM;
   for (let s = 0; s < lay.segs; s++) {
     const x0 = s * lay.segLen, x1 = Math.min(model.L, x0 + lay.segLen);
@@ -1946,9 +2001,11 @@ function drawScarf(canvas, model, opts) {
     ctx.textBaseline = 'bottom';
     const range = `${Math.round(x0 * cmPerRow)}–${Math.round(x1 * cmPerRow)} cm`;
     const label = opts.title && lay.segs === 1 ? `${opts.title}  ·  Ende A` : (s === 0 ? 'Ende A · ' : '') + (lay.segs > 1 ? `Bahn ${s + 1}/${lay.segs} · ${range}` : range);
-    ctx.textAlign = 'left';
-    ctx.fillText(label, s === 0 ? 0 : o.x, o.y - 4);
-    if (x1 === model.L) { ctx.textAlign = 'right'; ctx.fillText('Ende B', lay.width, o.y - 4); ctx.textAlign = 'left'; }
+    if (!lay.orient) {
+      ctx.textAlign = 'left';
+      ctx.fillText(label, s === 0 ? 0 : o.x, o.y - 4);
+      if (x1 === model.L) { ctx.textAlign = 'right'; ctx.fillText('Ende B', lay.width, o.y - 4); ctx.textAlign = 'left'; }
+    }
     // Schatten
     ctx.save();
     ctx.shadowColor = 'rgba(10,20,40,.22)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
@@ -2071,6 +2128,7 @@ const THREAD = {
   N: { hi: '#33507E', lo: '#0B1B35', edge: 'rgba(0,0,0,.6)' },
   R: { hi: '#FF5570', lo: '#BE0329', edge: 'rgba(80,0,15,.6)' },
   B: { hi: '#3D9BE6', lo: '#005CA3', edge: 'rgba(0,30,70,.6)' },
+  S: { hi: '#FFFFFF', lo: '#9CA5AF', edge: 'rgba(40,50,60,.55)' },
 };
 
 function overlayText(ctx, o, ox, oy, k, color, opts = {}) {
@@ -2131,18 +2189,15 @@ function drawPatchReal(ctx, o, ox, oy, k) {
     ctx.setLineDash([k * 0.22, k * 0.14]); ctx.strokeStyle = P.stitch; ctx.lineWidth = Math.max(0.5, k * 0.06); ctx.stroke(); ctx.setLineDash([]);
     const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
     if (o.heart) {
-      localShape(ctx, k, P.shield, c => SHAPES.shield(c, -5.9, -0.35, 1.9));
-      localText(ctx, k, o.abbr, -5.9, -0.7, 0.5, 1.6, P.abbr);
-      localText(ctx, k, score, -3.0, -0.3, 2.3, 4.2, P.score);
+      localText(ctx, k, score, -4.0, -0.5, 2.5, 5.6, P.score);
+      localText(ctx, k, clubName(m.opp), -4.0, 1.75, 0.5, 6.0, P.dim);
       localText(ctx, k, o.title || o.round, 3.5, -1.75, 0.72, 7.4, P.score);
       localText(ctx, k, o.round, 3.5, -0.55, 0.62, 7.4, P.text);
       localText(ctx, k, fmtDateLong(m.date), 3.5, 0.45, 0.5, 7, P.dim);
       localText(ctx, k, m.city, 3.5, 1.5, 0.64, 7, P.text);
-      localShape(ctx, k, '#C8102E', c => SHAPES.heart(c, -3.0, 2.15, 0.55));
+      localShape(ctx, k, '#C8102E', c => SHAPES.heart(c, -4.0, -2.35, 0.5));
     } else {
-      localShape(ctx, k, P.shield, c => SHAPES.shield(c, -2.55, -0.45, 1.25));
-      localText(ctx, k, o.abbr, -2.55, -0.68, 0.32, 1.05, P.abbr);
-      localText(ctx, k, score, -0.75, -0.4, 1.3, 2.4, P.score);
+      localText(ctx, k, score, -1.65, -0.35, 1.4, 3.0, P.score);
       localText(ctx, k, o.round, 2.05, -0.95, 0.42, 2.9, P.text);
       localText(ctx, k, fmtDate(m.date), 2.05, -0.2, 0.36, 2.9, P.dim);
       localText(ctx, k, m.city, 2.05, 0.6, 0.42, 2.9, P.text);
@@ -2153,7 +2208,7 @@ function drawPatchReal(ctx, o, ox, oy, k) {
 
 // Gesticktes Moment-Zeichen: schlichtes Symbol + Schriftzug, Version 1–3
 function drawMarkReal(ctx, o, ox, oy, k) {
-  const th = o.version === 3 ? THREAD.G : THREAD.W, pip = o.version >= 2 ? THREAD.G.lo : THREAD.W.lo;
+  const th = o.version === 3 ? THREAD.G : o.version === 2 ? THREAD.S : THREAD.W;
   withLocal(ctx, o, ox, oy, k, () => {
     ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(0.8, k * 0.06); ctx.shadowOffsetY = Math.max(0.5, k * 0.04);
     localShape(ctx, k, th.hi, c => {
@@ -2172,8 +2227,7 @@ function drawMarkReal(ctx, o, ox, oy, k) {
       c.stroke();
     });
     ctx.shadowColor = 'transparent';
-    localText(ctx, k, o.label, 0, 0.85, 0.42, 4.6, th.hi);
-    localShape(ctx, k, pip, c => { for (let i = 0; i < o.version; i++) { c.moveTo((i - (o.version - 1) / 2) * 0.4 + 0.09, 1.55); c.arc((i - (o.version - 1) / 2) * 0.4, 1.55, 0.09, 0, 7); } c.fill(); });
+    localText(ctx, k, o.label, 0, 0.95, 0.46, 4.6, o.version === 2 ? '#D9DEE3' : th.hi);
   });
 }
 
@@ -2188,7 +2242,7 @@ function drawShapeReal(ctx, o, ox, oy, k) {
     ctx.setTransform(ctx.getTransform()); // Verlauf in cm-Koordinaten
     const g2 = ctx.createLinearGradient(0, -s / 2, 0, s / 2); g2.addColorStop(0, th.hi); g2.addColorStop(0.6, th.lo); g2.addColorStop(1, th.hi);
     ctx.fillStyle = ctx.strokeStyle = g2;
-    if (o.shape === 'cup') SHAPES.cup(ctx, 0, 0, s); else if (o.shape === 'plate') SHAPES.plate(ctx, 0, 0, s); else SHAPES.star(ctx, 0, 0, s);
+    if (SHAPES[o.shape]) SHAPES[o.shape](ctx, 0, 0, s); else SHAPES.star(ctx, 0, 0, s);
     ctx.restore();
   });
 }
@@ -2212,7 +2266,7 @@ function overlayBox(o) {
   if (o.kind === 'bar') return [o.u0, o.u1, o.v0, o.v1];
   if (o.kind === 'patch') return box(o.w, o.h);
   if (o.kind === 'mark') return box(5.0, 3.3);
-  if (o.kind === 'shape') { const s = o.shape === 'plate' ? o.size * 2.1 : o.size * 1.3; return box(s, s); }
+  if (o.kind === 'shape') { const s = o.shape === 'plate' ? o.size * 2.1 : o.shape === 'bigEars' ? o.size * 1.6 : o.size * 1.3; return box(s, s); }
   const w = o.w != null ? o.w : Math.min(o.maxW, o.text.length * o.h * 0.55);
   return box(w + 0.3, o.h + 0.4);
 }
@@ -2266,12 +2320,7 @@ function tagAtCell(model, x, y) { return model.tagList[model.tags[x * model.W + 
 
 // Hebt alle Maschen hervor, die zum selben Element gehören wie die Masche (x, y)
 function drawHover(canvas, lay, model, hit) {
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(lay.width * dpr); canvas.height = Math.round(lay.height * dpr);
-  canvas.style.width = lay.width + 'px'; canvas.style.height = lay.height + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, lay.width, lay.height);
+  const ctx = setupCanvas(canvas, lay);
   if (!hit) return;
   if (hit.item) {
     const [u0, u1, v0, v1] = overlayBox(hit.item), k = lay.cx * ROWS_PER_CM, o = segOrigin(lay, 0);
@@ -2359,7 +2408,7 @@ const store = {
 const state = {
   profile: null, allGames: [], seasons: [], season: CURRENT_SEASON, games: [], stats: null, statsAll: null,
   ms: [], el: null, overrides: {}, msMode: 'auto', newEls: new Set(),
-  curation: null, curations: {}, lengthCm: 150, real: true, future: 0, markNew: true, name: '',
+  curation: null, curations: {}, lengthCm: 150, real: true, orient: 'A', sizePx: 1300, future: 0, markNew: true, name: '',
   scarf: null, lays: {}, pinned: null,
 };
 
@@ -2441,10 +2490,11 @@ function renderScarf() {
   const mark = state.markNew && state.fut.length ? state.newEls : null;
   for (const [side, cfg] of Object.entries(SIDES)) {
     const stage = $(cfg.stage), model = state.scarf[side];
-    const width = Math.max(320, stage.clientWidth);
-    state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.real, real: state.real, markEls: mark, title: cfg.title });
+    const width = Math.round(state.sizePx * (state.lengthCm + 12) / 162);
+    state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.real, real: state.real, markEls: mark, orient: state.orient });
     drawHover($('.hover', stage), state.lays[side], model, state.pinned && state.pinned.side === side ? state.pinned : null);
   }
+  $$('.end-label').forEach(e => { e.textContent = (e.dataset.end === 'bottom') === (state.orient === 'A') ? 'Ende A' : 'Ende B'; });
   const n = state.games.length + state.fut.length;
   const reached = state.ms.filter(m => m.reached).length;
   $('#scarfTitle').textContent = `Saison ${seasonLabel(state.season)}${state.season === CURRENT_SEASON ? ' (läuft)' : ''}`;
@@ -2494,7 +2544,12 @@ function bindScarf() {
   for (const [side, cfg] of Object.entries(SIDES)) {
     const stage = $(cfg.stage), cv = $('.scarf', stage);
     let last = null;
-    const hitOf = ev => { const r = cv.getBoundingClientRect(); const h = hitTest(state.lays[side], state.scarf[side], ev.clientX - r.left, ev.clientY - r.top); return h && { ...h, side, item: itemAt(state.scarf[side], h.x, h.y) }; };
+    const hitOf = ev => {
+      const r = cv.getBoundingClientRect(), lay = state.lays[side];
+      const [lx, ly] = toLayout(lay, ev.clientX - r.left, ev.clientY - r.top);
+      const h = hitTest(lay, state.scarf[side], lx, ly);
+      return h && { ...h, side, item: itemAt(state.scarf[side], h.x, h.y) };
+    };
     cv.addEventListener('mousemove', ev => {
       const hit = hitOf(ev), model = state.scarf[side];
       if (!hit) { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], model, null); last = null; return; }
@@ -2508,9 +2563,7 @@ function bindScarf() {
         if (txt) { tip.innerHTML = txt; tip.style.display = 'block'; } else tip.style.display = 'none';
       }
       const card = $('.scarf-card').getBoundingClientRect();
-      let tx = ev.clientX - card.left + 14;
-      if (tx + 320 > card.width) tx = Math.max(0, ev.clientX - card.left - 330);
-      tip.style.left = tx + 'px'; tip.style.top = (ev.clientY - card.top + 16) + 'px';
+      tip.style.left = (ev.clientX - card.left + 18) + 'px'; tip.style.top = (ev.clientY - card.top + 12) + 'px';
     });
     cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], state.scarf[side], null); last = null; });
     cv.addEventListener('click', ev => {
@@ -2720,6 +2773,8 @@ function init() {
   $('#lenSel').onchange = () => { state.lengthCm = Number($('#lenSel').value); state.pinned = null; update(); };
   $('#nameIn').oninput = () => { state.name = $('#nameIn').value.toUpperCase(); update(); };
   bindSeg('viewSeg', v => { state.real = v === 'real'; renderScarf(); });
+  bindSeg('orientSeg', v => { state.orient = v; state.pinned = null; renderScarf(); });
+  bindSeg('sizeSeg', v => { state.sizePx = Number(v); state.pinned = null; renderScarf(); });
   bindSeg('msMode', v => { state.msMode = v; state.overrides = {}; update(); });
   $('#futureIn').oninput = () => { state.future = Number($('#futureIn').value); update(); };
   $('#markNew').onchange = () => { state.markNew = $('#markNew').checked; renderScarf(); };

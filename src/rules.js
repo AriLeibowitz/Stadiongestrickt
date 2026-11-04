@@ -14,7 +14,7 @@ function computeStats(games) {
     byComp: { BL: 0, DFB: 0, CL: 0, SC: 0 }, home: 0, away: 0, neutral: 0,
     awayCountries: new Set(), stadiums: new Set(), awayBLOpp: new Set(), blOpp: new Set(),
     months: new Map(), km: 0, finals: 0, titles: 0, comebacks: 0, late: 0,
-    rain: 0, snow: 0, klassiker: 0, fest: 0, pens: 0, homeBL: 0,
+    rain: 0, snow: 0, klassiker: 0, fest: 0, pens: 0, homeBL: 0, dfbWon: 0, clWon: 0, scWon: 0,
     longestUnbeaten: { len: 0, from: -1, to: -1 }, fullHomeSeason: false, firstVisit: new Set(),
   };
   let run = 0, runStart = 0;
@@ -33,6 +33,10 @@ function computeStats(games) {
     s[g.result]++;
     s.goalsFor += g.fcbGoals; s.goalsAgainst += g.oppGoals;
     if (g.final) s.finals++;
+    const won = g.result === 'W' || g.pens === 'W';
+    if (g.final && won && g.comp === 'DFB') s.dfbWon++;
+    if (g.final && won && g.comp === 'CL') s.clWon++;
+    if (g.comp === 'SC' && won) s.scWon++;
     if (g.titleClinch) s.titles++;
     if (g.comeback) s.comebacks++;
     if (g.lateWinner) s.late++;
@@ -64,35 +68,35 @@ const ELEMENTS = [
   { id: 'code', name: 'Strickcode', basis: true, where: 'Rückseite, beide Enden', desc: 'Fan-Code und Saison als 45-Bit-Muster. Die App erkennt den Schal daran wieder.' },
   // Reihe Treue (Stufen: immer nur eine aktiv)
   { id: 'stripe1', name: 'Stufe 1: 1 Streifen', where: 'Vorderseite, Enden', desc: 'Ein breiter weißer Querstreifen an jedem Ende.' },
-  { id: 'stripe3', name: 'Stufe 2: 3 Streifen', where: 'Vorderseite, Enden', desc: 'Drei weiße Querstreifen an jedem Ende, das klassische Rot-Weiß.' },
-  { id: 'blocks', name: 'Stufe 3: Blockstreifen', where: 'Vorderseite', desc: '3 Endstreifen und breite weiße Blockstreifen im Mittelteil.' },
-  { id: 'border', name: 'Stufe 4: Weißer Rand', where: 'Vorderseite', desc: 'Wie Stufe 3, dazu eine weiße Kante entlang beider Längsseiten.' },
-  { id: 'gold', name: 'Stufe 5: Goldstreifen', where: 'Vorderseite, Fransen', desc: 'Die Endstreifen bekommen goldene Nadelstreifen, in die Fransen kommt Gold.' },
-  { id: 'centerStripe', name: 'Stufe 6: Mittelstreifen', where: 'Vorderseite, Mitte', desc: 'Ein breiter weißer Mittelstreifen mit Goldkanten, auch die Blockstreifen werden golden gerahmt.' },
-  { id: 'rautenField', name: 'Stufe 7: Rauten-Mitte', where: 'Vorderseite, Mitte', desc: 'Die Schalmitte wird blau-weiß gerautet, das höchste Treue-Abzeichen.' },
+  { id: 'stripe3', name: 'Stufe 2: 3 Streifen', where: 'Vorderseite, Enden', desc: 'Statt des einen Streifens drei schmale weiße Streifen an jedem Ende.' },
+  { id: 'blocks', name: 'Stufe 3: Blockstreifen', where: 'Vorderseite, Mittelteil', desc: 'Die Endstreifen fallen weg. Stattdessen sitzen breite weiße Blockstreifen weiter zur Mitte.' },
+  { id: 'bigBlocks', name: 'Stufe 4: Zwei große Blöcke', where: 'Vorderseite, Mittelteil', desc: 'Der Platz zwischen den Blockstreifen wird weiß aufgefüllt, so entstehen zwei große weiße Blöcke.' },
+  { id: 'gold', name: 'Stufe 5: Goldstreifen', where: 'Vorderseite, Fransen', desc: 'Goldene Streifen rahmen die großen Blöcke. Die Goldstreifen bleiben ab jetzt in allen höheren Stufen erhalten, dazu kommt Gold in die Fransen.' },
+  { id: 'centerStripe', name: 'Stufe 6: Mittelstreifen', where: 'Vorderseite, Mitte', desc: 'Die Blöcke weichen einem breiten weißen Mittelstreifen. Die Goldstreifen bleiben.' },
+  { id: 'rautenField', name: 'Stufe 7: Rauten-Mitte', where: 'Vorderseite, Mitte', desc: 'Die Schalmitte wird blau-weiß gerautet, das höchste Treue-Abzeichen. Die Goldstreifen bleiben.' },
   // Reihe Wettbewerbe
-  { id: 'cupIcon', name: 'Pokal über dem Wappen', where: 'Rückseite, über dem Wappen', desc: 'Ein kleiner Pokal, eingestickt über dem Wappen.' },
-  { id: 'silverBar', name: 'Silberfaden', where: 'Vorderseite, Enden', desc: 'Ein dünner Silberfaden quer über beide Enden, aufgestickt wie eine Kordel.' },
+  { id: 'silverBar', name: 'Silberkordel', where: 'Vorderseite, Enden', desc: 'Eine dünne Silberkordel quer über beide Enden, aufgestickt.' },
   { id: 'night', name: 'Europapokal-Nacht', where: 'Rückseite', desc: 'Die Grundfarbe der Rückseite wechselt von Rot zu Nachtblau mit Sternenhimmel.' },
-  { id: 'fourStars', name: 'Vier Sterne', where: 'Rückseite, über dem Wappen', desc: 'Vier goldene Sterne über dem Wappen, einer pro Wettbewerb.' },
-  { id: 'cup', name: 'Finalpokal', where: 'Rückseite, über dem Wappen', desc: 'Ein goldener Pokal, eingestickt über dem Wappen.' },
-  { id: 'plate', name: 'Meisterschale', where: 'Rückseite, über dem Wappen', desc: 'Die Meisterschale, eingestickt über dem Wappen.' },
+  { id: 'trophyMeister', name: 'Meisterschale', where: 'Rückseite, über dem Wappen', desc: 'Die Meisterschale, eingestickt über dem Wappen. Nur wenn du beim Spiel der Titelentscheidung dabei warst.' },
+  { id: 'trophyDFB', name: 'DFB-Pokal', where: 'Rückseite, über dem Wappen', desc: 'Der DFB-Pokal, eingestickt über dem Wappen. Nur wenn du beim gewonnenen Finale dabei warst.' },
+  { id: 'trophyCL', name: 'Henkelpott', where: 'Rückseite, über dem Wappen', desc: 'Der Champions-League-Pokal, eingestickt über dem Wappen. Nur wenn du beim gewonnenen Finale dabei warst.' },
+  { id: 'trophySC', name: 'Supercup', where: 'Rückseite, über dem Wappen', desc: 'Der Supercup, eingestickt über dem Wappen. Nur wenn du beim gewonnenen Supercup dabei warst.' },
   // Reihe Auswärts
   { id: 'awaySeam', name: 'Auswärtsnaht', where: 'Vorderseite, Längskanten', desc: 'Eine gestrichelte Naht entlang beider Längsseiten.' },
   { id: 'fringeRW', name: 'Rot-weiße Fransen', where: 'Fransen', desc: 'Die Fransen werden abwechselnd rot und weiß.' },
   { id: 'awayRauten', name: 'Rauten-Enden', where: 'Vorderseite, Enden', desc: 'Ein blau-weißes Rautenband direkt an den Fransen.' },
-  { id: 'travel', name: 'Reise-Feld', where: 'Rückseite, Mitte', desc: 'Deine Reisekilometer der Saison und die Länder, in denen du warst, eingestickt.' },
+  { id: 'travel', name: 'Reise-Zeile', where: 'Rückseite, Ende A', desc: 'Reisekilometer, Fahrten und Länder der Saison, eingestickt unter dem Namen und hängend lesbar.' },
   { id: 'stadiumDots', name: 'Stadion-Punkte', where: 'Vorderseite, Enden', desc: 'Eine Punktreihe im mittleren Endstreifen: ein Punkt pro besuchtem Stadion.' },
   { id: 'tour', name: 'Goldene Naht & Fransen', where: 'Vorderseite, Fransen', desc: 'Die Auswärtsnaht wird golden, die Fransen gold-rot.' },
   // Reihe Momente: gestickte Zeichen in 3 Versionen (1×, 2×, 3×)
-  { id: 'bStreak', name: 'Ungeschlagen', mark: { icon: 'zigzag', label: 'UNGESCHLAGEN' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 10 Spiele ohne Niederlage. Version 2 ab 20, Version 3 ab 30 Spielen.' },
-  { id: 'bFest', name: 'Torfestival', mark: { icon: 'spark', label: 'TORFESTIVAL' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Spiel mit 5+ Toren. Version 2 und 3 bei zwei und drei solchen Spielen.' },
-  { id: 'bKlassiker', name: 'Klassiker', mark: { icon: 'cross', label: 'KLASSIKER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für beide Klassiker gegen Dortmund. Weitere Versionen mit Pokal- und Supercup-Duellen.' },
-  { id: 'bComeback', name: 'Comeback', mark: { icon: 'arrow', label: 'COMEBACK' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für einen Sieg nach Rückstand, Version 2 und 3 bei zwei und drei Comebacks.' },
-  { id: 'bLate', name: 'Last Minute', mark: { icon: 'heart', label: 'LAST MINUTE' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Siegtor in letzter Minute, Version 2 und 3 bei mehreren.' },
-  { id: 'bRain', name: 'Allwetter', mark: { icon: 'rain', label: 'ALLWETTER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 3 Regenspiele, Version 2 ab 6, Version 3 ab 9.' },
-  { id: 'bLoyal', name: 'Trotzdem da', mark: { icon: 'diamond', label: 'TROTZDEM DA' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen: Du warst auch bei Niederlagen da (3, 6 oder 9).' },
-  { id: 'bHome', name: 'Dauerbrenner', mark: { icon: 'home', label: 'DAUERBRENNER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für alle 17 Bundesliga-Heimspiele.' },
+  { id: 'bStreak', name: 'Ungeschlagen', mark: { icon: 'zigzag', label: 'UNGESCHLAGEN' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 10 Spiele ohne Niederlage. Silber ab 20, Gold ab 30 Spielen.' },
+  { id: 'bFest', name: 'Torfestival', mark: { icon: 'spark', label: 'TORFESTIVAL' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Spiel mit 5+ Toren. Silber bei 2, Gold bei 3 solchen Spielen.' },
+  { id: 'bKlassiker', name: 'Klassiker', mark: { icon: 'cross', label: 'KLASSIKER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für beide Klassiker gegen Dortmund. Silber ab 4, Gold ab 6 Duellen.' },
+  { id: 'bComeback', name: 'Comeback', mark: { icon: 'arrow', label: 'COMEBACK' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für einen Sieg nach Rückstand, Silber bei 2, Gold bei 3 Comebacks.' },
+  { id: 'bLate', name: 'Last Minute', mark: { icon: 'heart', label: 'LAST MINUTE' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für ein Siegtor in letzter Minute, Silber bei 2, Gold bei 3.' },
+  { id: 'bRain', name: 'Allwetter', mark: { icon: 'rain', label: 'ALLWETTER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für 3 Regenspiele, Silber ab 6, Gold ab 9.' },
+  { id: 'bLoyal', name: 'Trotzdem da', mark: { icon: 'diamond', label: 'TROTZDEM DA' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen: Du warst auch bei Niederlagen da (weiß ab 3, silber ab 6, gold ab 9).' },
+  { id: 'bHome', name: 'Dauerbrenner', mark: { icon: 'home', label: 'DAUERBRENNER' }, where: 'Rückseite, Ende B', desc: 'Gesticktes Zeichen für alle 17 Bundesliga-Heimspiele (gold, da nur einmal pro Saison möglich).' },
   // Reihe Gegner-Sammler (Stufen)
   { id: 'threads1', name: 'Goldfäden I', where: 'Rückseite, Mitte', desc: '2 hauchdünne goldene Fäden laufen längs durch die Mitte der Rückseite.' },
   { id: 'threads2', name: 'Goldfäden II', where: 'Rückseite, Mitte', desc: 'Upgrade auf 4 goldene Längsfäden.' },
@@ -107,9 +111,9 @@ const TIERED = ['treue', 'sammlung', 'mitglied'];   // Reihen, in denen immer nu
 
 const MILESTONE_CATEGORIES = [
   ['treue', 'Treue', 'Eine Stufe, die mit jedem Spiel wächst'],
-  ['wettbewerbe', 'Wettbewerbe', 'Silberfaden, Grundfarbe, Trophäen über dem Wappen'],
+  ['wettbewerbe', 'Wettbewerbe', 'Silberkordel, Grundfarbe und Trophäen (nur beim entscheidenden Spiel)'],
   ['auswaerts', 'Auswärts', 'Kanten, Enden und Fransen'],
-  ['momente', 'Momente', 'Gestickte Zeichen in 3 Versionen'],
+  ['momente', 'Momente', 'Gestickte Zeichen: weiß, silber oder gold'],
   ['sammlung', 'Gegner-Sammler', 'Goldfäden in 3 Stufen'],
   ['mitglied', 'Mitgliedschaft', 'Das Wappen wird älter mit dir'],
 ];
@@ -118,16 +122,16 @@ const MILESTONES = [
   { id: 'first', cat: 'treue', name: 'Saisonstart', cond: '1 Spiel in der Saison', target: 1, value: s => s.total, element: 'stripe1' },
   { id: 'g5', cat: 'treue', name: 'Wiederholungstäter', cond: '5 Spiele in der Saison', target: 5, value: s => s.total, element: 'stripe3' },
   { id: 'g10', cat: 'treue', name: 'Zweistellig', cond: '10 Spiele in der Saison', target: 10, value: s => s.total, element: 'blocks' },
-  { id: 'g20', cat: 'treue', name: 'Kurvengesicht', cond: '20 Spiele in der Saison', target: 20, value: s => s.total, element: 'border' },
+  { id: 'g20', cat: 'treue', name: 'Kurvengesicht', cond: '20 Spiele in der Saison', target: 20, value: s => s.total, element: 'bigBlocks' },
   { id: 'g30', cat: 'treue', name: 'Goldenes Garn', cond: '30 Spiele in der Saison', target: 30, value: s => s.total, element: 'gold' },
   { id: 'g40', cat: 'treue', name: 'Vierziger', cond: '40 Spiele in der Saison', target: 40, value: s => s.total, element: 'centerStripe' },
   { id: 'g50', cat: 'treue', name: 'Allesfahrer', cond: '50 Spiele in der Saison', target: 50, value: s => s.total, element: 'rautenField' },
-  { id: 'dfb1', cat: 'wettbewerbe', name: 'Pokalnacht', cond: '1 DFB-Pokalspiel', target: 1, value: s => s.byComp.DFB, element: 'cupIcon' },
   { id: 'cl1', cat: 'wettbewerbe', name: 'Hymne live', cond: '1 Champions-League-Spiel', target: 1, value: s => s.byComp.CL, element: 'silverBar' },
   { id: 'cl5', cat: 'wettbewerbe', name: 'Europapokal-Abende', cond: '5 Champions-League-Spiele', target: 5, value: s => s.byComp.CL, element: 'night' },
-  { id: 'comp4', cat: 'wettbewerbe', name: 'Grand Slam', cond: 'In allen 4 Wettbewerben (BL, Pokal, CL, Supercup)', target: 4, value: s => Object.values(s.byComp).filter(n => n > 0).length, element: 'fourStars' },
-  { id: 'final', cat: 'wettbewerbe', name: 'Endspiel', cond: '1 Finale live', target: 1, value: s => s.finals, element: 'cup' },
-  { id: 'title', cat: 'wettbewerbe', name: 'Meister-Moment', cond: 'Beim Spiel der Titelentscheidung dabei', target: 1, value: s => s.titles, element: 'plate' },
+  { id: 'title', cat: 'wettbewerbe', name: 'Meister-Moment', cond: 'Beim Spiel der Titelentscheidung dabei', target: 1, value: s => s.titles, element: 'trophyMeister' },
+  { id: 'dfbWin', cat: 'wettbewerbe', name: 'Pokalsieg live', cond: 'Beim gewonnenen DFB-Pokalfinale dabei', target: 1, value: s => s.dfbWon, element: 'trophyDFB' },
+  { id: 'clWin', cat: 'wettbewerbe', name: 'Henkelpott live', cond: 'Beim gewonnenen Champions-League-Finale dabei', target: 1, value: s => s.clWon, element: 'trophyCL' },
+  { id: 'scWin', cat: 'wettbewerbe', name: 'Supercup live', cond: 'Beim gewonnenen Supercup dabei', target: 1, value: s => s.scWon, element: 'trophySC' },
   { id: 'a1', cat: 'auswaerts', name: 'Erste Auswärtsfahrt', cond: '1 Auswärtsspiel', target: 1, value: s => s.away, element: 'awaySeam' },
   { id: 'a5', cat: 'auswaerts', name: 'Vielfahrer', cond: '5 Auswärtsspiele', target: 5, value: s => s.away, element: 'fringeRW' },
   { id: 'a10', cat: 'auswaerts', name: 'Auswärtsfahrer', cond: '10 Auswärtsspiele', target: 10, value: s => s.away, element: 'awayRauten' },
@@ -149,8 +153,8 @@ const MILESTONES = [
   { id: 'member10', cat: 'mitglied', name: '10 Jahre dabei', cond: 'Seit mindestens 10 Jahren Mitglied', target: 10, value: s => s.memberYears || 0, element: 'crestRetro' },
 ];
 
-// Version eines Moment-Zeichens: 1×, 2× oder 3× das Ziel erreicht
-function markVersion(m) { return !m || !m.reached ? 1 : m.current >= 3 * m.target ? 3 : m.current >= 2 * m.target ? 2 : 1; }
+// Farbe eines Moment-Zeichens: 1× Ziel = weiß, 2× = silber, 3× = gold (Dauerbrenner direkt gold)
+function markVersion(m) { if (!m || !m.reached) return 1; if (m.id === 'fullSeason') return 3; return m.current >= 3 * m.target ? 3 : m.current >= 2 * m.target ? 2 : 1; }
 
 function evaluateMilestones(stats) {
   return MILESTONES.map(m => {

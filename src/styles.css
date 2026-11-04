@@ -283,3 +283,12 @@ details.more h3 { margin-bottom: 8px; }
 .reader .tech { background: #EEF2F8; color: var(--ink); }
 .ms-row.tiered .ms-chips { align-items: center; }
 .ms-row .arrow { color: #B9BFC9; font-weight: 700; margin: 0 -2px; }
+
+/* ---- Hochkant-Ansicht ---- */
+.scarf-layout { display: flex; gap: 22px; align-items: flex-start; margin-top: 12px; }
+.scarf-col { display: flex; flex-direction: column; align-items: center; flex: none; }
+.col-label { font-family: var(--display); font-size: 17px; text-transform: uppercase; margin-bottom: 2px; }
+.end-label { font-size: 11.5px; color: var(--muted); font-weight: 600; margin: 2px 0; }
+.scarf-side { flex: 1; min-width: 260px; position: sticky; top: 12px; }
+.scarf-side .lens-wrap canvas { height: 220px; }
+@media (max-width: 760px) { .scarf-layout { flex-wrap: wrap; justify-content: center; } .scarf-side { position: static; min-width: 100%; } }

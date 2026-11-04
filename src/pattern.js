@@ -19,7 +19,7 @@ const SCARF_FONT = '"ScarfFont", "Barlow Condensed", Impact, "Arial Narrow", san
 const FRONT = {
   rauten: [0.4, 2.6],
   stripe1: [10.4, 13.4],                                 // 1 breiter Streifen
-  stripes3: [[5.0, 7.0], [10.4, 13.4], [16.8, 18.8]],    // 3 Streifen
+  stripes3: [[5.35, 6.65], [11.25, 12.55], [17.15, 18.45]], // 3 schmale Streifen
   gapA: 8.7, gapB: 15.1,                                 // rote Felder für Symbole
   zoneC: 11.9, starBand: [21.0, 24.2], bodyStart: 26,
   blockLen: 4, centerHalf: 15.5, medalR: 7.4, rautenHalf: 14,
@@ -157,6 +157,23 @@ const SHAPES = {
     const h = w * 0.6, l = u - w / 2, b = v + h / 2, t = v - h / 2;
     c.moveTo(l, b); c.lineTo(l, t + h * 0.1); c.lineTo(l + w * 0.25, t + h * 0.55); c.lineTo(u, t); c.lineTo(l + w * 0.75, t + h * 0.55); c.lineTo(l + w, t + h * 0.1); c.lineTo(l + w, b); c.closePath(); c.fill();
   },
+  bigEars(c, u, v, h) { // Henkelpott: Pokal mit großen Henkeln
+    const w = h * 0.5, t = v - h / 2;
+    c.moveTo(u - w / 2, t); c.lineTo(u + w / 2, t);
+    c.quadraticCurveTo(u + w / 2, t + h * 0.55, u + w * 0.12, t + h * 0.64);
+    c.lineTo(u + w * 0.12, t + h * 0.82); c.lineTo(u + w * 0.38, t + h * 0.88); c.lineTo(u + w * 0.38, t + h); c.lineTo(u - w * 0.38, t + h); c.lineTo(u - w * 0.38, t + h * 0.88); c.lineTo(u - w * 0.12, t + h * 0.82); c.lineTo(u - w * 0.12, t + h * 0.64);
+    c.quadraticCurveTo(u - w / 2, t + h * 0.55, u - w / 2, t); c.fill();
+    c.beginPath(); c.lineWidth = h * 0.075;
+    c.ellipse(u - w * 0.78, t + h * 0.33, w * 0.34, h * 0.3, 0, 0, 7);
+    c.moveTo(u + w * 1.12, t + h * 0.33); c.ellipse(u + w * 0.78, t + h * 0.33, w * 0.34, h * 0.3, 0, 0, 7); c.stroke();
+  },
+  scCup(c, u, v, h) { // Supercup: schlanker Pokal mit Deckel
+    const w = h * 0.42, t = v - h / 2;
+    c.moveTo(u, t); c.lineTo(u + w * 0.18, t + h * 0.12); c.lineTo(u + w / 2, t + h * 0.16);
+    c.lineTo(u + w * 0.42, t + h * 0.5); c.lineTo(u + w * 0.12, t + h * 0.62); c.lineTo(u + w * 0.12, t + h * 0.84);
+    c.lineTo(u + w * 0.4, t + h); c.lineTo(u - w * 0.4, t + h); c.lineTo(u - w * 0.12, t + h * 0.84); c.lineTo(u - w * 0.12, t + h * 0.62);
+    c.lineTo(u - w * 0.42, t + h * 0.5); c.lineTo(u - w / 2, t + h * 0.16); c.lineTo(u - w * 0.18, t + h * 0.12); c.closePath(); c.fill();
+  },
   shield(c, u, v, w) {
     const h = w * 1.2, t = v - h / 2;
     c.moveTo(u - w / 2, t); c.lineTo(u + w / 2, t); c.lineTo(u + w / 2, t + h * 0.55);
@@ -238,7 +255,7 @@ function decodeCodeBand(model) {
 }
 
 /* ---- Vorderseite ------------------------------------------------------- */
-const TREUE_IDS = ['stripe1', 'stripe3', 'blocks', 'border', 'gold', 'centerStripe', 'rautenField'];
+const TREUE_IDS = ['stripe1', 'stripe3', 'blocks', 'bigBlocks', 'gold', 'centerStripe', 'rautenField'];
 function treueLevel(act) { return TREUE_IDS.reduce((lv, id, i) => act[id] ? i + 1 : lv, 0); }
 function goldAvailable(act) { return GOLD_ELEMENTS.some(k => act[k]); }
 
@@ -257,32 +274,36 @@ function buildFront(ctx) {
 
   el('base', { layer: 'body' }); g.rect(0, L - 1, 0, STITCHES - 1, 'R');
 
-  // Treue: genau eine Stufe
-  if (lv >= 3) {
-    const bodyLen = C - FRONT.centerHalf - FRONT.bodyStart;
-    const n = Math.max(1, Math.round(bodyLen / 18));
-    for (let k = 0; k < n; k++) for (const end of [0, 1]) {
-      const d = FRONT.bodyStart + (k + 0.5) * bodyLen / n;
-      const [a, b] = band(end, d - FRONT.blockLen / 2, d + FRONT.blockLen / 2);
-      stripe(a, b, lv >= 6);
+  // Treue: genau eine Stufe. Jede Stufe ersetzt die vorige; nur die Goldstreifen (ab Stufe 5) bleiben.
+  const bodyLen = C - FRONT.centerHalf - FRONT.bodyStart;
+  const nBlocks = Math.max(2, Math.round(bodyLen / 18));
+  const blockD = k => FRONT.bodyStart + (k + 0.5) * bodyLen / nBlocks;
+  const bigA = blockD(0) - FRONT.blockLen / 2, bigB = blockD(nBlocks - 1) + FRONT.blockLen / 2;   // große Blöcke (ab Ende)
+  const goldLine = (a, b) => { el('gold', { layer: 'body' }); r.rect('G', a, b, 0, WIDTH_CM); };
+  for (const end of [0, 1]) {
+    if (lv === 1) { const [a, b] = band(end, ...FRONT.stripe1); stripe(a, b, false); }
+    if (lv === 2) for (const st of FRONT.stripes3) { const [a, b] = band(end, ...st); stripe(a, b, false); }
+    if (lv === 3) for (let k = 0; k < nBlocks; k++) { const [a, b] = band(end, blockD(k) - FRONT.blockLen / 2, blockD(k) + FRONT.blockLen / 2); stripe(a, b, false); }
+    if (lv === 4 || lv === 5) { const [a, b] = band(end, bigA, bigB); stripe(a, b, false); }
+    if (lv >= 5) { // Goldstreifen an den Kanten der großen Blöcke, bleiben in Stufe 6 und 7
+      for (const d of [bigA - 0.7, bigB + 0.3]) { const [a, b] = band(end, d, d + 0.4); goldLine(a, b); }
     }
   }
-  if (lv === 6) stripe(C - 3, C + 3, true);
+  if (lv === 6) { stripe(C - 3, C + 3, false); goldLine(C - 3.7, C - 3.3); goldLine(C + 3.3, C + 3.7); }
   if (lv === 7) {
     el('rautenField');
     paintRauten(r, C - FRONT.rautenHalf, C + FRONT.rautenHalf, 0, WIDTH_CM);
     for (const [a, b] of [[C - FRONT.rautenHalf - 0.9, C - FRONT.rautenHalf], [C + FRONT.rautenHalf, C + FRONT.rautenHalf + 0.9]]) { r.rect('W', a, b, 0, WIDTH_CM); r.rect('G', a + 0.3, b - 0.3, 0, WIDTH_CM); }
   }
   for (const end of [0, 1]) {
-    if (lv === 1) { const [a, b] = band(end, ...FRONT.stripe1); stripe(a, b, false); }
-    if (lv >= 2) for (const st of FRONT.stripes3) { const [a, b] = band(end, ...st); stripe(a, b, lv >= 5); }
     if (act.awayRauten) { el('awayRauten'); const [a, b] = band(end, ...FRONT.rauten); paintRauten(r, a, b, 0, WIDTH_CM, 1.0); }
     if (act.silverBar) { const [a, b] = band(end, 21.3, 21.75); overlay.push({ kind: 'bar', tag: { el: 'silverBar' }, u0: a, u1: b, v0: 0.5, v1: WIDTH_CM - 0.5 }); }
     if (act.stadiumDots) {
       el('stadiumDots');
-      const [a, b] = band(end, ...FRONT.stripe1), uc = (a + b) / 2;
+      const inStripe = lv === 1 || lv === 2;
+      const [a, b] = band(end, ...(lv === 2 ? FRONT.stripes3[1] : FRONT.stripe1)), uc = (a + b) / 2;
       const n = Math.min(stats.stadiums.size, 24), h = (n - 1) * 0.65;
-      r.paint(lv >= 1 ? 'R' : 'W', c => { for (let i = 0; i < n; i++) { const v = 9 - h / 2 + i * 0.65; c.moveTo(uc + 0.22, v); c.arc(uc, v, 0.22, 0, 7); } c.fill(); }, uc - 1, uc + 1);
+      r.paint(inStripe ? 'R' : 'W', c => { for (let i = 0; i < n; i++) { const v = 9 - h / 2 + i * 0.65; c.moveTo(uc + 0.2, v); c.arc(uc, v, 0.2, 0, 7); } c.fill(); }, uc - 1, uc + 1);
     }
   }
   // Längskanten
@@ -298,7 +319,6 @@ function buildFront(ctx) {
       }
     }
   }
-  if (lv >= 4) { el(lvId); g.rect(0, L - 1, 0, 2, 'W'); g.rect(0, L - 1, STITCHES - 3, STITCHES - 1, 'W'); }
   return finishModel(g, { L, lengthCm, level: lv }, fringeColors(act), overlay);
 }
 
@@ -337,31 +357,34 @@ function buildBack(ctx) {
   // Ende A liest sich hängend mit Oberkante zur Mitte (+u): Drehung +90°; Ende B: −90°
   const ROT_A = Math.PI / 2, ROT_B = -Math.PI / 2;
 
-  /* --- Ende A: Name, Wappen, Trophäen darüber --- */
-  let aEnd = ends;
+  /* --- Ende A: Reise-Zeile, Name, Wappen, Trophäen darüber (alles hängend lesbar) --- */
+  let aEnd = ends, crestU = null;
+  if (act.travel) {
+    const t = { el: 'travel' }, cs = [...stats.awayCountries];
+    overlay.push(emb(t, 'W', `${stats.km.toLocaleString('de-DE')} KM AUSWÄRTS · ${stats.away} ${stats.away === 1 ? 'FAHRT' : 'FAHRTEN'}`, aEnd + 1.6, vc, 0.62, 15, ROT_A));
+    overlay.push(emb(t, 'W', cs.length ? cs.join(' · ') : 'DEUTSCHLAND', aEnd + 0.6, vc, 0.5, 14, ROT_A));
+    aEnd += 2.4;
+  }
   if (act.backInfo) {
     const t = { el: 'backInfo' }, since = Math.min(profile.start || ctx.season, ctx.season);
-    overlay.push(emb(t, 'W', ctx.name || profile.name || 'FAN', ends + 7.6, vc, 2.4, 15, ROT_A));
-    overlay.push(emb(t, 'W', `SAISON ${seasonLabel(ctx.season)}`, ends + 5.2, vc, 0.95, 14, ROT_A));
-    overlay.push(emb(t, 'W', `MITGLIED SEIT ${since}`, ends + 3.75, vc, 0.72, 14, ROT_A));
-    overlay.push(emb(t, 'W', `${stats.total} ${stats.total === 1 ? 'SPIEL' : 'SPIELE'} · ${stats.W} S  ${stats.D} U  ${stats.L} N`, ends + 2.5, vc, 0.66, 14, ROT_A));
-    aEnd = ends + 9.4;
+    overlay.push(emb(t, 'W', `${stats.total} ${stats.total === 1 ? 'SPIEL' : 'SPIELE'} · ${stats.W} S  ${stats.D} U  ${stats.L} N`, aEnd + 0.6, vc, 0.66, 14, ROT_A));
+    overlay.push(emb(t, 'W', `MITGLIED SEIT ${since}`, aEnd + 1.85, vc, 0.72, 14, ROT_A));
+    overlay.push(emb(t, 'W', `SAISON ${seasonLabel(ctx.season)}`, aEnd + 3.3, vc, 0.95, 14, ROT_A));
+    overlay.push(emb(t, 'W', ctx.name || profile.name || 'FAN', aEnd + 5.7, vc, 2.4, 15, ROT_A));
+    aEnd += 7.4;
   }
   if (act.crest) {
     const variant = act.crestRetro ? 'retro' : act.crestTradition ? 'tradition' : 'modern';
     g.use({ el: act.crestRetro ? 'crestRetro' : act.crestTradition ? 'crestTradition' : 'crest' });
     paintCrest(r, aEnd + 7.0, vc, 6.5, variant, ROT_A);
+    crestU = aEnd + 7.0;
     aEnd += 14.2;
   }
-  // Trophäen und Sterne, eingestickt über dem Wappen (Richtung Schalmitte)
-  const trophies = [act.cupIcon && ['cupIcon', 'cup', 'W', 1.9], act.cup && ['cup', 'cup', 'G', 2.5], act.plate && ['plate', 'plate', 'G', 1.15]].filter(Boolean);
+  // Trophäen: nur wenn man beim entscheidenden Spiel dabei war, eingestickt über dem Wappen
+  const trophies = [act.trophyMeister && ['trophyMeister', 'plate', 1.25], act.trophyDFB && ['trophyDFB', 'cup', 2.6], act.trophyCL && ['trophyCL', 'bigEars', 2.6], act.trophySC && ['trophySC', 'scCup', 2.2]].filter(Boolean);
   if (trophies.length) {
-    trophies.forEach(([id, shape, color, size], i) => overlay.push({ kind: 'shape', tag: { el: id }, shape, color, size, u: aEnd + 1.8, v: vc + (i - (trophies.length - 1) / 2) * 3.6, rot: ROT_A }));
-    aEnd += 3.6;
-  }
-  if (act.fourStars) {
-    for (let i = 0; i < 4; i++) overlay.push({ kind: 'shape', tag: { el: 'fourStars' }, shape: 'star', color: 'G', size: 0.75, u: aEnd + 1.0, v: vc + (i - 1.5) * 2.2, rot: ROT_A });
-    aEnd += 2.0;
+    trophies.forEach(([id, shape, size], i) => overlay.push({ kind: 'shape', tag: { el: id }, shape, color: 'G', size, u: aEnd + 1.9, v: vc + (i - (trophies.length - 1) / 2) * 3.7, rot: ROT_A }));
+    aEnd += 3.8;
   }
 
   /* --- Ende B: Herzstück allein, darüber Spiele zu zweit, darüber Momente --- */
@@ -370,7 +393,7 @@ function buildBack(ctx) {
   const hl = act.highlights ? highlights.slice(0, 5) : [];
   if (hl.length) {
     const hh = 6.6;
-    overlay.push({ kind: 'patch', tag: { type: 'panel', game: hl[0], heart: true }, game: hl[0], heart: true, u: uB(bEnd + 0.6 + hh / 2), v: vc, w: 15.4, h: hh, rot: ROT_B, round: shortRound(hl[0]), abbr: clubAbbr(hl[0].opp).slice(0, 3) });
+    overlay.push({ kind: 'patch', tag: { type: 'panel', game: hl[0], heart: true }, game: hl[0], heart: true, title: (ctx.hlTitles || {})[hl[0].nr], u: uB(bEnd + 0.6 + hh / 2), v: vc, w: 15.4, h: hh, rot: ROT_B, round: shortRound(hl[0]), abbr: clubAbbr(hl[0].opp).slice(0, 3) });
     bEnd += 0.6 + hh;
     const rest = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
     for (let i = 0; i < rest.length; i += 2) {
@@ -396,17 +419,8 @@ function buildBack(ctx) {
     bEnd += Math.ceil(marks.length / per) * mh;
   }
 
-  /* --- Mitte: Reise-Feld und Goldfäden (stören sich nicht) --- */
-  let travelBox = null;
-  if (act.travel) {
-    const t = { el: 'travel' }, accent = bg === 'R' ? 'N' : 'R';
-    overlay.push(emb(t, accent, 'AUSWÄRTS', C, 4.4, 0.8, 10));
-    overlay.push(emb(t, 'W', `${stats.km.toLocaleString('de-DE')} KM`, C, 7.3, 1.8, 12));
-    overlay.push(emb(t, 'W', `${stats.away} FAHRTEN`, C, 9.8, 0.75, 10));
-    const cs = [...stats.awayCountries];
-    overlay.push(emb(t, 'W', cs.length ? cs.join(' · ') : 'DEUTSCHLAND', C, 12.2, 0.75, 13));
-    travelBox = [C - 7.5, C + 7.5];
-  }
+  /* --- Mitte: Goldfäden --- */
+  const travelBox = null;
   const tiers = ['threads1', 'threads2', 'threads3'].filter(id => act[id]).length ? ['threads1', 'threads2', 'threads3'].findIndex(id => act[id]) + 1 : 0;
   if (tiers) {
     g.use({ el: ['threads1', 'threads2', 'threads3'][tiers - 1] });
@@ -420,7 +434,7 @@ function buildBack(ctx) {
   if (act.code) { drawCodeBand(g, 4, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 16, profile.raw, ctx.season, 'B'); }
 
   if (act.night) {
-    const free = (u, v) => !overlay.some(o => { const [a, b, c, d] = overlayBox(o); return u > a - 0.4 && u < b + 0.4 && v > c - 0.4 && v < d + 0.4; }) && u > ends + 9.4 + 14.6 && u < lengthCm - ends;
+    const free = (u, v) => !overlay.some(o => { const [a, b, c, d] = overlayBox(o); return u > a - 0.4 && u < b + 0.4 && v > c - 0.4 && v < d + 0.4; }) && !(crestU && Math.hypot(u - crestU, v - vc) < 7.1) && u > ends && u < lengthCm - ends;
     const rnd = rng('night-' + profile.raw);
     g.use({ el: 'night' });
     for (let i = 0; i < lengthCm * 1.4; i++) {

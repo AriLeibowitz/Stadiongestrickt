@@ -15,7 +15,7 @@ const store = {
 const state = {
   profile: null, allGames: [], seasons: [], season: CURRENT_SEASON, games: [], stats: null, statsAll: null,
   ms: [], el: null, overrides: {}, msMode: 'auto', newEls: new Set(),
-  curation: null, curations: {}, lengthCm: 150, real: true, future: 0, markNew: true, name: '',
+  curation: null, curations: {}, lengthCm: 150, real: true, orient: 'A', sizePx: 1300, future: 0, markNew: true, name: '',
   scarf: null, lays: {}, pinned: null,
 };
 
@@ -97,10 +97,11 @@ function renderScarf() {
   const mark = state.markNew && state.fut.length ? state.newEls : null;
   for (const [side, cfg] of Object.entries(SIDES)) {
     const stage = $(cfg.stage), model = state.scarf[side];
-    const width = Math.max(320, stage.clientWidth);
-    state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.real, real: state.real, markEls: mark, title: cfg.title });
+    const width = Math.round(state.sizePx * (state.lengthCm + 12) / 162);
+    state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.real, real: state.real, markEls: mark, orient: state.orient });
     drawHover($('.hover', stage), state.lays[side], model, state.pinned && state.pinned.side === side ? state.pinned : null);
   }
+  $$('.end-label').forEach(e => { e.textContent = (e.dataset.end === 'bottom') === (state.orient === 'A') ? 'Ende A' : 'Ende B'; });
   const n = state.games.length + state.fut.length;
   const reached = state.ms.filter(m => m.reached).length;
   $('#scarfTitle').textContent = `Saison ${seasonLabel(state.season)}${state.season === CURRENT_SEASON ? ' (läuft)' : ''}`;
@@ -150,7 +151,12 @@ function bindScarf() {
   for (const [side, cfg] of Object.entries(SIDES)) {
     const stage = $(cfg.stage), cv = $('.scarf', stage);
     let last = null;
-    const hitOf = ev => { const r = cv.getBoundingClientRect(); const h = hitTest(state.lays[side], state.scarf[side], ev.clientX - r.left, ev.clientY - r.top); return h && { ...h, side, item: itemAt(state.scarf[side], h.x, h.y) }; };
+    const hitOf = ev => {
+      const r = cv.getBoundingClientRect(), lay = state.lays[side];
+      const [lx, ly] = toLayout(lay, ev.clientX - r.left, ev.clientY - r.top);
+      const h = hitTest(lay, state.scarf[side], lx, ly);
+      return h && { ...h, side, item: itemAt(state.scarf[side], h.x, h.y) };
+    };
     cv.addEventListener('mousemove', ev => {
       const hit = hitOf(ev), model = state.scarf[side];
       if (!hit) { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], model, null); last = null; return; }
@@ -164,9 +170,7 @@ function bindScarf() {
         if (txt) { tip.innerHTML = txt; tip.style.display = 'block'; } else tip.style.display = 'none';
       }
       const card = $('.scarf-card').getBoundingClientRect();
-      let tx = ev.clientX - card.left + 14;
-      if (tx + 320 > card.width) tx = Math.max(0, ev.clientX - card.left - 330);
-      tip.style.left = tx + 'px'; tip.style.top = (ev.clientY - card.top + 16) + 'px';
+      tip.style.left = (ev.clientX - card.left + 18) + 'px'; tip.style.top = (ev.clientY - card.top + 12) + 'px';
     });
     cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], state.scarf[side], null); last = null; });
     cv.addEventListener('click', ev => {
@@ -376,6 +380,8 @@ function init() {
   $('#lenSel').onchange = () => { state.lengthCm = Number($('#lenSel').value); state.pinned = null; update(); };
   $('#nameIn').oninput = () => { state.name = $('#nameIn').value.toUpperCase(); update(); };
   bindSeg('viewSeg', v => { state.real = v === 'real'; renderScarf(); });
+  bindSeg('orientSeg', v => { state.orient = v; state.pinned = null; renderScarf(); });
+  bindSeg('sizeSeg', v => { state.sizePx = Number(v); state.pinned = null; renderScarf(); });
   bindSeg('msMode', v => { state.msMode = v; state.overrides = {}; update(); });
   $('#futureIn').oninput = () => { state.future = Number($('#futureIn').value); update(); };
   $('#markNew').onchange = () => { state.markNew = $('#markNew').checked; renderScarf(); };

@@ -22,20 +22,27 @@ Unter „Mehr“ stehen alle Spiele der Saison, die Kauf-Umfrage (mit CSV-Export
 
 ## Design-System
 
-- **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm. Schrift (Barlow Condensed, eingebettet) und Formen werden als Vektoren gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt.
-- **Vorderseite:** Sie startet einfarbig rot und besteht nur aus Streifen und Flächen, ohne Symbole.
-- **Gestufte Reihen** (es gilt immer nur eine Stufe):
-  - **Treue:** 1 Streifen, 3 Streifen, Blockstreifen, weißer Rand, Goldstreifen, Mittelstreifen, Rauten-Mitte
-  - **Gegner-Sammler:** 2, 4 oder 6 goldene Längsfäden auf der Rückseite
-  - **Mitgliedschaft:** modernes Wappen, Traditionswappen ab 5 Jahren, Retro-Wappen ab 10 Jahren (stilisierte Entwürfe)
-- **Sammelnde Reihen:**
-  - **Wettbewerbe:** Silberkordel vorne, nachtblaue Rückseite, und über dem Wappen eingestickt Pokal, Finalpokal, Meisterschale und vier Sterne
-  - **Auswärts:** Naht, Fransen, Rauten-Enden, Stadion-Punkte, Reise-Feld, goldene Naht
-  - **Momente:** gestickte Zeichen in 3 Versionen
-- **Rückseite:** Alles ist so ausgerichtet, dass es lesbar ist, wenn der Schal hängt.
-  - **Ende A:** Name, Wappen und Trophäen
-  - **Ende B:** das Herzstück-Patch, darüber 4 Spiele-Patches zu zweit, darüber die Momente-Zeichen
-  - **Mitte:** Reise-Feld und Goldfäden
+- **Ansicht:** Der Schal wird hochkant gezeigt, Vorder- und Rückseite nebeneinander. Mit „Ende A unten“ oder „Ende B unten“ dreht man ihn so, dass die Schrift am jeweiligen Ende richtig herum steht. Es gibt 3 Größen (S, M, L).
+- **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm.
+- **Treue** (exklusive Stufen, jede ersetzt die vorige, nur die Goldstreifen bleiben ab Stufe 5):
+  1. 1 Streifen
+  2. 3 schmale Streifen
+  3. nur die Blockstreifen weiter zur Mitte
+  4. zwei große weiße Blöcke
+  5. Goldstreifen
+  6. Mittelstreifen
+  7. Rauten-Mitte
+- **Wettbewerbe:**
+  - Silberkordel (1 CL-Spiel)
+  - nachtblaue Rückseite (5 CL-Spiele)
+  - Trophäen über dem Wappen eingestickt, nur wenn man beim entscheidenden Spiel dabei war: Meisterschale, DFB-Pokal, Henkelpott, Supercup
+- **Auswärts:** Naht, rot-weiße Fransen, Rauten-Enden, Reise-Zeile, Stadion-Punkte, goldene Naht und Fransen
+- **Momente:** gestickte Zeichen an Ende B in Weiß (1×), Silber (2×) oder Gold (3×)
+- **Gegner-Sammler** (Stufen): 2, 4 oder 6 Goldfäden auf der Rückseite
+- **Mitgliedschaft** (Stufen): modernes, Traditions- oder Retro-Wappen
+- **Rückseite:**
+  - **Ende A:** Reise-Zeile, Name, Wappen und Trophäen
+  - **Ende B:** Herzstück-Patch, 4 Spiele-Patches zu zweit und die Momente-Zeichen
 
 ## Gestrickt, gestickt, aufgenäht
 
