@@ -32,8 +32,8 @@
 <main class="wrap">
   <section class="hero">
     <div>
-      <h2>Ein Schal pro Saison. Ein Streifen pro Spiel. <em>Kein Schal wie deiner.</em></h2>
-      <p>Gib einen Fan-Code ein und wähl eine Saison. Aus allen Spielen, bei denen du in dieser Saison im Stadion warst, entsteht ein Strickmuster mit höchstens 5 Garnfarben. Saison-Meilensteine schalten neue Design-Elemente frei, und Gemini erzählt, wie deine Saison war, und schlägt deine 5 größten Momente für die Highlight-Felder vor. Gestrickt wird erst auf Bestellung.</p>
+      <h2>Ein Schal pro Saison. Er wächst mit jedem Meilenstein. <em>Kein Schal wie deiner.</em></h2>
+      <p>Gib einen Fan-Code ein und wähl eine Saison. Der Schal startet einfarbig rot. Jeder Saison-Meilenstein legt eine neue Ebene darauf: Streifen, Symbole, Muster, Rauten, Gold. Auf der Rückseite steht deine Geschichte: Gemini wählt deine 5 größten Momente der Saison und erzählt, wie sie war. Gestrickt wird erst auf Bestellung.</p>
     </div>
   </section>
 
@@ -66,7 +66,7 @@
         <div class="opt"><label>Seite</label><div class="seg" id="sideSeg"><button data-v="front" class="on">Vorderseite</button><button data-v="back">Rückseite</button></div></div>
         <div class="opt"><label>Ansicht</label><div class="seg" id="viewSeg"><button data-v="knit" class="on">Strick</button><button data-v="flat">Raster</button></div></div>
         <div class="opt"><label>Länge</label><div class="seg" id="lenSeg"><button data-v="150" class="on">150 cm</button><button data-v="180">180</button><button data-v="220">220</button></div></div>
-        <div class="opt"><label>Bahnen</label><div class="seg" id="segSeg"><button data-v="1">1</button><button data-v="2" class="on">2</button><button data-v="3">3</button><button data-v="4">4</button></div></div>
+        <div class="opt"><label>Bahnen</label><div class="seg" id="segSeg"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3" class="on">3</button><button data-v="4">4</button></div></div>
       </div>
 
       <div class="card">
@@ -96,7 +96,7 @@
         </div>
         <div class="legend" id="legend"></div>
         <div class="under">
-          <div class="reader" id="reader"><h4>Schal lesen</h4><span class="muted">Fahr über den Schal oder tipp auf einen Streifen. Die App erzählt dir, welches Spiel das war.</span></div>
+          <div class="reader" id="reader"><h4>Schal lesen</h4><span class="muted">Fahr über den Schal oder tipp auf ein Element. Die App zeigt dir, welcher Meilenstein es freigeschaltet hat. Auf der Rückseite erzählt sie die Highlight-Spiele.</span></div>
           <div class="lens-wrap"><canvas id="lens"></canvas><span>Lupe</span></div>
         </div>
       </div>
@@ -153,8 +153,8 @@
       <div class="stack">
         <div class="card">
           <h3>Wie wächst dein Schal?</h3>
-          <p class="small muted" style="margin:0 0 8px">Für die laufende Saison 26/27: Simuliere die nächsten Spiele, die dieser Fan wahrscheinlich besucht. Sie erscheinen blass auf dem Schal, weil ihr Ergebnis noch offen ist. Die offene Fläche wird gestrichelt markiert.</p>
-          <div class="row between"><b id="futureLabel">+0 Spiele</b><label class="small row"><input type="checkbox" id="potView"> Offene Fläche zeigen</label></div>
+          <p class="small muted" style="margin:0 0 8px">Für die laufende Saison 26/27: Simuliere die nächsten Spiele, die dieser Fan wahrscheinlich besucht, und sieh, welche Meilensteine und Design-Elemente dadurch dazukommen.</p>
+          <div class="row between"><b id="futureLabel">+0 Spiele</b><label class="small row"><input type="checkbox" id="potView" checked> Neue Elemente markieren</label></div>
           <input type="range" id="futureIn" min="0" max="20" value="0">
           <div id="unlocks" class="small"></div>
         </div>

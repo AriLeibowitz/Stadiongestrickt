@@ -76,28 +76,15 @@ function drawCells(ctx, model, x0, x1, y0, y1, ox, oy, cx, cy, opts) {
       for (let y = y0; y < y1; y++) ctx.drawImage(sp[model.cells[base + y]], px, oy + y * cy, cx + 0.35, cy + 0.35);
     }
   }
-  // Geister: kommende (simulierte) Spiele und – in der Potenzial-Ansicht – offene Fläche
-  for (let x = x0; x < x1; x++) {
-    const reg = model.regions[x];
-    const isFuture = reg && (reg.type === 'future' || (reg.type === 'season' && reg.s && reg.s.future));
-    const isOpen = reg && reg.type === 'filler' && opts.potential;
-    if (!isFuture && !isOpen) continue;
-    ctx.fillStyle = isFuture ? 'rgba(246,244,239,.55)' : 'rgba(246,244,239,.78)';
-    ctx.fillRect(ox + x * cx, oy + y0 * cy, cx + 0.35, (y1 - y0) * cy);
-  }
-  if (opts.potential) {
-    // gestrichelte Umrandung der offenen Fläche
-    let start = -1;
-    for (let x = x0; x <= x1; x++) {
-      const reg = x < x1 ? model.regions[x] : null;
-      const open = reg && (reg.type === 'filler' || reg.type === 'future');
-      if (open && start < 0) start = x;
-      if (!open && start >= 0) {
-        ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = '#0E2240'; ctx.lineWidth = 1.2;
-        ctx.strokeRect(ox + start * cx + 1, oy + 1, (x - start) * cx - 2, (y1 - y0) * cy - 2);
-        ctx.restore(); start = -1;
-      }
+  // Markierung (z. B. neu freigeschaltete Elemente im Schalpotenzial)
+  if (opts.markEls && opts.markEls.size) {
+    ctx.fillStyle = 'rgba(255,216,77,.6)';
+    ctx.beginPath();
+    for (let x = x0; x < x1; x++) for (let y = y0; y < y1; y++) {
+      const t = model.tagList[model.tags[x * W + y]];
+      if (t && t.el && opts.markEls.has(t.el)) ctx.rect(ox + x * cx, oy + y * cy, cx + 0.35, cy + 0.35);
     }
+    ctx.fill();
   }
 }
 
@@ -160,31 +147,48 @@ function hitTest(lay, model, px, py) {
   return null;
 }
 
-function regionSpan(model, x) {
-  const reg = model.regions[x];
-  let a = x, b = x;
-  while (a > 0 && model.regions[a - 1] === reg) a--;
-  while (b < model.L - 1 && model.regions[b + 1] === reg) b++;
-  return [a, b];
+function groupKey(t) {
+  if (!t) return null;
+  if (t.el) return 'el:' + t.el;
+  if (t.type === 'panel') return 'panel:' + t.game.nr;
+  return t.type;
 }
+function tagAtCell(model, x, y) { return model.tagList[model.tags[x * model.W + y]]; }
 
-function drawHover(canvas, lay, model, x) {
+// Hebt alle Maschen hervor, die zum selben Element gehören wie die Masche (x, y)
+function drawHover(canvas, lay, model, hit) {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.round(lay.width * dpr); canvas.height = Math.round(lay.height * dpr);
   canvas.style.width = lay.width + 'px'; canvas.style.height = lay.height + 'px';
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, lay.width, lay.height);
-  if (x == null) return;
-  const [a, b] = regionSpan(model, x);
+  if (!hit) return;
+  const key = groupKey(tagAtCell(model, hit.x, hit.y));
+  if (!key || key === 'el:base' || key === 'backBase') return;
+  const W = model.W, keys = new Array(model.tagList.length);
+  model.tagList.forEach((t, i) => { keys[i] = groupKey(t) === key; });
+  const match = (x, y) => x >= 0 && x < model.L && y >= 0 && y < W && keys[model.tags[x * W + y]];
   for (let s = 0; s < lay.segs; s++) {
-    const sx0 = s * lay.segLen, sx1 = Math.min(model.L, sx0 + lay.segLen) - 1;
-    const lo = Math.max(a, sx0), hi = Math.min(b, sx1);
-    if (lo > hi) continue;
+    const sx0 = s * lay.segLen, sx1 = Math.min(model.L, sx0 + lay.segLen);
     const o = segOrigin(lay, s);
-    ctx.strokeStyle = '#FFD84D'; ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 4;
-    ctx.strokeRect(o.x + (lo - sx0) * lay.cx - 1, o.y - 2, (hi - lo + 1) * lay.cx + 2, lay.segH + 4);
+    ctx.fillStyle = 'rgba(255,216,77,.35)';
+    ctx.beginPath();
+    const edges = [];
+    for (let x = sx0; x < sx1; x++) for (let y = 0; y < W; y++) {
+      if (!match(x, y)) continue;
+      const px = o.x + (x - sx0) * lay.cx, py = o.y + y * lay.cy;
+      ctx.rect(px, py, lay.cx + 0.3, lay.cy + 0.3);
+      if (!match(x - 1, y)) edges.push([px, py, px, py + lay.cy]);
+      if (!match(x + 1, y)) edges.push([px + lay.cx, py, px + lay.cx, py + lay.cy]);
+      if (!match(x, y - 1)) edges.push([px, py, px + lay.cx, py]);
+      if (!match(x, y + 1)) edges.push([px, py + lay.cy, px + lay.cx, py + lay.cy]);
+    }
+    ctx.fill();
+    ctx.strokeStyle = '#FFD84D'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (const [a, b, c, d] of edges) { ctx.moveTo(a, b); ctx.lineTo(c, d); }
+    ctx.stroke();
   }
 }
 
@@ -202,7 +206,7 @@ function drawLens(canvas, model, x, y, knit) {
   drawCells(ctx, model, x0, Math.min(model.L, x0 + nx), y0, Math.min(model.W, y0 + ny), -x0 * cx, -y0 * cy, cx, cy, { knit });
 }
 
-function drawThumb(canvas, model, width, potential) {
+function drawThumb(canvas, model, width, markEls) {
   const dpr = window.devicePixelRatio || 1;
   const cx = width / model.L, cy = cx / STITCH_ASPECT * 1.6;
   const h = model.W * cy;
@@ -210,7 +214,7 @@ function drawThumb(canvas, model, width, potential) {
   canvas.style.width = width + 'px'; canvas.style.height = h + 'px';
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawCells(ctx, model, 0, model.L, 0, model.W, 0, 0, cx, cy, { knit: false, potential });
+  drawCells(ctx, model, 0, model.L, 0, model.W, 0, 0, cx, cy, { knit: false, markEls });
 }
 
 function patternPNG(model) {

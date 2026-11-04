@@ -14,8 +14,8 @@ const store = {
 
 const state = {
   profile: null, games: [], stats: null, statsAll: null, ms: [], el: null, overrides: {},
-  curation: null, curations: {}, lengthCm: 150, side: 'front', knit: true, segs: 2,
-  future: 0, potential: false, name: '', scarf: null, lay: null, pinned: null, tab: 'ai',
+  curation: null, curations: {}, lengthCm: 150, side: 'front', knit: true, segs: 3,
+  future: 0, potential: true, name: '', scarf: null, lay: null, pinned: null, tab: 'ai',
   msMode: 'auto',
 };
 
@@ -70,6 +70,8 @@ function update() {
   const ov = state.msMode === 'all' ? Object.fromEntries(ELEMENTS.map(e => [e.id, 'on']))
     : state.msMode === 'none' ? Object.fromEntries(ELEMENTS.filter(e => !e.basis).map(e => [e.id, 'off'])) : {};
   state.el = resolveElements(state.ms, { ...ov, ...state.overrides });
+  const before = resolveElements(evaluateMilestones(state.stats), { ...ov, ...state.overrides }).active;
+  state.newEls = new Set(ELEMENTS.filter(e => state.el.active[e.id] && !before[e.id]).map(e => e.id));
   const byNr = new Map(state.games.map(g => [g.nr, g]));
   const hl = state.curation.highlights.map(h => byNr.get(h.nr)).filter(Boolean);
   state.scarf = buildScarf({
@@ -93,53 +95,37 @@ function renderScarf() {
   const model = currentModel();
   const stage = $('#stage');
   const width = Math.max(300, stage.clientWidth);
-  state.lay = drawScarf($('#scarf'), model, { width, segs: state.segs, knit: state.knit, potential: state.potential && state.side === 'front' });
-  drawHover($('#hover'), state.lay, model, state.pinned != null ? state.pinned : null);
-  const info = state.scarf.front.info;
-  const lvl = DENSITY[info.level];
+  const mark = state.potential && state.fut.length ? state.newEls : null;
+  state.lay = drawScarf($('#scarf'), model, { width, segs: state.segs, knit: state.knit, markEls: mark });
+  drawHover($('#hover'), state.lay, model, state.pinned);
   $('#scarfTitle').textContent = `Saison ${seasonLabel(state.season)} · ${state.side === 'front' ? 'Vorderseite' : 'Rückseite'}`;
   const n = state.games.length + state.fut.length;
-  $('#densityChip').textContent = info.level === 'leer' ? 'Noch keine Spiele'
-    : `${lvl.name} · ${rowsRange(info.rpg)} Reihen/Spiel · ${n} Spiele`;
-  $('#densityChip').title = lvl ? lvl.desc : '';
-  const decoded = decodeCodeBand(model);
+  const reached = state.ms.filter(m => m.reached).length;
+  $('#densityChip').textContent = `${n} ${n === 1 ? 'Spiel' : 'Spiele'} · ${reached}/${state.ms.length} Meilensteine`;
+  const decoded = decodeCodeBand(state.scarf.back);
   $('#codeChip').textContent = decoded ? `✓ Strickcode gelesen: ${decoded.code} · Saison ${seasonLabel(decoded.season)}` : 'Strickcode aus';
   $('#codeChip').className = 'chip ' + (decoded ? 'green' : '');
   const activeCount = ELEMENTS.filter(e => state.el.active[e.id]).length;
   $('#elChip').textContent = `${activeCount}/${ELEMENTS.length} Design-Elemente aktiv`;
   renderLegend();
-  if (state.pinned != null) showReader(state.pinned);
+  if (state.pinned) showReader(state.pinned);
   drawLens($('#lens'), model, state.lensX != null ? state.lensX : Math.floor(model.L / 2), state.lensY != null ? state.lensY : 36, state.knit);
 }
 
-function rowsRange(r) {
-  const a = Math.floor(r), b = Math.min(MAX_ROWS_PER_GAME, Math.ceil(r - 1e-9));
-  return a === b ? String(a) : `${a}–${b}`;
-}
+function elementSide(e) { return e.where.startsWith('Rückseite') ? 'back' : 'front'; }
 
 function renderLegend() {
   const a = state.el.active;
-  const items = [];
-  if (state.side === 'front') {
-    if (a.results) items.push(['R', 'Sieg'], ['W', 'Remis'], ['N', 'Niederlage']);
-    if (a.goals) items.push([null, '● links: Bayern-Tore']);
-    if (a.against) items.push([null, '● rechts: Gegentore']);
-    if (a.awaySeam) items.push([a.tour ? 'G' : null, '┆ Kante: auswärts']);
-    if (a.clStars) items.push([null, '✦ Champions League']);
-    if (a.cupTexture) items.push([null, '░ DFB-Pokal']);
-    if (a.streak) items.push(['G', 'längste Serie']);
-    if (state.scarf.front.info.filler > 0) items.push([null, '▭ Grundmuster: hier wächst dein Schal']);
-    if (state.fut.length) items.push([null, '▒ blass: kommende Spiele']);
-  } else {
-    items.push(['N', 'Rückseite: Infos, Statistik, Strickcode']);
-    if (a.legend) items.push(['B', 'Rauten (Allesfahrer)']);
-  }
-  $('#legend').innerHTML = items.map(([c, t]) => `<span>${c ? `<i style="background:${YARN[c].hex}"></i>` : ''}${esc(t)}</span>`).join('');
+  const list = ELEMENTS.filter(e => a[e.id] && elementSide(e) === state.side);
+  const info = state.scarf[state.side].info;
+  let html = `<span class="tiny muted" style="width:100%">Auf der ${state.side === 'front' ? 'Vorderseite' : 'Rückseite'}:</span>` +
+    list.map(e => `<span class="chip ${state.newEls.has(e.id) && state.fut.length ? 'gold' : ''}" title="${esc(e.desc)}">${esc(e.name)}</span>`).join('');
+  if (info.dropped) html += `<span class="chip red">${info.dropped} Feld(er) passen bei ${state.lengthCm} cm nicht auf die Rückseite</span>`;
+  $('#legend').innerHTML = html;
 }
 
-function regionText(reg, cell) {
-  if (!reg) return null;
-  const a = state.el.active;
+function tagText(t) {
+  if (!t) return null;
   const gameHtml = (m, title) => {
     const flags = [];
     if (m.final) flags.push('Finale');
@@ -149,67 +135,61 @@ function regionText(reg, cell) {
     if (m.pens) flags.push(`Elfmeterschießen ${m.pens === 'W' ? 'gewonnen' : 'verloren'}`);
     if (m.klassiker) flags.push('Klassiker');
     if (m.weather === 'rain') flags.push('Regen'); if (m.weather === 'snow') flags.push('Schnee');
-    if (state.statsAll.firstVisit.has(m.nr) && m.venue !== 'H') flags.push('erster Besuch in diesem Stadion');
-    return `${title ? `<b>${esc(title)}</b><br>` : ''}<b>Spiel #${m.nr}</b> · ${fmtDateLong(m.date)}<br>${esc(COMP_DE[m.comp])}, ${esc(m.round)} · ${m.venue === 'H' ? 'Allianz Arena' : esc(m.city)}<br>${esc(scoreLong(m))}${flags.length ? '<br><span style="opacity:.8">' + esc(flags.join(' · ')) + '</span>' : ''}`;
+    return `${title ? `<b>${esc(title)}</b><br>` : ''}<b>Spiel #${m.nr}</b> der Saison · ${fmtDateLong(m.date)}<br>${esc(COMP_DE[m.comp])}, ${esc(m.round)} · ${m.venue === 'H' ? 'Allianz Arena' : esc(m.city)}<br>${esc(scoreLong(m))}${flags.length ? '<br><span style="opacity:.8">' + esc(flags.join(' · ')) + '</span>' : ''}`;
   };
-  switch (reg.type) {
-    case 'game': return gameHtml(reg.game);
-    case 'future': return `<b>Kommendes Spiel (simuliert)</b><br>${fmtDateLong(reg.game.date)} · ${esc(COMP_DE[reg.game.comp])}<br>${esc(scoreLong(reg.game))}<br><span style="opacity:.8">Wird nach dem Spiel mit dem echten Ergebnis eingestrickt.</span>`;
+  if (t.el) {
+    const e = ELEMENT_BY_ID[t.el]; if (!e) return null;
+    const m = milestoneForElement(t.el);
+    const st = m && state.ms.find(x => x.id === m.id);
+    const src = m ? `Freigeschaltet durch <b>${esc(m.name)}</b>: ${esc(m.cond)}${st ? ` (${Math.min(st.current, st.target)}/${st.target})` : ''}` : 'Grundausstattung';
+    return `<b>${esc(e.name)}</b><br>${esc(e.desc)}<br><span style="opacity:.8">${src}${st && !st.reached ? ' · noch nicht erreicht, manuell eingeschaltet' : ''}</span>`;
+  }
+  switch (t.type) {
     case 'panel': {
-      const h = state.curation.highlights.find(x => x.nr === reg.game.nr);
-      return `${reg.heart ? '♥ Herzstück · ' : ''}Highlight-Feld<br>` + gameHtml(reg.game, h && h.title);
+      const h = state.curation.highlights.find(x => x.nr === t.game.nr);
+      return `${t.heart ? '♥ Herzstück · ' : ''}Highlight-Feld (KI-Auswahl)<br>` + gameHtml(t.game, h && h.title);
     }
-    case 'filler': return '<b>Grundmuster</b><br>Klassische Blockstreifen. Neue Spiele ersetzen diese Fläche, bis der Schal voll ist.';
-    case 'sep': return `<b>Monatsnaht</b><br>Ab hier: ${{ 1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni', 7: 'Juli', 8: 'August', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember' }[reg.month]}`;
-    case 'crown': return `<b>Saison-Krone ${seasonLabel(reg.season)}</b><br>Alle 17 Bundesliga-Heimspiele dieser Saison besucht.`;
-    case 'season': { const s = reg.s; return `<b>Saison ${seasonLabel(s.season)}</b> (Saison-Verdichtung)<br>${s.games.length} Spiele · ${s.W} S · ${s.D} U · ${s.L} N${s.future ? ` · ${s.future} kommend` : ''}<br><span style="opacity:.8">Rot/Weiß/Nachtblau zeigen die Anteile quer über die Breite.</span>`; }
-    case 'code': return `<b>Strickcode</b> (Ende ${reg.side})<br>${esc(state.profile.code)} und Saison ${seasonLabel(state.season)} als 45 Bit zwischen zwei Prüfmustern. Fotografiert die App dieses Band, findet sie die Geschichte hinter dem Schal.`;
-    case 'element': { const e = ELEMENT_BY_ID[reg.el]; const m = milestoneForElement(reg.el); return `<b>${esc(e.name)}</b><br>${esc(e.desc)}${m ? `<br><span style="opacity:.8">Freigeschaltet durch: ${esc(m.name)} (${esc(m.cond)})</span>` : ''}`; }
-    case 'hem': return '<b>Saum</b>';
-    case 'gap': return null;
-    case 'backBase': return a.legend ? '<b>Rauten-Rückseite</b><br>Allesfahrer: 50 Spiele in einer Saison' : '<b>Rückseite</b><br>Nachtblau mit roten Nadelstreifen';
+    case 'code': return `<b>Strickcode</b> (Ende ${t.side})<br>${esc(state.profile.code)} und Saison ${seasonLabel(state.season)} als 45 Bit zwischen zwei Prüfmustern. Fotografiert die App dieses Band, erkennt sie Fan und Saison.`;
+    case 'backBase': return '<b>Rückseite</b><br>Nachtblau mit roten Nadelstreifen';
     default: return null;
   }
 }
 
-function showReader(x) {
+function showReader(hit) {
   const model = currentModel();
-  const reg = model.regions[x];
-  const txt = regionText(reg);
-  const [a, b] = regionSpan(model, x);
-  $('#reader').innerHTML = `<h4>Schal lesen · Reihe ${a + 1}${b > a ? '–' + (b + 1) : ''} · ${(a / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm</h4>${txt || '<span class="muted">Zierfläche</span>'}`;
+  const txt = tagText(tagAtCell(model, hit.x, hit.y));
+  $('#reader').innerHTML = `<h4>Schal lesen · ${(hit.x / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm ab Ende A</h4>${txt || '<span class="muted">Grundfläche</span>'}`;
 }
 
 function bindScarf() {
   const cv = $('#scarf'), tip = $('#tip');
-  let last = -1;
+  let last = null;
   cv.addEventListener('mousemove', ev => {
     const rect = cv.getBoundingClientRect();
-    const px = ev.clientX - rect.left, py = ev.clientY - rect.top;
     const model = currentModel();
-    const hit = hitTest(state.lay, model, px, py);
-    if (!hit) { tip.style.display = 'none'; if (state.pinned == null) drawHover($('#hover'), state.lay, model, null); last = -1; return; }
+    const hit = hitTest(state.lay, model, ev.clientX - rect.left, ev.clientY - rect.top);
+    if (!hit) { tip.style.display = 'none'; if (!state.pinned) drawHover($('#hover'), state.lay, model, null); last = null; return; }
     state.lensX = hit.x; state.lensY = hit.y;
     drawLens($('#lens'), model, hit.x, hit.y, state.knit);
-    if (regionSpan(model, hit.x)[0] !== last) {
-      last = regionSpan(model, hit.x)[0];
-      if (state.pinned == null) drawHover($('#hover'), state.lay, model, hit.x);
-      const t = regionText(model.regions[hit.x]);
-      if (t) { tip.innerHTML = t; tip.style.display = 'block'; } else tip.style.display = 'none';
+    const t = tagAtCell(model, hit.x, hit.y);
+    if (t !== last) {
+      last = t;
+      if (!state.pinned) drawHover($('#hover'), state.lay, model, hit);
+      const txt = tagText(t);
+      if (txt) { tip.innerHTML = txt; tip.style.display = 'block'; } else tip.style.display = 'none';
     }
     const stage = $('#stage').getBoundingClientRect();
     let tx = ev.clientX - stage.left + 14, ty = ev.clientY - stage.top + 14;
     if (tx + 300 > stage.width) tx = Math.max(0, ev.clientX - stage.left - 310);
     tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
   });
-  cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (state.pinned == null) drawHover($('#hover'), state.lay, currentModel(), null); last = -1; });
+  cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (!state.pinned) drawHover($('#hover'), state.lay, currentModel(), null); last = null; });
   cv.addEventListener('click', ev => {
     const rect = cv.getBoundingClientRect();
     const hit = hitTest(state.lay, currentModel(), ev.clientX - rect.left, ev.clientY - rect.top);
-    if (!hit) { state.pinned = null; drawHover($('#hover'), state.lay, currentModel(), null); return; }
-    state.pinned = hit.x;
-    drawHover($('#hover'), state.lay, currentModel(), hit.x);
-    showReader(hit.x);
+    state.pinned = hit || null;
+    drawHover($('#hover'), state.lay, currentModel(), hit);
+    if (hit) showReader(hit);
   });
 }
 
@@ -338,7 +318,7 @@ function renderPotential() {
   const base = evaluateMilestones(state.stats);
   const newly = state.ms.filter(m => m.reached && !base.find(b => b.id === m.id).reached);
   $('#unlocks').innerHTML = state.future
-    ? (newly.length ? `<p style="margin:10px 0 0"><b>Damit schaltest du frei:</b></p><ul class="unlock-list">${newly.map(m => `<li><b>${esc(ELEMENT_BY_ID[m.element].name)}</b> <span class="muted">· ${esc(m.name)}</span></li>`).join('')}</ul>` : '<p class="muted" style="margin:10px 0 0">Mit diesen Spielen kommt noch kein neues Element dazu. Schieb den Regler weiter.</p>')
+    ? (newly.length ? `<p style="margin:10px 0 0"><b>Damit schaltest du frei</b> <span class="muted">(auf dem Schal gelb markiert, wenn „Neue Elemente markieren“ an ist)</span>:</p><ul class="unlock-list">${newly.map(m => `<li><b>${esc(ELEMENT_BY_ID[m.element].name)}</b> <span class="muted">· ${esc(m.name)}</span></li>`).join('')}</ul>` : '<p class="muted" style="margin:10px 0 0">Mit diesen Spielen kommt noch kein neues Element dazu. Schieb den Regler weiter.</p>')
     : '';
   // Teaser wie in App/E-Mail
   const next = base.filter(m => !m.reached).sort((a, b) => b.progress - a.progress || (a.target - a.current) - (b.target - b.current)).slice(0, 3);
@@ -346,12 +326,12 @@ function renderPotential() {
   const s = state.stats;
   $('#teaser').innerHTML = `<div class="phone-top">FC Bayern App · Mein Schal</div>
     <h3>${running ? 'Deine Saison bisher' : 'Deine Saison ' + seasonLabel(state.season)}, ${esc(state.name || state.profile.name)}</h3>
-    <div class="small" style="opacity:.85">Saison ${seasonLabel(state.season)} · ${s.total} Streifen · ${reached} von ${base.length} Meilensteinen · ${state.scarf.front.info.filler > 0 ? Math.round(100 * (1 - state.scarf.front.info.filler / state.scarf.front.info.bodyRows)) + ' % gestrickt' : 'voll gestrickt'}</div>
+    <div class="small" style="opacity:.85">Saison ${seasonLabel(state.season)} · ${s.total} Spiele · ${reached} von ${base.length} Meilensteinen · ${ELEMENTS.filter(e => state.el.active[e.id]).length} Design-Elemente</div>
     <canvas id="thumb"></canvas>
     ${next.map(m => `<div class="next"><span>${esc(ELEMENT_BY_ID[m.element].name)}</span><em>noch ${m.target - m.current}</em><span class="tiny" style="opacity:.75;grid-column:1/-1">${esc(m.cond)}</span><div class="bar"><i style="width:${m.progress * 100}%"></i></div></div>`).join('')}
     <div class="row" style="margin-top:12px"><button class="btn red sm" type="button" onclick="document.querySelector('#survey').scrollIntoView({behavior:'smooth'})">Schal vormerken</button><span class="tiny" style="opacity:.7">Unverbindlich, ab 69 €</span></div>`;
   const tw = $('#teaser').clientWidth - 36;
-  if (tw > 50) drawThumb($('#thumb'), state.scarf.front, tw, true);
+  if (tw > 50) drawThumb($('#thumb'), state.scarf.front, tw, state.fut.length ? state.newEls : null);
 }
 
 /* ---------------------------------------------------------------- Umfrage */
@@ -401,7 +381,6 @@ function renderGames() {
     if (g.final) f.push('Finale'); if (g.titleClinch) f.push('Meister'); if (g.comeback) f.push('Comeback');
     if (g.lateWinner) f.push('Last Minute'); if (g.pens) f.push('i.E.'); if (g.klassiker) f.push('Klassiker');
     if (g.weather === 'rain') f.push('Regen'); if (g.weather === 'snow') f.push('Schnee');
-    if (g.nr % 50 === 0) f.push(`${g.nr}. Spiel`);
     return `<tr><td>${g.nr}</td><td><button class="star-btn ${hlSet.has(g.nr) ? 'on' : ''}" data-nr="${g.nr}" title="Als Highlight setzen">★</button></td><td>${fmtDate(g.date)}</td><td>${g.seasonLabel}</td><td>${COMP_DE[g.comp]}</td><td>${esc(g.round)}</td><td>${g.venue === 'H' ? 'Heim' : g.venue === 'A' ? esc(g.city) : esc(g.city) + ' (neutral)'}</td><td>${esc(scoreLine(g))}</td><td><span class="res ${g.result}">${{ W: 'S', D: 'U', L: 'N' }[g.result]}</span></td><td class="muted">${f.join(' · ')}</td></tr>`;
   }).join('') || '<tr><td colspan="10" class="muted">Keine Spiele.</td></tr>';
   $$('#gBody .star-btn').forEach(b => b.onclick = () => {
@@ -418,20 +397,6 @@ function renderGames() {
 }
 
 /* ---------------------------------------------------------------- Regelwerk */
-function densityTable() {
-  // typischer Aufbau: Saum, 2x Strickcode, Kopfteil, 5 Highlights (inkl. Herzstück), Jubiläums-Medaillon
-  const fixed = 2 + 12 + 58 + 2 * (PANEL_LEN + 2) + 2 * (PANEL_LEN + 2) + (HEART_LEN + 4) + 34 + 12 + 2;
-  const ns = [3, 10, 20, 30, 40, 50, 57];
-  const head = `<tr><th>Spiele</th>${[150, 180, 220].map(l => `<th>${l} cm</th>`).join('')}</tr>`;
-  const body = ns.map(n => `<tr><td><b>${n}</b></td>${[150, 180, 220].map(l => {
-    const rows = l * ROWS_PER_CM - fixed, r = rows / n;
-    const lvl = r >= 3 ? 'Detail' : r >= 2 ? 'Fein' : 'Hauch';
-    const cm = Math.min(MAX_ROWS_PER_GAME, r) / ROWS_PER_CM;
-    return `<td>${lvl} · ${Math.min(MAX_ROWS_PER_GAME, Math.floor(r))} R. · ${cm.toFixed(1).replace('.', ',')} cm</td>`;
-  }).join('')}</tr>`).join('');
-  return `<table>${head}${body}</table><p class="tiny muted">Grundlage: ${fixed} Reihen feste Teile (Saum, Strickcode, Kopfteil, 5 Highlight-Felder, Medaillon). Höchstens ${MAX_ROWS_PER_GAME} Reihen (${(MAX_ROWS_PER_GAME / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm) pro Spiel, den Rest füllt das Grundmuster.</p>`;
-}
-
 function renderRules() {
   const msRows = MILESTONES.map(m => { const e = ELEMENT_BY_ID[m.element]; return `<tr><td>${esc(MILESTONE_CATEGORIES.find(c => c[0] === m.cat)[1])}</td><td><b>${esc(m.name)}</b></td><td>${esc(m.cond)}</td><td><b>${esc(e.name)}</b>: ${esc(e.desc)}</td><td>${esc(e.where)}</td></tr>`; }).join('');
   $('#rules').innerHTML = `
@@ -443,25 +408,25 @@ function renderRules() {
   <div class="card"><h3>2 · Maße &amp; Garn</h3>
     <p>${STITCHES} Maschen Breite (18 cm bei 4 Maschen/cm), ${ROWS_PER_CM} Reihen pro cm. Längen 150, 180 und 220 cm, also ${150 * ROWS_PER_CM} / ${180 * ROWS_PER_CM} / ${220 * ROWS_PER_CM} Reihen. Doppeljacquard mit eigener Vorder- und Rückseite, Einzelfertigung auf Bestellung.</p>
     <p><b>5 Garnfarben:</b> ${CI_KEYS.map(k => `<span class="chip" style="background:${YARN[k].hex};color:${k === 'W' || k === 'G' ? '#0E2240' : '#fff'}">${YARN[k].name}</span>`).join(' ')}</p>
-    <p>Gold ist reserviert: Es erscheint nur, wenn ein Gold-Meilenstein erreicht ist, etwa 50 Spiele, ein Finale, eine Meisterschaft oder eine Serie. Ein Neumitglied strickt deshalb mit 3–4 Farben.</p></div>
-  <div class="card"><h3>3 · Aufbau der Vorderseite</h3>
-    <div class="flow"><span>Saum</span><span class="k">Strickcode</span><span>Auswärts-Rauten*</span><span>Kopfteil „SAISON“</span><span class="h">Highlight 2–3</span><span>Spiele …</span><span class="h">♥ Herzstück</span><span>… Spiele</span><span>Grundmuster</span><span class="h">Highlight 4–5</span><span>Schale* · Medaillon*</span><span>Auswärts-Rauten*</span><span class="k">Strickcode</span><span>Saum</span></div>
-    <p>Die Spiele der Saison laufen chronologisch von Ende A (August) nach Ende B (Mai), mit Monatsnähten dazwischen. Das Herzstück, also Geminis wichtigstes Spiel, sitzt an der Spielgrenze, die der Schalmitte am nächsten ist. Die übrigen Highlights stehen chronologisch an den Enden. * nur mit Meilenstein</p>
-    <p><b>Spuren quer über die Breite:</b> Kante (Masche 0 und 71), Auswärtsnaht (2 und 69), Sterne und Schnee (4–6, 64–66), Serien-Band (7–8), Bayern-Tore (bis 33), Mittelnaht (34–37), Gegentore (ab 38), Klassiker-× (53–55), Comeback/Herz (57–59), Groundhopper-Pin (62–63).</p></div>
-  <div class="card"><h3>4 · Dichte: wenige oder sehr viele Spiele</h3>
-    <p>Eine Saison hat höchstens etwa 57 Spiele (34 Bundesliga, bis zu 6 Pokal, bis zu 17 Champions League, Supercup). Die Länge ist fest, also teilen sich die Spiele die verfügbaren Reihen. Wer wenige Spiele hat, bekommt breite Streifen (höchstens ${(MAX_ROWS_PER_GAME / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm), der Rest ist klassisches Grundmuster. Läuft die Saison noch, füllen neue Spiele diese Fläche.</p>
-    <ul class="small">${Object.values(DENSITY).map(d => `<li><b>${d.name}:</b> ${esc(d.desc)}</li>`).join('')}</ul>
-    ${densityTable()}</div>
+    <p>Gold ist reserviert: Es kommt erst mit einem Gold-Meilenstein in den Schal (${GOLD_ELEMENTS.map(id => esc(ELEMENT_BY_ID[id].name)).join(', ')}). Ein Neumitglied strickt deshalb mit 1–3 Farben.</p></div>
+  <div class="card"><h3>3 · Vorderseite: Ebenen statt Streifen pro Spiel</h3>
+    <p>Die Vorderseite zeigt nicht jedes einzelne Spiel, sondern was der Fan in der Saison erreicht hat. Sie startet <b>einfarbig in Vereinsrot</b> mit weißen Fransen. Jeder Meilenstein legt eine Ebene darüber, bis ein vollständiger Jacquard-Schal entsteht.</p>
+    <div class="flow"><span>Fransen</span><span>Auswärts-Rauten</span><span>Endstreifen</span><span class="h">Endfeld: Sterne · Saison · Pokal · Krone · Stadion-Punkte</span><span>Endstreifen</span><span>Sternenband + Flutlicht</span><span>Musterbänder …</span><span class="k">Mitte: Rauten-Feld + Medaillon (Schale, Pokal, Spielzahl)</span><span>… Musterbänder</span><span>(gespiegelt bis Ende B)</span></div>
+    <p><b>Treue</b> baut die Grundstruktur (Schriftzug, Endstreifen, Blockstreifen, Rand, Gold, Medaillon, Rauten). <b>Wettbewerbe</b> setzen Symbole. <b>Auswärts</b> verändert Enden und Kanten. <b>Momente</b> füllen die Streifenbänder mit Mustern. Mehrere Muster wechseln sich ab, immer symmetrisch zu beiden Enden. <b>Saison komplett</b> veredelt Schriftzug und Rückseite.</p>
+    <p class="small muted">Feste Lage der Ebenen ab jedem Ende: Rauten Reihe ${FRONT.rauten.join('–')}, Endstreifen ${FRONT.stripeA.join('–')} und ${FRONT.stripeB.join('–')}, Endfeld ${FRONT.zone.join('–')}, Sternenband ${FRONT.starBand.join('–')}, Musterbänder ab Reihe ${FRONT.bodyStart} (je ${FRONT.bandLen} Reihen, Abstand ${FRONT.bandPeriod}). Längere Schals bekommen mehr Musterbänder.</p></div>
+  <div class="card"><h3>4 · Rückseite: die Geschichte der Saison</h3>
+    <p>Die Rückseite ist nachtblau mit roten Nadelstreifen. In der Mitte sitzen die <b>5 Highlight-Felder</b> der KI, das Herzstück genau in der Schalmitte. Links stehen Fan-Etikett, Kilometer und Länder, rechts Kalender, Gegner-Sammlung und das Allesfahrer-Feld. An beiden Enden sitzt der <b>Strickcode</b>.</p>
+    <p class="small muted">Was nicht auf die Länge passt, wird weggelassen und in der App angezeigt. Bei 180 und 220 cm passt alles.</p></div>
   <div class="card" style="grid-column:1/-1"><h3>5 · Meilensteine → Design-Elemente (${MILESTONES.length})</h3>
     <div class="table-wrap" style="max-height:none"><table><thead><tr><th>Kategorie</th><th>Meilenstein</th><th>Bedingung</th><th>Schaltet frei</th><th>Wo</th></tr></thead><tbody>${msRows}</tbody></table></div>
     <p class="small muted">Dazu kommt die Grundausstattung jedes Schals: ${ELEMENTS.filter(e => e.basis).map(e => esc(e.name)).join(', ')}.</p></div>
   <div class="card"><h3>6 · Die Rolle der KI</h3>
-    <p><b>Gemini macht:</b> alle Spiele der Saison lesen und einordnen, wie die Saison für den Fan war, bis zu 5 Highlights vorschlagen (das erste wird das Herzstück), jede Wahl begründen und die Fan-Geschichte erzählen. Später kommt dazu: alte Tickets und Fotos den Spielen zuordnen und einen fotografierten Schalstreifen wieder dem Spiel zuordnen.</p>
+    <p><b>Gemini macht:</b> alle Spiele der Saison lesen und einordnen, wie die Saison für den Fan war, bis zu 5 Highlights vorschlagen (das erste wird das Herzstück), jede Wahl begründen und die Fan-Geschichte erzählen. Später kommt dazu: alte Tickets und Fotos den Spielen zuordnen und einen fotografierten Schal über den Strickcode wieder dem Fan zuordnen.</p>
     <p><b>Gemini macht nicht:</b> Ergebnisse, Daten oder Muster erzeugen. Jede Spielnummer wird geprüft, erfundene Nummern werden verworfen. Das Muster ist deterministisch: gleicher Code, gleicher Schal.</p>
     <p><b>Der Fan entscheidet:</b> Jedes Highlight lässt sich tauschen oder entfernen, und jedes Spiel kann zum Herzstück werden.</p></div>
   <div class="card"><h3>7 · Datenquellen im echten Betrieb</h3>
     <p>Besuchte Spiele aus Ticketing, App-Tickets und Dauerkarte, ältere per Ticketfoto. Ergebnisse und Spielverlauf, also Comebacks und späte Tore, aus offiziellen Spieldaten. Wetter aus historischen Wetterdaten. Gegnerwappen nur mit Lizenz, bis dahin neutrale Schilde.</p>
-    <p class="small muted">Im Prototyp sind alle Daten synthetisch, aber für alle Fans gleich. Zwei Fans beim selben Spiel haben deshalb denselben Streifen.</p></div>`;
+    <p class="small muted">Im Prototyp sind alle Daten synthetisch, aber für alle Fans gleich. Zwei Fans mit denselben Spielen bekommen deshalb dasselbe Muster.</p></div>`;
 }
 
 /* ---------------------------------------------------------------- Helfer */
@@ -517,5 +482,11 @@ function init() {
   } catch (e) { /* */ }
   loadFan(start);
   if (startSeason && state.seasons.some(([y]) => y === startSeason)) selectSeason(startSeason);
+  window.addEventListener('hashchange', () => {
+    const [h, y] = decodeURIComponent(location.hash.slice(1)).split('/');
+    if (!h || !parseCode(h).ok) return;
+    if (!state.profile || parseCode(h).code !== state.profile.code) loadFan(h);
+    if (Number(y) && Number(y) !== state.season && state.seasons.some(([s2]) => s2 === Number(y))) selectSeason(Number(y));
+  });
 }
 document.addEventListener('DOMContentLoaded', init);

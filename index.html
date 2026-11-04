@@ -246,8 +246,8 @@ footer { max-width: 1320px; margin: 30px auto 40px; padding: 0 20px; font-size: 
 <main class="wrap">
   <section class="hero">
     <div>
-      <h2>Ein Schal pro Saison. Ein Streifen pro Spiel. <em>Kein Schal wie deiner.</em></h2>
-      <p>Gib einen Fan-Code ein und wähl eine Saison. Aus allen Spielen, bei denen du in dieser Saison im Stadion warst, entsteht ein Strickmuster mit höchstens 5 Garnfarben. Saison-Meilensteine schalten neue Design-Elemente frei, und Gemini erzählt, wie deine Saison war, und schlägt deine 5 größten Momente für die Highlight-Felder vor. Gestrickt wird erst auf Bestellung.</p>
+      <h2>Ein Schal pro Saison. Er wächst mit jedem Meilenstein. <em>Kein Schal wie deiner.</em></h2>
+      <p>Gib einen Fan-Code ein und wähl eine Saison. Der Schal startet einfarbig rot. Jeder Saison-Meilenstein legt eine neue Ebene darauf: Streifen, Symbole, Muster, Rauten, Gold. Auf der Rückseite steht deine Geschichte: Gemini wählt deine 5 größten Momente der Saison und erzählt, wie sie war. Gestrickt wird erst auf Bestellung.</p>
     </div>
   </section>
 
@@ -280,7 +280,7 @@ footer { max-width: 1320px; margin: 30px auto 40px; padding: 0 20px; font-size: 
         <div class="opt"><label>Seite</label><div class="seg" id="sideSeg"><button data-v="front" class="on">Vorderseite</button><button data-v="back">Rückseite</button></div></div>
         <div class="opt"><label>Ansicht</label><div class="seg" id="viewSeg"><button data-v="knit" class="on">Strick</button><button data-v="flat">Raster</button></div></div>
         <div class="opt"><label>Länge</label><div class="seg" id="lenSeg"><button data-v="150" class="on">150 cm</button><button data-v="180">180</button><button data-v="220">220</button></div></div>
-        <div class="opt"><label>Bahnen</label><div class="seg" id="segSeg"><button data-v="1">1</button><button data-v="2" class="on">2</button><button data-v="3">3</button><button data-v="4">4</button></div></div>
+        <div class="opt"><label>Bahnen</label><div class="seg" id="segSeg"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3" class="on">3</button><button data-v="4">4</button></div></div>
       </div>
 
       <div class="card">
@@ -310,7 +310,7 @@ footer { max-width: 1320px; margin: 30px auto 40px; padding: 0 20px; font-size: 
         </div>
         <div class="legend" id="legend"></div>
         <div class="under">
-          <div class="reader" id="reader"><h4>Schal lesen</h4><span class="muted">Fahr über den Schal oder tipp auf einen Streifen. Die App erzählt dir, welches Spiel das war.</span></div>
+          <div class="reader" id="reader"><h4>Schal lesen</h4><span class="muted">Fahr über den Schal oder tipp auf ein Element. Die App zeigt dir, welcher Meilenstein es freigeschaltet hat. Auf der Rückseite erzählt sie die Highlight-Spiele.</span></div>
           <div class="lens-wrap"><canvas id="lens"></canvas><span>Lupe</span></div>
         </div>
       </div>
@@ -367,8 +367,8 @@ footer { max-width: 1320px; margin: 30px auto 40px; padding: 0 20px; font-size: 
       <div class="stack">
         <div class="card">
           <h3>Wie wächst dein Schal?</h3>
-          <p class="small muted" style="margin:0 0 8px">Für die laufende Saison 26/27: Simuliere die nächsten Spiele, die dieser Fan wahrscheinlich besucht. Sie erscheinen blass auf dem Schal, weil ihr Ergebnis noch offen ist. Die offene Fläche wird gestrichelt markiert.</p>
-          <div class="row between"><b id="futureLabel">+0 Spiele</b><label class="small row"><input type="checkbox" id="potView"> Offene Fläche zeigen</label></div>
+          <p class="small muted" style="margin:0 0 8px">Für die laufende Saison 26/27: Simuliere die nächsten Spiele, die dieser Fan wahrscheinlich besucht, und sieh, welche Meilensteine und Design-Elemente dadurch dazukommen.</p>
+          <div class="row between"><b id="futureLabel">+0 Spiele</b><label class="small row"><input type="checkbox" id="potView" checked> Neue Elemente markieren</label></div>
           <input type="range" id="futureIn" min="0" max="20" value="0">
           <div id="unlocks" class="small"></div>
         </div>
@@ -1083,53 +1083,54 @@ function computeStats(games) {
 }
 
 /* ---- Design-Elemente ----------------------------------------------------
-   basis: true  → immer freigeschaltet (Grundausstattung jedes Saisonschals)
-   Jedes andere Element wird durch genau einen Meilenstein freigeschaltet.  */
+   Der Schal startet einfarbig in Vereinsrot. Jeder Meilenstein legt eine
+   Design-Ebene darüber: Streifen, Symbole, Musterbänder, Rauten, Gold.
+   basis: true → immer da.  layer: wo das Element auf dem Schal sitzt.        */
 const ELEMENTS = [
   // Basis
-  { id: 'results',  name: 'Ergebnis-Streifen', basis: true, where: 'Vorderseite', desc: 'Jedes Spiel der Saison ist ein Streifen: Sieg Vereinsrot, Remis Weiß, Niederlage Nachtblau.' },
-  { id: 'goals',    name: 'Tor-Punkte', basis: true, where: 'Vorderseite', desc: 'Jedes Bayern-Tor ein Punkt links der Mittelnaht.' },
-  { id: 'against',  name: 'Gegentor-Punkte', basis: true, where: 'Vorderseite', desc: 'Jedes Gegentor ein Punkt rechts der Mittelnaht.' },
-  { id: 'highlights', name: 'Highlight-Felder', basis: true, where: 'Vorderseite', desc: 'Bis zu 5 von der KI vorgeschlagene Spiele der Saison als große Felder mit Ergebnis, Gegner und Datum. Das wichtigste sitzt als „Herzstück“ in der Mitte.' },
-  { id: 'code',     name: 'Strickcode', basis: true, where: 'Beide Enden', desc: 'Fan-Code und Saison als 45-Bit-Muster. Die App liest den Schal damit wieder aus.' },
-  { id: 'backInfo', name: 'Fan-Rückseite', basis: true, where: 'Rückseite', desc: 'Name, Saison, Saisonbilanz und Fan-Code im Klartext.' },
-  // Treue
-  { id: 'head',       name: 'Kopfteil „SAISON“', where: 'Vorderseite, Ende A', desc: 'Rondell und die Saison in großen Ziffern.' },
-  { id: 'fringeRed',  name: 'Rote Fransen', where: 'Fransen', desc: 'Die Fransen wechseln von Weiß zu Vereinsrot.' },
-  { id: 'seasonLines', name: 'Monatsnähte', where: 'Vorderseite', desc: 'Eine Naht zwischen den Monaten, damit man den Saisonverlauf abzählen kann.' },
-  { id: 'border',     name: 'Kurvenrand', where: 'Ganzer Schal', desc: 'Weiße Kante entlang beider Längsseiten.' },
-  { id: 'goldFringe', name: 'Goldene Fransen & Zehnernaht', where: 'Fransen, Vorderseite', desc: 'Goldgarn kommt dazu: goldene Fransen, und jedes 10. Spiel der Saison bekommt eine Goldnaht.' },
-  { id: 'centurion',  name: 'Saison-Medaillon', where: 'Vorderseite, Ende B', desc: 'Goldener Ring mit deiner Spielzahl der Saison.' },
-  { id: 'legend',     name: 'Allesfahrer', where: 'Rückseite', desc: 'Die ganze Rückseite in Rauten, dazu der Schriftzug „ALLESFAHRER“.' },
-  // Wettbewerbe
-  { id: 'cupTexture', name: 'Pokal-Raster', where: 'Vorderseite', desc: 'Pokalspiele bekommen eine Rasterstruktur.' },
-  { id: 'clStars',    name: 'Henkelpott-Sterne', where: 'Vorderseite', desc: 'Champions-League-Spiele bekommen eine Sternenreihe.' },
-  { id: 'floodlight', name: 'Flutlicht-Linie', where: 'Vorderseite', desc: 'Jeder Europapokal-Abend beginnt mit einer Goldlinie.' },
-  { id: 'compBand',   name: 'Wettbewerbs-Krone', where: 'Kopfteil', desc: 'Vier Sterne im Kopfteil, einer pro Wettbewerb.' },
-  { id: 'cup',        name: 'Pokal-Motiv', where: 'Highlight-Feld, Vorderseite', desc: 'Finalspiele bekommen goldene Kanten und im Highlight-Feld einen Pokal.' },
-  { id: 'plate',      name: 'Meisterschale', where: 'Ende B, Vorderseite', desc: 'Eine Schale im Endteil, und das Spiel der Titelentscheidung bekommt eine Goldmitte.' },
-  // Auswärts
-  { id: 'awaySeam',   name: 'Auswärtsnaht', where: 'Vorderseite', desc: 'Auswärtsspiele bekommen eine gestrichelte Naht an beiden Kanten.' },
-  { id: 'km',         name: 'Kilometer-Zähler', where: 'Rückseite', desc: 'Deine Reisekilometer in dieser Saison, hin und zurück.' },
-  { id: 'awayDiamond', name: 'Auswärts-Rauten', where: 'Beide Enden', desc: 'Ein Rautenband an beiden Schalenden.' },
-  { id: 'countries',  name: 'Länderband', where: 'Rückseite', desc: 'Die Kürzel aller Länder, in denen du in dieser Saison auswärts warst.' },
-  { id: 'ground',     name: 'Groundhopper-Pins', where: 'Vorderseite', desc: 'Jeder erste Besuch in einem Stadion in dieser Saison bekommt einen Pin.' },
-  { id: 'tour',       name: 'Komplett-Tour', where: 'Vorderseite', desc: 'Die Auswärtsnaht wird golden.' },
-  // Serien & Momente
-  { id: 'streak',     name: 'Serien-Band', where: 'Vorderseite', desc: 'Ein Goldband über deine längste Serie ohne Niederlage.' },
-  { id: 'fest',       name: 'Torfestival-Funken', where: 'Vorderseite', desc: 'Bei Spielen mit 5 oder mehr Bayern-Toren werden die Tor-Punkte golden.' },
-  { id: 'klassiker',  name: 'Klassiker-Kreuz', where: 'Vorderseite', desc: 'Spiele gegen Dortmund bekommen ein ×.' },
-  { id: 'comeback',   name: 'Comeback-Pfeil', where: 'Vorderseite', desc: 'Siege nach Rückstand bekommen einen Pfeil nach oben.' },
-  { id: 'late',       name: 'Herzschlag-Stich', where: 'Vorderseite', desc: 'Siege in letzter Minute bekommen ein kleines Herz.' },
-  { id: 'weather',    name: 'Wetter-Textur', where: 'Vorderseite', desc: 'Regenspiele bekommen schräge Schraffur, Schneespiele Flocken.' },
-  { id: 'loyal',      name: 'Trotzdem-da-Linie', where: 'Vorderseite', desc: 'Niederlagen bekommen eine weiße Mittellinie: Du warst trotzdem da.' },
+  { id: 'base', name: 'Vereinsrot', basis: true, where: 'Vorderseite', desc: 'Jeder Saisonschal beginnt einfarbig rot mit weißen Fransen. Alles andere kommt über Meilensteine dazu.' },
+  { id: 'highlights', name: 'Highlight-Felder', basis: true, where: 'Rückseite', desc: 'Bis zu 5 von der KI ausgewählte Spiele der Saison als Felder mit Ergebnis, Gegner und Datum. Das wichtigste sitzt als „Herzstück“ in der Mitte.' },
+  { id: 'backInfo', name: 'Fan-Etikett', basis: true, where: 'Rückseite', desc: 'Name, Saison, Saisonbilanz und Fan-Code im Klartext.' },
+  { id: 'code', name: 'Strickcode', basis: true, where: 'Rückseite, beide Enden', desc: 'Fan-Code und Saison als 45-Bit-Muster. Die App erkennt den Schal daran wieder.' },
+  // Treue: Grundstruktur
+  { id: 'season', name: 'Saison-Schriftzug', where: 'Vorderseite, beide Enden', desc: 'Die Saison in großen weißen Ziffern an beiden Enden.' },
+  { id: 'endStripes', name: 'Endstreifen', where: 'Vorderseite, beide Enden', desc: 'Zwei weiße Querstreifen rahmen die Enden ein, die Fransen werden rot-weiß.' },
+  { id: 'blocks', name: 'Blockstreifen', where: 'Vorderseite, Mittelteil', desc: 'Breite weiße Querstreifen im klassischen Rot-Weiß-Rhythmus.' },
+  { id: 'border', name: 'Kurvenrand', where: 'Vorderseite, Längskanten', desc: 'Eine weiße Kante entlang beider Längsseiten.' },
+  { id: 'gold', name: 'Goldgarn', where: 'Vorderseite, Fransen', desc: 'Goldene Nadelstreifen neben jedem Streifenband und goldene Fransen.' },
+  { id: 'medal', name: 'Saison-Medaillon', where: 'Vorderseite, Mitte', desc: 'Ein Medaillon in der Schalmitte mit deiner Spielzahl der Saison.' },
+  { id: 'rautenField', name: 'Rauten-Mittelfeld', where: 'Vorderseite, Mitte', desc: 'Die Schalmitte wird blau-weiß gerautet, das höchste Treue-Abzeichen.' },
+  // Wettbewerbe: Symbole
+  { id: 'cupIcon', name: 'Pokal-Symbol', where: 'Vorderseite, beide Enden', desc: 'Ein kleiner Pokal unter dem Saison-Schriftzug.' },
+  { id: 'starBand', name: 'Sternenband', where: 'Vorderseite, beide Enden', desc: 'Ein nachtblaues Band mit weißen Sternen für die Europapokal-Nächte.' },
+  { id: 'floodlight', name: 'Flutlicht', where: 'Vorderseite, beide Enden', desc: 'Goldene Linien rahmen das Sternenband ein.' },
+  { id: 'fourStars', name: 'Vier Sterne', where: 'Vorderseite, beide Enden', desc: 'Vier goldene Sterne über dem Saison-Schriftzug, einer pro Wettbewerb.' },
+  { id: 'cup', name: 'Pokal im Medaillon', where: 'Vorderseite, Mitte', desc: 'Ein goldener Pokal in der Schalmitte.' },
+  { id: 'plate', name: 'Meisterschale', where: 'Vorderseite, Mitte', desc: 'Die Meisterschale in der Schalmitte.' },
+  // Auswärts: Kanten & Enden
+  { id: 'awaySeam', name: 'Auswärtsnaht', where: 'Vorderseite, Längskanten', desc: 'Eine gestrichelte Naht entlang beider Längsseiten.' },
+  { id: 'km', name: 'Kilometer-Zähler', where: 'Rückseite', desc: 'Deine Reisekilometer der Saison, hin und zurück.' },
+  { id: 'awayRauten', name: 'Auswärts-Rauten', where: 'Vorderseite, beide Enden', desc: 'Ein blau-weißes Rautenband direkt an den Fransen.' },
+  { id: 'countries', name: 'Länderband', where: 'Rückseite', desc: 'Die Kürzel aller Länder, in denen du auswärts warst.' },
+  { id: 'stadiumDots', name: 'Stadion-Punkte', where: 'Vorderseite, beide Enden', desc: 'Eine Punktreihe an den Enden: ein Punkt pro besuchtem Stadion.' },
+  { id: 'tour', name: 'Goldene Naht', where: 'Vorderseite, Längskanten', desc: 'Die Auswärtsnaht wird golden.' },
+  // Momente: Muster in den Streifenbändern
+  { id: 'mZigzag', name: 'Muster: Zickzack', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Eine durchgehende Zickzacklinie, ungeschlagen von oben bis unten.' },
+  { id: 'mSparks', name: 'Muster: Funken', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Funkelnde Sterne, golden sobald Goldgarn im Schal ist.' },
+  { id: 'mCross', name: 'Muster: Klassiker-Kreuze', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Eine Kette aus nachtblauen ×.' },
+  { id: 'mArrows', name: 'Muster: Pfeile', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Pfeile nach oben, für das Spiel, das gedreht wurde.' },
+  { id: 'mHearts', name: 'Muster: Herzen', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Rote Herzen, für das Tor in letzter Minute.' },
+  { id: 'mRain', name: 'Muster: Regen', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Blaue Regenschraffur.' },
+  { id: 'mDiamonds', name: 'Muster: Rautenkette', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Eine Kette aus nachtblauen Rauten: Du warst auch in schweren Spielen da.' },
   // Saison komplett
-  { id: 'rings',      name: 'Saison-Kalender', where: 'Rückseite', desc: 'Ein Balken pro Monat von August bis Mai.' },
-  { id: 'decade',     name: 'Ganzjahres-Siegel', where: 'Kopfteil', desc: 'Die Saison im Kopfteil wird golden, dazu „AUG–MAI“.' },
-  { id: 'crown',      name: 'Saison-Krone', where: 'Vorderseite', desc: 'Die Spiele beginnen mit einer goldenen Krone.' },
+  { id: 'calendar', name: 'Saison-Kalender', where: 'Rückseite', desc: 'Ein Balken pro Monat von August bis Mai.' },
+  { id: 'monthSeal', name: 'Goldener Schriftzug', where: 'Vorderseite, beide Enden', desc: 'Der Saison-Schriftzug wird golden, darunter steht „AUG–MAI“.' },
+  { id: 'crown', name: 'Krone', where: 'Vorderseite, beide Enden', desc: 'Eine goldene Krone an beiden Enden.' },
   { id: 'collection', name: 'Gegner-Sammlung', where: 'Rückseite', desc: '17 Felder, eines pro Bundesliga-Gegner der Saison. Jeder gesehene Gegner füllt ein Feld.' },
 ];
 const ELEMENT_BY_ID = Object.fromEntries(ELEMENTS.map(e => [e.id, e]));
+const MOTIF_ORDER = ['mHearts', 'mCross', 'mSparks', 'mArrows', 'mDiamonds', 'mRain', 'mZigzag'];
+const GOLD_ELEMENTS = ['gold', 'floodlight', 'fourStars', 'cup', 'plate', 'tour', 'monthSeal', 'crown'];
 
 /* ---- Meilensteine (alle pro Saison) ----------------------------------- */
 const MILESTONE_CATEGORIES = [
@@ -1142,38 +1143,38 @@ const MILESTONE_CATEGORIES = [
 
 const MILESTONES = [
   // Treue
-  { id: 'first', cat: 'treue', name: 'Saisonstart', cond: '1 Spiel in der Saison', target: 1, value: s => s.total, element: 'head' },
-  { id: 'g5', cat: 'treue', name: 'Wiederholungstäter', cond: '5 Spiele in der Saison', target: 5, value: s => s.total, element: 'fringeRed' },
-  { id: 'g10', cat: 'treue', name: 'Zweistellig', cond: '10 Spiele in der Saison', target: 10, value: s => s.total, element: 'seasonLines' },
+  { id: 'first', cat: 'treue', name: 'Saisonstart', cond: '1 Spiel in der Saison', target: 1, value: s => s.total, element: 'season' },
+  { id: 'g5', cat: 'treue', name: 'Wiederholungstäter', cond: '5 Spiele in der Saison', target: 5, value: s => s.total, element: 'endStripes' },
+  { id: 'g10', cat: 'treue', name: 'Zweistellig', cond: '10 Spiele in der Saison', target: 10, value: s => s.total, element: 'blocks' },
   { id: 'g20', cat: 'treue', name: 'Kurvengesicht', cond: '20 Spiele in der Saison', target: 20, value: s => s.total, element: 'border' },
-  { id: 'g30', cat: 'treue', name: 'Goldenes Garn', cond: '30 Spiele in der Saison', target: 30, value: s => s.total, element: 'goldFringe' },
-  { id: 'g40', cat: 'treue', name: 'Vierziger', cond: '40 Spiele in der Saison', target: 40, value: s => s.total, element: 'centurion' },
-  { id: 'g50', cat: 'treue', name: 'Allesfahrer', cond: '50 Spiele in der Saison', target: 50, value: s => s.total, element: 'legend' },
+  { id: 'g30', cat: 'treue', name: 'Goldenes Garn', cond: '30 Spiele in der Saison', target: 30, value: s => s.total, element: 'gold' },
+  { id: 'g40', cat: 'treue', name: 'Vierziger', cond: '40 Spiele in der Saison', target: 40, value: s => s.total, element: 'medal' },
+  { id: 'g50', cat: 'treue', name: 'Allesfahrer', cond: '50 Spiele in der Saison', target: 50, value: s => s.total, element: 'rautenField' },
   // Wettbewerbe
-  { id: 'dfb1', cat: 'wettbewerbe', name: 'Pokalnacht', cond: '1 DFB-Pokalspiel', target: 1, value: s => s.byComp.DFB, element: 'cupTexture' },
-  { id: 'cl1', cat: 'wettbewerbe', name: 'Hymne live', cond: '1 Champions-League-Spiel', target: 1, value: s => s.byComp.CL, element: 'clStars' },
+  { id: 'dfb1', cat: 'wettbewerbe', name: 'Pokalnacht', cond: '1 DFB-Pokalspiel', target: 1, value: s => s.byComp.DFB, element: 'cupIcon' },
+  { id: 'cl1', cat: 'wettbewerbe', name: 'Hymne live', cond: '1 Champions-League-Spiel', target: 1, value: s => s.byComp.CL, element: 'starBand' },
   { id: 'cl5', cat: 'wettbewerbe', name: 'Europapokal-Abende', cond: '5 Champions-League-Spiele', target: 5, value: s => s.byComp.CL, element: 'floodlight' },
-  { id: 'comp4', cat: 'wettbewerbe', name: 'Grand Slam', cond: 'In allen 4 Wettbewerben (BL, Pokal, CL, Supercup)', target: 4, value: s => Object.values(s.byComp).filter(n => n > 0).length, element: 'compBand' },
+  { id: 'comp4', cat: 'wettbewerbe', name: 'Grand Slam', cond: 'In allen 4 Wettbewerben (BL, Pokal, CL, Supercup)', target: 4, value: s => Object.values(s.byComp).filter(n => n > 0).length, element: 'fourStars' },
   { id: 'final', cat: 'wettbewerbe', name: 'Endspiel', cond: '1 Finale live', target: 1, value: s => s.finals, element: 'cup' },
   { id: 'title', cat: 'wettbewerbe', name: 'Meister-Moment', cond: 'Beim Spiel der Titelentscheidung dabei', target: 1, value: s => s.titles, element: 'plate' },
   // Auswärts
   { id: 'a1', cat: 'auswaerts', name: 'Erste Auswärtsfahrt', cond: '1 Auswärtsspiel', target: 1, value: s => s.away, element: 'awaySeam' },
   { id: 'a5', cat: 'auswaerts', name: 'Vielfahrer', cond: '5 Auswärtsspiele', target: 5, value: s => s.away, element: 'km' },
-  { id: 'a10', cat: 'auswaerts', name: 'Auswärtsfahrer', cond: '10 Auswärtsspiele', target: 10, value: s => s.away, element: 'awayDiamond' },
+  { id: 'a10', cat: 'auswaerts', name: 'Auswärtsfahrer', cond: '10 Auswärtsspiele', target: 10, value: s => s.away, element: 'awayRauten' },
   { id: 'countries2', cat: 'auswaerts', name: 'Länderpunkte', cond: 'Auswärts in 2 Ländern außerhalb Deutschlands', target: 2, value: s => s.awayCountries.size, element: 'countries' },
-  { id: 'stadiums8', cat: 'auswaerts', name: 'Groundhopper', cond: '8 verschiedene Stadien', target: 8, value: s => s.stadiums.size, element: 'ground' },
+  { id: 'stadiums8', cat: 'auswaerts', name: 'Groundhopper', cond: '8 verschiedene Stadien', target: 8, value: s => s.stadiums.size, element: 'stadiumDots' },
   { id: 'tour17', cat: 'auswaerts', name: 'Komplett-Tour', cond: 'Alle 17 Bundesliga-Auswärtsspiele', target: 17, value: s => s.awayBLOpp.size, element: 'tour' },
   // Momente
-  { id: 'streak10', cat: 'momente', name: 'Ungeschlagen', cond: '10 Spiele in Folge ohne Niederlage', target: 10, value: s => s.longestUnbeaten.len, element: 'streak' },
-  { id: 'fest', cat: 'momente', name: 'Torfestival', cond: '1 Spiel mit 5+ Bayern-Toren', target: 1, value: s => s.fest, element: 'fest' },
-  { id: 'klassiker2', cat: 'momente', name: 'Beide Klassiker', cond: '2 Spiele gegen Dortmund', target: 2, value: s => s.klassiker, element: 'klassiker' },
-  { id: 'comeback', cat: 'momente', name: 'Nie aufgeben', cond: '1 Comeback-Sieg nach Rückstand', target: 1, value: s => s.comebacks, element: 'comeback' },
-  { id: 'late', cat: 'momente', name: 'Herzschlagfinale', cond: '1 Siegtor in letzter Minute', target: 1, value: s => s.late, element: 'late' },
-  { id: 'rain3', cat: 'momente', name: 'Allwetterfan', cond: '3 Regenspiele', target: 3, value: s => s.rain, element: 'weather' },
-  { id: 'loss3', cat: 'momente', name: 'Trotzdem da', cond: '3 Niederlagen miterlebt', target: 3, value: s => s.L, element: 'loyal' },
+  { id: 'streak10', cat: 'momente', name: 'Ungeschlagen', cond: '10 Spiele in Folge ohne Niederlage', target: 10, value: s => s.longestUnbeaten.len, element: 'mZigzag' },
+  { id: 'fest', cat: 'momente', name: 'Torfestival', cond: '1 Spiel mit 5+ Bayern-Toren', target: 1, value: s => s.fest, element: 'mSparks' },
+  { id: 'klassiker2', cat: 'momente', name: 'Beide Klassiker', cond: '2 Spiele gegen Dortmund', target: 2, value: s => s.klassiker, element: 'mCross' },
+  { id: 'comeback', cat: 'momente', name: 'Nie aufgeben', cond: '1 Comeback-Sieg nach Rückstand', target: 1, value: s => s.comebacks, element: 'mArrows' },
+  { id: 'late', cat: 'momente', name: 'Herzschlagfinale', cond: '1 Siegtor in letzter Minute', target: 1, value: s => s.late, element: 'mHearts' },
+  { id: 'rain3', cat: 'momente', name: 'Allwetterfan', cond: '3 Regenspiele', target: 3, value: s => s.rain, element: 'mRain' },
+  { id: 'loss3', cat: 'momente', name: 'Trotzdem da', cond: '3 Niederlagen miterlebt', target: 3, value: s => s.L, element: 'mDiamonds' },
   // Saison komplett
-  { id: 'months6', cat: 'sammlung', name: 'Halbes Jahr', cond: 'Spiele in 6 verschiedenen Monaten', target: 6, value: s => s.monthCount, element: 'rings' },
-  { id: 'months10', cat: 'sammlung', name: 'Ganzjahresfan', cond: 'In jedem Monat von August bis Mai im Stadion', target: 10, value: s => s.monthCount, element: 'decade' },
+  { id: 'months6', cat: 'sammlung', name: 'Halbes Jahr', cond: 'Spiele in 6 verschiedenen Monaten', target: 6, value: s => s.monthCount, element: 'calendar' },
+  { id: 'months10', cat: 'sammlung', name: 'Ganzjahresfan', cond: 'In jedem Monat von August bis Mai im Stadion', target: 10, value: s => s.monthCount, element: 'monthSeal' },
   { id: 'fullSeason', cat: 'sammlung', name: 'Dauerbrenner', cond: 'Alle 17 Bundesliga-Heimspiele', target: 17, value: s => s.homeBL, element: 'crown' },
   { id: 'allOpp', cat: 'sammlung', name: 'Gegner-Sammler', cond: 'Alle 17 Bundesliga-Gegner gesehen (heim oder auswärts)', target: 17, value: s => s.blOpp.size, element: 'collection' },
 ];
@@ -1199,18 +1200,16 @@ function resolveElements(milestoneStates, overrides) {
 }
 function milestoneForElement(id) { return MILESTONES.find(m => m.element === id); }
 
-// Dichte-Stufen: wie viele Strickreihen bekommt ein Spiel?
-const DENSITY = {
-  detail: { name: 'Detail', min: 3, desc: 'Ab 3 Reihen pro Spiel: alle Details inklusive Tor-Punkten und Motiven. Eine volle Saison (bis ca. 57 Spiele) passt bei 150 cm immer in diese Stufe.' },
-  fein: { name: 'Fein', min: 2, desc: '2 Reihen pro Spiel: Ergebnisfarbe, Tor-Punkte und Kantenmarken, aber keine Motive.' },
-  hauch: { name: 'Hauch', min: 1, desc: '1 Reihe pro Spiel: nur Ergebnisfarbe und Kantenmarken. Nur bei sehr kurzen Sonderlängen.' },
-};
 
 /* =========================================================================
-   Stadion gestrickt – Muster-Generator
-   Erzeugt das Strickraster (Reihen x Maschen) für Vorder- und Rückseite.
+   Stadion gestrickt – Muster-Generator (Ebenen-Design)
+   Vorderseite: startet einfarbig rot. Jeder Meilenstein legt eine Ebene
+                darüber (Streifen, Symbole, Musterbänder, Rauten, Gold).
+   Rückseite:   persönliche Geschichte (KI-Highlights, Etikett, Statistik).
    Koordinaten: x = Reihe entlang der Schallänge (0 = Ende A),
                 y = Masche quer über die Breite (0 = obere Kante).
+   Jede Masche trägt ein Etikett (tag), damit „Schal lesen“ weiß,
+   welches Element an dieser Stelle sitzt.
    ========================================================================= */
 'use strict';
 
@@ -1219,14 +1218,21 @@ const ROWS_PER_CM = 5;      // 5 Reihen pro cm (Maschen sind breiter als hoch)
 const CI = { R: 0, W: 1, N: 2, B: 3, G: 4 };
 const CI_KEYS = ['R', 'W', 'N', 'B', 'G'];
 const PANEL_LEN = 42, HEART_LEN = 50;
-const MAX_ROWS_PER_GAME = 14;
 
-/* ---- Lanes quer über die Breite (y) ------------------------------------ */
-const LANE = {
-  border: [0, 71], seam: [2, 69], edgeGold: [[0, 3], [68, 71]],
-  starL: 4, starR: 64, streak: [7, 8], goalsFor: 33, goalsAgainst: 38,
-  klassiker: 53, moment: 57, pin: 62,
+/* ---- Feste Maße der Vorderseite (in Reihen ab jedem Ende) -------------- */
+const FRONT = {
+  rauten: [2, 13],          // Auswärts-Rauten
+  stripeA: [16, 21],        // Endstreifen außen
+  zone: [24, 115],          // Endfeld (Schriftzug, Symbole)
+  stripeB: [118, 123],      // Endstreifen innen
+  flood: [[125, 126], [145, 146]],
+  starBand: [128, 143],
+  bodyStart: 152,           // Beginn des Mittelteils
+  bandLen: 16, bandPeriod: 48,
+  medalR: 27,               // Medaillon-Radius in Maschen
+  rautenHalf: 76,           // halbe Länge des Rauten-Mittelfelds
 };
+const ASPECT = 1.25;        // Reihen pro Masche für runde Formen (5 R/cm : 4 M/cm)
 
 function transliterate(s) {
   return String(s).toUpperCase().replace(/Ä/g, 'AE').replace(/Ö/g, 'OE').replace(/Ü/g, 'UE').replace(/ß/g, 'SS').replace(/É/g, 'E').replace(/[^A-Z0-9 :.\-\/+#·'×]/g, '');
@@ -1235,16 +1241,16 @@ function transliterate(s) {
 class Grid {
   constructor(L) {
     this.L = L; this.W = STITCHES;
-    this.cells = new Uint8Array(L * STITCHES).fill(CI.N);
-    this.ghost = new Uint8Array(L * STITCHES);
-    this.regions = new Array(L).fill(null);
+    this.cells = new Uint8Array(L * STITCHES);
+    this.tags = new Uint16Array(L * STITCHES);
+    this.tagList = [null]; this.pen = 0;
   }
-  set(x, y, c) { if (x >= 0 && x < this.L && y >= 0 && y < this.W) this.cells[x * this.W + y] = CI[c]; }
+  use(info) { this.tagList.push(info); this.pen = this.tagList.length - 1; return this.pen; }
+  set(x, y, c) { if (x >= 0 && x < this.L && y >= 0 && y < this.W) { const i = x * this.W + y; this.cells[i] = CI[c]; this.tags[i] = this.pen; } }
   get(x, y) { return CI_KEYS[this.cells[x * this.W + y]]; }
+  tagAt(x, y) { return this.tagList[this.tags[x * this.W + y]]; }
   rect(x0, x1, y0, y1, c) { for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) this.set(x, y, c); }
   rows(x0, len, c) { this.rect(x0, x0 + len - 1, 0, this.W - 1, c); }
-  region(x0, len, info) { for (let x = x0; x < x0 + len && x < this.L; x++) this.regions[x] = info; }
-  setGhost(x0, len) { for (let x = x0; x < x0 + len; x++) for (let y = 0; y < this.W; y++) this.ghost[x * this.W + y] = 1; }
 }
 
 /* ---- Text & Motive ----------------------------------------------------- */
@@ -1272,11 +1278,6 @@ function drawIcon(g, icon, x, y, map = {}) {
   icon.forEach((row, r) => { for (let c = 0; c < row.length; c++) { const ch = row[c]; if (ch !== '.') g.set(x + c, y + r, map[ch] || ch); } });
 }
 function iconW(icon) { return icon[0].length; }
-function iconH(icon) { return icon.length; }
-
-/* ---- Bausteine --------------------------------------------------------- */
-function contrast(base) { return base === 'W' ? 'R' : 'W'; }
-function againstColor(base) { return base === 'N' ? 'B' : 'N'; }
 
 function drawRauten(g, x0, len, y0 = 0, y1 = STITCHES - 1) {
   for (let x = x0; x < x0 + len; x++) for (let y = y0; y <= y1; y++) {
@@ -1285,294 +1286,215 @@ function drawRauten(g, x0, len, y0 = 0, y1 = STITCHES - 1) {
   }
 }
 
+/* Motive für die Streifenbänder ('1' = Motivfarbe) */
+const MOTIFS = {
+  mHearts: { color: 'R', icon: ['.11.11.', '1111111', '1111111', '.11111.', '..111..', '...1...'] },
+  mCross: { color: 'N', icon: ['1...1', '.1.1.', '..1..', '.1.1.', '1...1'] },
+  mSparks: { color: 'gold', icon: ['...1...', '.1.1.1.', '..111..', '1111111', '..111..', '.1.1.1.', '...1...'] },
+  mArrows: { color: 'R', icon: ['..1..', '.111.', '11111', '..1..', '..1..'] },
+  mDiamonds: { color: 'N', icon: ['...1...', '..1.1..', '.1...1.', '1..1..1', '.1...1.', '..1.1..', '...1...'] },
+  mRain: { color: 'B', fn: (g, s, len, c) => { for (let x = s; x < s + len; x++) for (let y = 6; y < 66; y++) if ((x - s + y) % 5 === 0) g.set(x, y, c); } },
+  mZigzag: { color: 'gold', fn: (g, s, len, c) => { for (let y = 5; y < 67; y++) { const t = y % 12, off = t < 6 ? t : 12 - t; g.rect(s + 4 + off, s + 5 + off, y, y, c); } } },
+};
+
+/* ---- Strickcode -------------------------------------------------------- */
 const CODE_Y = 10, CODE_BITS = 53;
 function seasonBits(season) { const v = season - FIRST_SEASON; return [4, 3, 2, 1, 0].map(b => (v >> b) & 1); }
-function drawCodeBand(g, x0, raw, season, region) {
-  // 12 Reihen: Nachtblau-Rahmen, 8 Reihen Bitmuster quer über die Breite.
-  // Start-Wächter 1101 | 40 Bit Fan-Code | 5 Bit Saison | End-Wächter 1011  → Maschen 10..62
+function drawCodeBand(g, x0, raw, season, side) {
+  // 12 Reihen: Start-Wächter 1101 | 40 Bit Fan-Code | 5 Bit Saison | End-Wächter 1011
+  g.use({ type: 'code', side });
   g.rows(x0, 12, 'N');
   const bits = [1, 1, 0, 1, ...codeBits(raw), ...seasonBits(season), 1, 0, 1, 1];
   for (let x = x0 + 2; x < x0 + 10; x++) {
     bits.forEach((b, i) => g.set(x, CODE_Y + i, b ? 'W' : 'N'));
     g.set(x, CODE_Y - 2, 'R'); g.set(x, CODE_Y + CODE_BITS + 1, 'R');
   }
-  g.region(x0, 12, region);
-  return 12;
 }
-
 function decodeCodeBand(model) {
   for (let x = 0; x < model.L; x++) {
-    const reg = model.regions[x];
-    if (reg && reg.type === 'code') {
+    const t = model.tagList[model.tags[x * STITCHES]];
+    if (t && t.type === 'code') {
       const row = x + 5, bits = [];
       for (let i = 0; i < CODE_BITS; i++) bits.push(model.cells[row * STITCHES + CODE_Y + i] === CI.W ? 1 : 0);
-      const guardOk = bits.slice(0, 4).join('') === '1101' && bits.slice(49).join('') === '1011';
-      if (!guardOk) return null;
-      const raw = bitsToCode(bits.slice(4, 44));
+      if (bits.slice(0, 4).join('') !== '1101' || bits.slice(49).join('') !== '1011') return null;
+      const p = parseCode(bitsToCode(bits.slice(4, 44)));
       const season = FIRST_SEASON + bits.slice(44, 49).reduce((v, b) => (v << 1) | b, 0);
-      const p = parseCode(raw);
       return p.ok ? { code: p.code, season } : null;
     }
   }
   return null;
 }
 
-function hem(g, x0, len) { g.rows(x0, len, 'N'); g.region(x0, len, { type: 'hem' }); return len; }
-
 /* ---- Vorderseite ------------------------------------------------------- */
+function goldAvailable(act) { return GOLD_ELEMENTS.some(k => act[k]); }
+
 function buildFront(ctx) {
-  const { profile, games, highlights, act, lengthCm, futureGames = [] } = ctx;
-  const L = lengthCm * ROWS_PER_CM;
+  const { act, stats, lengthCm, season } = ctx;
+  const L = lengthCm * ROWS_PER_CM, C = Math.floor(L / 2);
   const g = new Grid(L);
-  const goldOk = ['goldFringe', 'cup', 'plate', 'tour', 'streak', 'fest', 'floodlight', 'crown', 'centurion', 'decade', 'compBand'].some(k => act[k]);
-  const gold = goldOk ? 'G' : 'W';
-  const stats = ctx.stats;
-  const all = games.concat(futureGames);
+  const goldOn = goldAvailable(act);
+  const el = (id, extra) => g.use({ el: id, ...extra });
+  // Spiegelung: d = Abstand vom jeweiligen Ende
+  const span = (end, d0, d1) => end === 0 ? [d0, d1] : [L - 1 - d1, L - 1 - d0];
+  const at = (end, d, w) => end === 0 ? d : L - d - w;   // Startreihe eines Objekts der Breite w
+  const endRows = (end, d0, d1, c) => { const [a, b] = span(end, d0, d1); g.rect(a, b, 0, STITCHES - 1, c); };
 
-  // ---- feste Teile vorab planen ----
-  const seasonText = seasonLabel(ctx.season);
-  const hl = act.highlights ? highlights.slice(0, 5) : [];
-  const heart = hl[0];
-  const sideHl = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
-  const nA = Math.ceil(sideHl.length / 2);
-  const hlA = sideHl.slice(0, nA), hlB = sideHl.slice(nA);
+  // Ebene 0: Vereinsrot
+  el('base', { layer: 'body' }); g.rows(0, L, 'R');
 
-  const parts = { a: [], b: [] };
-  const plan = (side, len, fn) => parts[side].push({ len, fn });
-
-  plan('a', 2, x => hem(g, x, 2));
-  if (act.code) plan('a', 12, x => drawCodeBand(g, x, profile.raw, ctx.season, { type: 'code', side: 'A' }));
-  if (act.awayDiamond) plan('a', 12, x => { drawRauten(g, x, 12); g.region(x, 12, { type: 'element', el: 'awayDiamond' }); });
-  if (act.head) {
-    const len = 58;
-    plan('a', len, x => drawHead(g, x, len, { seasonText, act, gold, stats }));
+  // Rauten-Mittelfeld
+  if (act.rautenField) {
+    el('rautenField');
+    const h = Math.min(FRONT.rautenHalf, C - FRONT.bodyStart - 10);
+    drawRauten(g, C - h, 2 * h);
+    g.rect(C - h - 2, C - h - 1, 0, STITCHES - 1, 'W'); g.rect(C + h, C + h + 1, 0, STITCHES - 1, 'W');
   }
-  for (const m of hlA) plan('a', PANEL_LEN + 2, x => { g.rows(x, 2, 'R'); drawPanel(g, x + 2, PANEL_LEN, m, false, act, gold); g.region(x, 2, { type: 'gap' }); });
 
-  for (const m of hlB) plan('b', PANEL_LEN + 2, x => { drawPanel(g, x, PANEL_LEN, m, false, act, gold); g.rows(x + PANEL_LEN, 2, 'R'); g.region(x + PANEL_LEN, 2, { type: 'gap' }); });
-  if (act.centurion || act.plate) {
-    const len = (act.centurion ? 30 : 0) + (act.plate ? 18 : 0) + 4;
-    plan('b', len, x => drawEndB(g, x, len, { act, stats }));
-  }
-  if (act.awayDiamond) plan('b', 12, x => { drawRauten(g, x, 12); g.region(x, 12, { type: 'element', el: 'awayDiamond' }); });
-  if (act.code) plan('b', 12, x => drawCodeBand(g, x, profile.raw, ctx.season, { type: 'code', side: 'B' }));
-  plan('b', 2, x => hem(g, x, 2));
-
-  const lenA = parts.a.reduce((s, p) => s + p.len, 0);
-  const lenB = parts.b.reduce((s, p) => s + p.len, 0);
-  const heartLen = heart ? HEART_LEN + 4 : 0;
-  let body = L - lenA - lenB - heartLen;
-  const info = { L, lengthCm, bodyRows: body, overflow: body < 20 };
-  if (body < 20) body = Math.max(0, body);
-
-  // ---- Ende A zeichnen ----
-  let x = 0;
-  for (const p of parts.a) { p.fn(x); x += p.len; }
-  const bodyStart = x;
-
-  // ---- Körper: Spiele ----
-  const items = layoutBody(all, body, act, stats);
-  info.level = items.level; info.rpg = items.rpg; info.filler = items.filler;
-  // Herzstück in die Mitte des Körpers (an Spielgrenze)
-  let insertAt = Math.floor(items.list.length / 2);
-  if (heart) {
-    // nächste Grenze zur Mitte der Reihen
-    let acc = 0, best = 0, bestD = 1e9;
-    for (let i = 0; i <= items.list.length; i++) {
-      const d = Math.abs(acc - body / 2);
-      if (d < bestD && (i === items.list.length || items.list[i].kind !== 'sep')) { bestD = d; best = i; }
-      if (i < items.list.length) acc += items.list[i].len;
-    }
-    insertAt = best;
-  }
-  const streakIdx = act.streak && stats.longestUnbeaten.len >= 2 ? stats.longestUnbeaten : null;
-  for (let i = 0; i <= items.list.length; i++) {
-    if (heart && i === insertAt) {
-      g.rows(x, 2, 'R'); g.region(x, 2, { type: 'gap' }); x += 2;
-      drawPanel(g, x, HEART_LEN, heart, true, act, gold); x += HEART_LEN;
-      g.rows(x, 2, 'R'); g.region(x, 2, { type: 'gap' }); x += 2;
-    }
-    if (i === items.list.length) break;
-    const it = items.list[i];
-    if (it.kind === 'game') drawStripe(g, x, it.len, it.game, items.level, act, stats, streakIdx);
-    else if (it.kind === 'future') drawFuture(g, x, it.len, it.game);
-    else if (it.kind === 'sep') drawSeparator(g, x, it.len, it, act);
-    else if (it.kind === 'filler') drawFiller(g, x, it.len);
-    x += it.len;
-  }
-  // ---- Ende B ----
-  x = L - lenB;
-  for (const p of parts.b) { p.fn(x); x += p.len; }
-
-  if (act.border) {
-    for (let xx = 0; xx < L; xx++) {
-      const reg = g.regions[xx];
-      if (reg && (reg.type === 'code' || reg.type === 'hem')) continue;
-      g.set(xx, 0, 'W'); g.set(xx, STITCHES - 1, 'W');
+  // Streifenbänder im Mittelteil (symmetrisch zu beiden Enden)
+  const motifs = MOTIF_ORDER.filter(id => act[id]);
+  const bodyEnd = C - (act.rautenField ? FRONT.rautenHalf + 6 : FRONT.medalR * ASPECT + 8);
+  const bodyLen = Math.max(0, bodyEnd - FRONT.bodyStart);
+  // Mehr Muster als Bänder: Ende B bekommt die übrigen Muster (sonst symmetrisch)
+  const nb = Math.max(1, Math.round(bodyLen / FRONT.bandPeriod), Math.min(Math.ceil(motifs.length / 2), Math.floor(bodyLen / (FRONT.bandLen + 10))));
+  const bands = [];
+  if (bodyLen > FRONT.bandLen + 4 && (act.blocks || motifs.length)) {
+    for (let k = 0; k < nb; k++) {
+      const c = FRONT.bodyStart + (k + 0.5) * bodyLen / nb;
+      bands.push({ k, d: Math.round(c - FRONT.bandLen / 2) });
     }
   }
-  info.bodyStart = bodyStart;
-  return finishModel(g, info, fringeColors(act));
+  for (const end of [0, 1]) for (const b of bands) {
+    const s = at(end, b.d, FRONT.bandLen);
+    const slot = end === 1 && motifs.length > nb ? b.k + nb : b.k;
+    const motif = motifs.length ? motifs[slot % motifs.length] : null;
+    el(act.blocks ? 'blocks' : motif, { layer: 'body' });
+    g.rows(s, FRONT.bandLen, 'W');
+    if (motif) {
+      const m = MOTIFS[motif];
+      const col = m.color === 'gold' ? (goldOn ? 'G' : 'R') : m.color;
+      el(motif, { layer: 'body' });
+      if (m.fn) m.fn(g, s, FRONT.bandLen, col);
+      else {
+        const w = m.icon[0].length, h = m.icon.length, step = h + 3;
+        const n = Math.floor((60 + 3) / step), y0 = 6 + Math.floor((60 - (n * step - 3)) / 2);
+        for (let i = 0; i < n; i++) drawIcon(g, m.icon, s + Math.floor((FRONT.bandLen - w) / 2), y0 + i * step, { 1: col });
+      }
+    }
+    if (act.gold) { el('gold'); g.rows(s - 2, 1, 'G'); g.rows(s + FRONT.bandLen + 1, 1, 'G'); }
+  }
+
+  // Medaillon in der Mitte
+  if (act.medal || act.cup || act.plate) {
+    el(act.medal ? 'medal' : act.plate ? 'plate' : 'cup');
+    const R = FRONT.medalR, cy = (STITCHES - 1) / 2, rx = Math.ceil(R * ASPECT) + 1;
+    for (let x = C - rx; x <= C + rx; x++) for (let y = 0; y < STITCHES; y++) {
+      const d = Math.hypot((x - C) / ASPECT, y - cy);
+      if (d <= R - 3) g.set(x, y, 'N');
+      else if (d <= R) g.set(x, y, goldOn ? 'G' : 'W');
+    }
+    const icons = [];
+    if (act.plate) icons.push(['plate', ICONS.plate]);
+    if (act.cup) icons.push(['cup', ICONS.cup]);
+    const iw = icons.length * 9 + (icons.length - 1) * 3;
+    const yIcon = act.medal ? 14 : 31;
+    icons.forEach(([id, ic], i) => { el(id); drawIcon(g, ic, C - Math.floor(iw / 2) + i * 12, yIcon, { G: 'G' }); });
+    if (act.medal) {
+      el('medal');
+      const yN = icons.length ? 26 : 23;
+      drawTextCentered(g, String(stats.total), C - 20, 41, yN, 'W', 2);
+      drawTextCentered(g, 'SPIELE', C - 20, 41, yN + 13, goldOn ? 'G' : 'W', 1);
+    }
+  }
+
+  // Enden
+  const dc = Math.round((FRONT.zone[0] + FRONT.zone[1]) / 2);
+  for (const end of [0, 1]) {
+    if (act.awayRauten) { el('awayRauten'); const [a, b] = span(end, ...FRONT.rauten); drawRauten(g, a, b - a + 1); }
+    if (act.endStripes) { el('endStripes'); endRows(end, ...FRONT.stripeA, 'W'); endRows(end, ...FRONT.stripeB, 'W'); }
+    if (act.starBand) {
+      el('starBand'); endRows(end, ...FRONT.starBand, 'N');
+      const [a] = span(end, ...FRONT.starBand);
+      for (let y = 6; y < 64; y += 9) { drawIcon(g, ICONS.starSmall, a + 3, y, { W: 'W' }); drawIcon(g, ICONS.starSmall, a + 10, y + 4, { W: 'W' }); }
+    }
+    if (act.floodlight) { el('floodlight'); for (const f of FRONT.flood) endRows(end, ...f, 'G'); }
+    if (act.fourStars) {
+      el('fourStars');
+      const w = 4 * 5 + 3 * 5;
+      for (let i = 0; i < 4; i++) drawIcon(g, ICONS.star, at(end, dc - Math.floor(w / 2), w) + i * 10, 13, { G: 'G' });
+    }
+    if (act.season) {
+      el(act.monthSeal ? 'monthSeal' : 'season');
+      const t = seasonLabel(season), w = textWidth(t, 3);
+      drawText(g, t, at(end, dc - Math.floor(w / 2), w), 21, act.monthSeal ? 'G' : 'W', 3);
+    }
+    if (act.monthSeal) {
+      el('monthSeal');
+      const t = 'AUG-MAI', w = textWidth(t, 1);
+      drawText(g, t, at(end, dc - Math.floor(w / 2), w), 41, 'G', 1);
+    }
+    const syms = [];
+    if (act.cupIcon) syms.push(['cupIcon', ICONS.cup, { G: 'W' }]);
+    if (act.crown) syms.push(['crown', ICONS.crown, { G: 'G' }]);
+    const sw = syms.reduce((s, x) => s + iconW(x[1]), 0) + Math.max(0, syms.length - 1) * 6;
+    let sx = at(end, dc - Math.floor(sw / 2), sw);
+    for (const [id, ic, map] of syms) { el(id); drawIcon(g, ic, sx, id === 'crown' ? 53 : 50, map); sx += iconW(ic) + 6; }
+    if (act.stadiumDots) {
+      el('stadiumDots');
+      const n = Math.min(stats.stadiums.size, 22), w = n * 4 - 2;
+      const x0 = at(end, dc - Math.floor(w / 2), w);
+      for (let i = 0; i < n; i++) g.rect(x0 + i * 4, x0 + i * 4 + 1, 61, 62, 'W');
+    }
+  }
+
+  // Längskanten
+  if (act.awaySeam || act.tour) {
+    el(act.tour ? 'tour' : 'awaySeam');
+    for (let x = 0; x < L; x++) {
+      if (x % 4 >= 2) continue;
+      for (const y of [4, 67]) {
+        const t = g.tagAt(x, y);
+        if (!t || t.layer !== 'body') continue;
+        g.set(x, y, act.tour ? 'G' : (g.get(x, y) === 'W' ? 'R' : 'W'));
+      }
+    }
+  }
+  if (act.border) { el('border'); g.rect(0, L - 1, 0, 1, 'W'); g.rect(0, L - 1, 70, 71, 'W'); }
+
+  return finishModel(g, { L, lengthCm, bands: bands.length * 2, motifs }, fringeColors(act));
 }
 
 function fringeColors(act) {
-  if (act.goldFringe) return act.fringeRed ? ['G', 'R'] : ['G', 'W'];
-  if (act.fringeRed) return ['R'];
+  if (act.gold) return act.endStripes ? ['G', 'R'] : ['G', 'W'];
+  if (act.endStripes) return ['R', 'W'];
   return ['W'];
 }
 
-function layoutBody(all, body, act, stats) {
-  // Ein Saisonschal: Spiele chronologisch, Monatsnähte zwischen den Monaten,
-  // Saison-Krone am Anfang, falls alle 17 Bundesliga-Heimspiele besucht wurden.
-  const list = [];
-  const n = all.length;
-  const monthKey = m => m.date.slice(0, 7);
-  const months = [...new Set(all.map(monthKey))];
-  const sepLen = act.seasonLines ? 1 : 0;
-  const crownLen = act.crown && stats.fullHomeSeason ? 8 : 0;
-  if (n === 0) {
-    list.push({ kind: 'filler', len: body });
-    return { list, level: 'leer', rpg: 0, filler: body };
-  }
-  const fixed = crownLen + Math.max(0, months.length - 1) * sepLen;
-  const avail = Math.max(n, body - fixed);
-  const rpg = avail / n;
-  const base = Math.min(MAX_ROWS_PER_GAME, Math.floor(rpg));
-  const level = base >= 3 ? 'detail' : base >= 2 ? 'fein' : 'hauch';
-  let lens, filler = 0;
-  if (base === MAX_ROWS_PER_GAME) { lens = all.map(() => base); filler = avail - base * n; }
-  else lens = all.map((_, i) => Math.floor(avail * (i + 1) / n) - Math.floor(avail * i / n)); // Bresenham
-  if (crownLen) list.push({ kind: 'sep', crown: true, season: all[0].season, len: crownLen });
-  let prev = null;
-  all.forEach((m, i) => {
-    const k = monthKey(m);
-    if (prev !== null && k !== prev && sepLen) list.push({ kind: 'sep', month: Number(k.slice(5)), season: m.season, len: sepLen });
-    prev = k;
-    list.push({ kind: m.upcoming ? 'future' : 'game', game: m, len: lens[i] });
-  });
-  if (filler > 0) list.push({ kind: 'filler', len: filler });
-  return { list, level, rpg: Math.min(rpg, MAX_ROWS_PER_GAME), filler };
-}
-
-function drawStripe(g, x0, r, m, level, act, stats, streak) {
-  const base = act.results ? { W: 'R', D: 'W', L: 'N' }[m.result] : (m.nr % 2 ? 'R' : 'W');
-  const con = contrast(base);
-  g.rows(x0, r, base);
-  g.region(x0, r, { type: 'game', game: m });
-  const mid = x0 + Math.floor((r - 1) / 2);
-  const detail = level === 'detail', fine = level !== 'hauch';
-
-  // Texturen
-  if (fine && act.cupTexture && m.comp === 'DFB')
-    for (let x = x0; x < x0 + r; x++) for (let y = 4; y < 68; y++) if ((x + y) % 3 === 0 && y % 2 === 0) g.set(x, y, con);
-  if (fine && act.weather && m.weather === 'rain')
-    for (let x = x0; x < x0 + r; x++) for (let y = 4; y < 68; y++) if ((x * 2 + y) % 7 === 0) g.set(x, y, base === 'N' ? 'B' : con);
-  if (act.loyal && m.result === 'L' && r >= 3) g.rect(mid, mid, 4, 67, 'W');
-  if (act.plate && m.titleClinch) g.rect(mid, Math.min(mid + (r >= 4 ? 1 : 0), x0 + r - 1), 4, 67, 'G');
-  if (detail && act.floodlight && m.comp === 'CL') g.rect(x0, x0, 3, 68, 'G');
-  if (act.goldFringe && m.nr % 10 === 0) g.rect(x0, x0, 0, 71, 'G');
-
-  // Motive (ab 3 Reihen)
-  if (detail) {
-    const iy = Math.max(x0, mid - 1);
-    if (act.clStars && m.comp === 'CL') { drawIcon(g, ICONS.starSmall, iy, LANE.starL, { W: con }); drawIcon(g, ICONS.starSmall, iy, LANE.starR, { W: con }); }
-    if (act.weather && m.weather === 'snow') { drawIcon(g, ICONS.snow, iy, LANE.starL, { W: base === 'W' ? 'B' : 'W' }); drawIcon(g, ICONS.snow, iy, LANE.starR, { W: base === 'W' ? 'B' : 'W' }); }
-    if (act.klassiker && m.klassiker) drawIcon(g, ['W.W', '.W.', 'W.W'], iy, LANE.klassiker, { W: con });
-    if (act.comeback && m.comeback) drawIcon(g, ['.W.', 'W.W', '.W.', 'W.W'], iy, LANE.moment, { W: con });
-    else if (act.late && m.lateWinner) drawIcon(g, ['W.W', 'WWW', '.W.'], iy, LANE.moment, { W: con });
-  }
-  // Tore
-  if (fine) {
-    const dotW = r >= 5 ? 2 : 1, dotH = r >= 6 ? 2 : 1;
-    const dx = mid - (dotH === 2 ? 0 : 0);
-    if (act.goals) {
-      const col = act.fest && m.fcbGoals >= 5 ? 'G' : con;
-      for (let i = 0; i < Math.min(m.fcbGoals, 8); i++) { const y = LANE.goalsFor - 3 * i - (dotW - 1); g.rect(dx, dx + dotH - 1, y, y + dotW - 1, col); }
-    }
-    if (act.against) {
-      const col = againstColor(base);
-      for (let i = 0; i < Math.min(m.oppGoals, 5); i++) { const y = LANE.goalsAgainst + 3 * i; g.rect(dx, dx + dotH - 1, y, y + dotW - 1, col); }
-    }
-  }
-  // Kanten
-  if (act.cup && m.final) { for (const [a, b] of LANE.edgeGold) g.rect(x0, x0 + r - 1, a, b, 'G'); }
-  else if (act.awaySeam && m.venue === 'A') {
-    const sc = act.tour ? 'G' : con;
-    for (let x = x0; x < x0 + r; x++) if (x % 2 === 0 || r === 1) { g.set(x, LANE.seam[0], sc); g.set(x, LANE.seam[1], sc); }
-  }
-  if (act.ground && stats.firstVisit.has(m.nr) && m.venue !== 'H') g.rect(x0, Math.min(x0 + 1, x0 + r - 1), LANE.pin, LANE.pin + 1, con);
-  if (streak && m.result) {
-    const idx = m.nr - 1;
-    if (idx >= streak.from && idx <= streak.to) g.rect(x0, x0 + r - 1, LANE.streak[0], LANE.streak[1], 'G');
-  }
-}
-
-function drawFuture(g, x0, r, m) {
-  g.rows(x0, r, 'W');
-  for (let x = x0; x < x0 + r; x++) for (let y = 0; y < 72; y++) if ((x + y) % 4 === 0) g.set(x, y, 'N');
-  g.setGhost(x0, r);
-  g.region(x0, r, { type: 'future', game: m });
-}
-
-function drawFiller(g, x0, len) {
-  // Grundmuster: klassische Blockstreifen – wird durch neue Spiele ersetzt
-  for (let x = x0; x < x0 + len; x++) {
-    const k = Math.floor((x - x0) / 8) % 2;
-    g.rows(x, 1, k ? 'W' : 'R');
-  }
-  g.setGhost(x0, len);
-  g.region(x0, len, { type: 'filler' });
-}
-
-function drawSeparator(g, x0, len, it, act) {
-  if (it.crown) {
-    g.rows(x0, len, 'N');
-    g.rows(x0, 1, 'G'); g.rows(x0 + len - 1, 1, 'G');
-    drawIcon(g, ICONS.crown, x0 + 1, 34, {});
-    drawIcon(g, ICONS.crown, x0 + 1, 10, {}); drawIcon(g, ICONS.crown, x0 + 1, 58, {});
-    g.region(x0, len, { type: 'crown', season: it.season });
-    return;
-  }
-  g.rows(x0, len, 'N');
-  for (let y = 1; y < 72; y += 3) g.set(x0, y, 'W');
-  g.region(x0, len, { type: 'sep', month: it.month, season: it.season });
-}
-
+/* ---- Highlight-Felder (Rückseite) ------------------------------------ */
 function drawPanel(g, x0, len, m, isHeart, act, gold) {
+  g.use({ type: 'panel', game: m, heart: isHeart });
   g.rows(x0, len, 'N');
   const frame = { W: 'R', D: 'W', L: 'B' }[m.result] || 'W';
   g.rows(x0, 2, frame); g.rows(x0 + len - 2, 2, frame);
-  if (isHeart) {
-    g.rows(x0 + 3, 1, gold); g.rows(x0 + len - 4, 1, gold);
-  }
+  if (isHeart) { g.rows(x0 + 3, 1, gold); g.rows(x0 + len - 4, 1, gold); }
   const off = isHeart ? 6 : 4;
-  // Schild mit Gegner-Kürzel (Platzhalter statt Vereinswappen)
   const sx = x0 + off, sy = 4;
   drawIcon(g, ICONS.shield, sx, sy, {});
-  const abbr = clubAbbr(m.opp).slice(0, 3);
-  drawTextCentered(g, abbr, sx + 1, 13, sy + 3, 'W', 1);
-  // Ergebnis groß (Heimteam zuerst)
+  drawTextCentered(g, clubAbbr(m.opp).slice(0, 3), sx + 1, 13, sy + 3, 'W', 1);
   const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
   const scx = sx + 17;
-  const avail = x0 + len - off - scx;
-  drawTextCentered(g, score, scx, avail, 6, 'W', 2);
-  // Zeilen
+  drawTextCentered(g, score, scx, x0 + len - off - scx, 6, 'W', 2);
   const inner0 = x0 + off, innerLen = len - 2 * off;
-  const roundShort = shortRound(m);
-  drawTextCentered(g, roundShort, inner0, innerLen, 22, 'W', 1);
+  drawTextCentered(g, shortRound(m), inner0, innerLen, 22, 'W', 1);
   drawTextCentered(g, fmtDate(m.date), inner0, innerLen, 30, 'W', 1);
-  // Motiv
   let icon = null;
-  if (m.final && act.cup) icon = ICONS.cup;
-  else if (m.titleClinch && act.plate) icon = ICONS.plate;
+  if (m.final) icon = ICONS.cup;
+  else if (m.titleClinch) icon = ICONS.plate;
   else if (m.comp === 'CL') icon = ICONS.star;
   if (icon) drawIcon(g, icon, x0 + Math.floor((len - iconW(icon)) / 2), 38, { G: gold });
   else drawTextCentered(g, m.venue === 'H' ? 'HEIM' : m.venue === 'A' ? 'AUSWAERTS' : 'FINALE', inner0, innerLen, 40, 'R', 1);
   drawTextCentered(g, `NR ${m.nr}`, inner0, innerLen, 50, gold, 1);
-  const city = transliterate(m.city).slice(0, 10);
-  drawTextCentered(g, city, inner0, innerLen, 58, 'B', 1);
+  drawTextCentered(g, transliterate(m.city).slice(0, 10), inner0, innerLen, 58, 'B', 1);
   if (isHeart) drawIcon(g, ICONS.heart, x0 + Math.floor((len - 5) / 2), 65, { R: 'R' });
-  g.region(x0, len, { type: 'panel', game: m, heart: isHeart });
 }
 
 function shortRound(m) {
@@ -1585,66 +1507,30 @@ function shortRound(m) {
   return `${c} ${m.round.replace(/\D/g, '')}`.trim();
 }
 
-function drawHead(g, x0, len, { seasonText, act, gold, stats }) {
-  g.rows(x0, len, 'N');
-  g.rows(x0, 2, 'R'); g.rows(x0 + len - 2, 2, 'R');
-  drawIcon(g, ICONS.roundel, x0 + 5, 29, {});
-  const tx = x0 + 24, tl = len - 24 - 4;
-  drawTextCentered(g, 'SAISON', tx, tl, 16, 'W', 1);
-  drawTextCentered(g, seasonText, tx, tl, 24, act.decade ? 'G' : 'W', 2);
-  if (act.decade) drawTextCentered(g, 'AUG-MAI', tx, tl, 38, 'G', 1);
-  if (act.compBand) {
-    const total = 4 * 5 + 3 * 2, sx = tx + Math.floor((tl - total) / 2);
-    const has = stats.byComp;
-    ['BL', 'DFB', 'CL', 'SC'].forEach((c, i) => drawIcon(g, ICONS.star, sx + i * 7, 48, { G: has[c] > 0 ? 'G' : 'B' }));
-  }
-  g.region(x0, len, { type: 'element', el: 'head' });
-  return len;
-}
-
-function drawEndB(g, x0, len, { act, stats }) {
-  g.rows(x0, len, 'N');
-  g.rows(x0, 2, 'R'); g.rows(x0 + len - 2, 2, 'R');
-  let x = x0 + 2;
-  if (act.plate) {
-    drawIcon(g, ICONS.plate, x + 4, 31, {});
-    g.region(x0, len, { type: 'element', el: 'plate' });
-    x += 18;
-  }
-  if (act.centurion) {
-    const n = stats.total;
-    const cx = x + 14, cy = 35, R = 12;
-    for (let xx = x; xx < x + 29; xx++) for (let y = cy - R - 1; y <= cy + R + 1; y++) {
-      const d = Math.hypot(xx - cx, y - cy);
-      if (d <= R + 0.6 && d >= R - 1.6) g.set(xx, y, 'G');
-    }
-    drawTextCentered(g, String(n), x + 1, 27, 29, 'W', 1);
-    drawTextCentered(g, 'SPIELE', x + 1, 27, 37, 'W', 1);
-    g.region(x0, len, { type: 'element', el: 'centurion' });
-  }
-  return len;
+function textBox(g, x, w) {
+  g.rect(x, x + w - 1, 3, 68, 'N');
+  g.rect(x, x + w - 1, 3, 3, 'W'); g.rect(x, x + w - 1, 68, 68, 'W');
+  g.rect(x, x, 3, 68, 'W'); g.rect(x + w - 1, x + w - 1, 3, 68, 'W');
 }
 
 /* ---- Rückseite --------------------------------------------------------- */
 function buildBack(ctx) {
-  const { profile, games, act, lengthCm, stats } = ctx;
-  const L = lengthCm * ROWS_PER_CM;
+  const { profile, act, lengthCm, stats, highlights } = ctx;
+  const L = lengthCm * ROWS_PER_CM, C = Math.floor(L / 2);
   const g = new Grid(L);
-  if (act.legend) drawRauten(g, 0, L);
-  else { g.rows(0, L, 'N'); for (let x = 0; x < L; x += 14) g.rows(x, 1, 'R'); }
-  g.region(0, L, { type: 'backBase' });
+  const goldOn = goldAvailable(act);
+  const gold = goldOn ? 'G' : 'W';
+  g.use({ type: 'backBase' });
+  g.rows(0, L, 'N'); for (let x = 7; x < L; x += 14) g.rows(x, 1, 'R');
 
-  const blocks = [];
-  const box = (len, el, fn) => blocks.push({ len, el, fn });
+  // Info-Boxen: links und rechts der Highlights
+  const left = [], right = [];
+  const box = (list, w, el, fn) => list.push({ w, el, fn });
   const name = transliterate(ctx.name || profile.name || 'FAN').slice(0, 10);
-
   if (act.backInfo) {
-    const lines = [
-      [name, 3], [`SAISON ${seasonLabel(ctx.season)}`, 1], [profile.code, 1],
-      [`${stats.total} SPIELE`, 1], [`${stats.W} S  ${stats.D} U  ${stats.L} N`, 1],
-    ];
+    const lines = [[name, 3], [`SAISON ${seasonLabel(ctx.season)}`, 1], [profile.code, 1], [`${stats.total} SPIELE`, 1], [`${stats.W} S  ${stats.D} U  ${stats.L} N`, 1]];
     const w = Math.max(...lines.map(([t, s]) => textWidth(t, s))) + 10;
-    box(w, 'backInfo', x => {
+    box(left, w, 'backInfo', x => {
       textBox(g, x, w);
       drawTextCentered(g, lines[0][0], x, w, 8, 'W', 3);
       drawTextCentered(g, lines[1][0], x, w, 28, 'R', 1);
@@ -1653,33 +1539,29 @@ function buildBack(ctx) {
       drawTextCentered(g, lines[4][0], x, w, 56, 'W', 1);
     });
   }
-  if (act.legend) {
-    const w = textWidth('ALLESFAHRER', 2) + 12;
-    box(w, 'legend', x => { textBox(g, x, w); drawTextCentered(g, 'ALLESFAHRER', x, w, 24, act.goldFringe ? 'G' : 'W', 2); drawTextCentered(g, `${stats.total} SPIELE`, x, w, 44, 'W', 1); });
-  }
   if (act.km) {
-    const km = stats.km.toLocaleString('de-DE').replace(/\./g, '.');
+    const km = stats.km.toLocaleString('de-DE');
     const w = Math.max(textWidth(`${km} KM`, 2), textWidth('AUSWAERTS', 1)) + 10;
-    box(w, 'km', x => { textBox(g, x, w); drawTextCentered(g, 'AUSWAERTS', x, w, 18, 'R', 1); drawTextCentered(g, `${km} KM`, x, w, 28, 'W', 2); drawTextCentered(g, `${stats.away} FAHRTEN`, x, w, 46, 'W', 1); });
+    box(left, w, 'km', x => { textBox(g, x, w); drawTextCentered(g, 'AUSWAERTS', x, w, 18, 'R', 1); drawTextCentered(g, `${km} KM`, x, w, 28, 'W', 2); drawTextCentered(g, `${stats.away} FAHRTEN`, x, w, 46, 'W', 1); });
   }
   if (act.countries) {
     const cs = [...stats.awayCountries];
     const rowsC = []; for (let i = 0; i < cs.length; i += 3) rowsC.push(cs.slice(i, i + 3).join(' '));
     const shown = rowsC.slice(0, 5);
     const w = Math.max(textWidth('LAENDER', 1), ...shown.map(t => textWidth(t, 1)), 20) + 10;
-    box(w, 'countries', x => { textBox(g, x, w); drawTextCentered(g, 'LAENDER', x, w, 10, 'R', 1); shown.forEach((t, i) => drawTextCentered(g, t, x, w, 20 + i * 8, 'W', 1)); });
+    box(left, w, 'countries', x => { textBox(g, x, w); drawTextCentered(g, 'LAENDER', x, w, 10, 'R', 1); shown.forEach((t, i) => drawTextCentered(g, t, x, w, 20 + i * 8, 'W', 1)); });
   }
-  if (act.rings) {
+  if (act.calendar) {
     const max = Math.max(1, ...stats.months.values());
     const w = SEASON_MONTHS.length * 6 + 12;
-    box(w, 'rings', x => {
+    box(right, w, 'calendar', x => {
       textBox(g, x, w);
       drawTextCentered(g, 'KALENDER', x, w, 8, 'R', 1);
       const sx = x + 7;
       SEASON_MONTHS.forEach((mo, i) => {
         const n = stats.months.get(mo) || 0;
         const h = n ? 2 + Math.round(34 * n / max) : 0;
-        if (h) g.rect(sx + i * 6, sx + i * 6 + 3, 54 - h, 53, n === max ? 'G' : 'W');
+        if (h) g.rect(sx + i * 6, sx + i * 6 + 3, 54 - h, 53, n === max ? gold : 'W');
         else g.rect(sx + i * 6, sx + i * 6 + 3, 53, 53, 'B');
         drawText(g, MONTH_SHORT[mo][0], sx + i * 6 + 1, 58, 'B', 1);
       });
@@ -1687,52 +1569,61 @@ function buildBack(ctx) {
   }
   if (act.collection) {
     const w = 9 * 8 + 8;
-    box(w, 'collection', x => {
+    const opps = ctx.blOpponents || CURRENT_BL;
+    box(right, w, 'collection', x => {
       textBox(g, x, w);
       drawTextCentered(g, `GEGNER ${stats.blOpp.size}/17`, x, w, 10, 'R', 1);
-      const opps = ctx.blOpponents || CURRENT_BL;
       opps.forEach((id, i) => {
         const row = i < 9 ? 0 : 1, col = i < 9 ? i : i - 9;
         const bx = x + 5 + col * 8 + (row ? 4 : 0), by = 22 + row * 14;
-        const seen = stats.blOpp.has(id);
-        g.rect(bx, bx + 5, by, by + 9, seen ? 'R' : 'N');
+        g.rect(bx, bx + 5, by, by + 9, stats.blOpp.has(id) ? 'R' : 'N');
         g.rect(bx, bx + 5, by, by, 'W'); g.rect(bx, bx + 5, by + 9, by + 9, 'W'); g.rect(bx, bx, by, by + 9, 'W'); g.rect(bx + 5, bx + 5, by, by + 9, 'W');
       });
       drawTextCentered(g, 'GESEHEN', x, w, 52, 'W', 1);
     });
   }
-  const ends = act.code ? 12 : 0;
-  const sum = blocks.reduce((s, b) => s + b.len, 0);
-  const free = L - 2 * ends - 4 - sum;
-  const gap = Math.max(2, Math.floor(free / (blocks.length + 1)));
-  let x = 2;
-  hem(g, 0, 2);
-  if (act.code) { drawCodeBand(g, x, profile.raw, ctx.season, { type: 'code', side: 'A' }); x += 12; }
-  x += gap;
-  for (const b of blocks) {
-    if (x + b.len > L - ends - 2) break;
-    b.fn(x); g.region(x, b.len, { type: 'element', el: b.el }); x += b.len + gap;
+  if (act.rautenField) {
+    const w = textWidth('ALLESFAHRER', 1) + 14;
+    box(right, w, 'rautenField', x => { textBox(g, x, w); drawRauten(g, x + 2, w - 4, 5, 18); drawRauten(g, x + 2, w - 4, 53, 66); drawTextCentered(g, 'ALLESFAHRER', x, w, 28, gold, 1); drawTextCentered(g, `${stats.total}`, x, w, 37, 'W', 1); });
   }
-  if (act.code) drawCodeBand(g, L - 14, profile.raw, ctx.season, { type: 'code', side: 'B' });
-  hem(g, L - 2, 2);
-  return finishModel(g, { L, lengthCm, back: true }, fringeColors(act));
-}
 
-function textBox(g, x, w) {
-  g.rect(x, x + w - 1, 3, 68, 'N');
-  g.rect(x, x + w - 1, 3, 3, 'W'); g.rect(x, x + w - 1, 68, 68, 'W');
-  g.rect(x, x, 3, 68, 'W'); g.rect(x + w - 1, x + w - 1, 3, 68, 'W');
+  // Highlights: Herzstück in der Mitte, die übrigen chronologisch links/rechts
+  const hl = act.highlights ? highlights.slice(0, 5) : [];
+  let hlStart = C, hlEnd = C;
+  if (hl.length) {
+    const heart = hl[0];
+    const side = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
+    const nA = Math.ceil(side.length / 2);
+    const hA = side.slice(0, nA), hB = side.slice(nA);
+    const h0 = C - Math.floor(HEART_LEN / 2);
+    drawPanel(g, h0, HEART_LEN, heart, true, act, gold);
+    hlStart = h0; hlEnd = h0 + HEART_LEN;
+    for (let i = hA.length - 1; i >= 0; i--) { hlStart -= PANEL_LEN + 3; drawPanel(g, hlStart, PANEL_LEN, hA[i], false, act, gold); }
+    for (const m of hB) { hlEnd += 3; drawPanel(g, hlEnd, PANEL_LEN, m, false, act, gold); hlEnd += PANEL_LEN; }
+  }
+
+  const ends = act.code ? 14 : 2;
+  const place = (list, a, b) => {
+    const items = list.slice();
+    while (items.length && items.reduce((s, it) => s + it.w, 0) + 4 * (items.length + 1) > b - a) items.pop();
+    const free = (b - a) - items.reduce((s, it) => s + it.w, 0);
+    const gap = Math.floor(free / (items.length + 1));
+    let x = a + gap;
+    for (const it of items) { g.use({ el: it.el }); it.fn(x); x += it.w + gap; }
+    return list.length - items.length;
+  };
+  const dropped = place(left, ends, hlStart) + place(right, hlEnd, L - ends);
+  if (act.code) { drawCodeBand(g, 2, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 14, profile.raw, ctx.season, 'B'); }
+  return finishModel(g, { L, lengthCm, back: true, dropped }, fringeColors(act));
 }
 
 function finishModel(g, info, fringe) {
   const counts = [0, 0, 0, 0, 0];
   for (let i = 0; i < g.cells.length; i++) counts[g.cells[i]]++;
-  return { L: g.L, W: g.W, cells: g.cells, ghost: g.ghost, regions: g.regions, info, fringe, counts };
+  return { L: g.L, W: g.W, cells: g.cells, tags: g.tags, tagList: g.tagList, info, fringe, counts };
 }
 
-function buildScarf(ctx) {
-  return { front: buildFront(ctx), back: buildBack(ctx) };
-}
+function buildScarf(ctx) { return { front: buildFront(ctx), back: buildBack(ctx) }; }
 
 // Garnfarben über beide Seiten + Fransen
 function yarnUsage(scarf) {
@@ -2030,28 +1921,15 @@ function drawCells(ctx, model, x0, x1, y0, y1, ox, oy, cx, cy, opts) {
       for (let y = y0; y < y1; y++) ctx.drawImage(sp[model.cells[base + y]], px, oy + y * cy, cx + 0.35, cy + 0.35);
     }
   }
-  // Geister: kommende (simulierte) Spiele und – in der Potenzial-Ansicht – offene Fläche
-  for (let x = x0; x < x1; x++) {
-    const reg = model.regions[x];
-    const isFuture = reg && (reg.type === 'future' || (reg.type === 'season' && reg.s && reg.s.future));
-    const isOpen = reg && reg.type === 'filler' && opts.potential;
-    if (!isFuture && !isOpen) continue;
-    ctx.fillStyle = isFuture ? 'rgba(246,244,239,.55)' : 'rgba(246,244,239,.78)';
-    ctx.fillRect(ox + x * cx, oy + y0 * cy, cx + 0.35, (y1 - y0) * cy);
-  }
-  if (opts.potential) {
-    // gestrichelte Umrandung der offenen Fläche
-    let start = -1;
-    for (let x = x0; x <= x1; x++) {
-      const reg = x < x1 ? model.regions[x] : null;
-      const open = reg && (reg.type === 'filler' || reg.type === 'future');
-      if (open && start < 0) start = x;
-      if (!open && start >= 0) {
-        ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = '#0E2240'; ctx.lineWidth = 1.2;
-        ctx.strokeRect(ox + start * cx + 1, oy + 1, (x - start) * cx - 2, (y1 - y0) * cy - 2);
-        ctx.restore(); start = -1;
-      }
+  // Markierung (z. B. neu freigeschaltete Elemente im Schalpotenzial)
+  if (opts.markEls && opts.markEls.size) {
+    ctx.fillStyle = 'rgba(255,216,77,.6)';
+    ctx.beginPath();
+    for (let x = x0; x < x1; x++) for (let y = y0; y < y1; y++) {
+      const t = model.tagList[model.tags[x * W + y]];
+      if (t && t.el && opts.markEls.has(t.el)) ctx.rect(ox + x * cx, oy + y * cy, cx + 0.35, cy + 0.35);
     }
+    ctx.fill();
   }
 }
 
@@ -2114,31 +1992,48 @@ function hitTest(lay, model, px, py) {
   return null;
 }
 
-function regionSpan(model, x) {
-  const reg = model.regions[x];
-  let a = x, b = x;
-  while (a > 0 && model.regions[a - 1] === reg) a--;
-  while (b < model.L - 1 && model.regions[b + 1] === reg) b++;
-  return [a, b];
+function groupKey(t) {
+  if (!t) return null;
+  if (t.el) return 'el:' + t.el;
+  if (t.type === 'panel') return 'panel:' + t.game.nr;
+  return t.type;
 }
+function tagAtCell(model, x, y) { return model.tagList[model.tags[x * model.W + y]]; }
 
-function drawHover(canvas, lay, model, x) {
+// Hebt alle Maschen hervor, die zum selben Element gehören wie die Masche (x, y)
+function drawHover(canvas, lay, model, hit) {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.round(lay.width * dpr); canvas.height = Math.round(lay.height * dpr);
   canvas.style.width = lay.width + 'px'; canvas.style.height = lay.height + 'px';
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, lay.width, lay.height);
-  if (x == null) return;
-  const [a, b] = regionSpan(model, x);
+  if (!hit) return;
+  const key = groupKey(tagAtCell(model, hit.x, hit.y));
+  if (!key || key === 'el:base' || key === 'backBase') return;
+  const W = model.W, keys = new Array(model.tagList.length);
+  model.tagList.forEach((t, i) => { keys[i] = groupKey(t) === key; });
+  const match = (x, y) => x >= 0 && x < model.L && y >= 0 && y < W && keys[model.tags[x * W + y]];
   for (let s = 0; s < lay.segs; s++) {
-    const sx0 = s * lay.segLen, sx1 = Math.min(model.L, sx0 + lay.segLen) - 1;
-    const lo = Math.max(a, sx0), hi = Math.min(b, sx1);
-    if (lo > hi) continue;
+    const sx0 = s * lay.segLen, sx1 = Math.min(model.L, sx0 + lay.segLen);
     const o = segOrigin(lay, s);
-    ctx.strokeStyle = '#FFD84D'; ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 4;
-    ctx.strokeRect(o.x + (lo - sx0) * lay.cx - 1, o.y - 2, (hi - lo + 1) * lay.cx + 2, lay.segH + 4);
+    ctx.fillStyle = 'rgba(255,216,77,.35)';
+    ctx.beginPath();
+    const edges = [];
+    for (let x = sx0; x < sx1; x++) for (let y = 0; y < W; y++) {
+      if (!match(x, y)) continue;
+      const px = o.x + (x - sx0) * lay.cx, py = o.y + y * lay.cy;
+      ctx.rect(px, py, lay.cx + 0.3, lay.cy + 0.3);
+      if (!match(x - 1, y)) edges.push([px, py, px, py + lay.cy]);
+      if (!match(x + 1, y)) edges.push([px + lay.cx, py, px + lay.cx, py + lay.cy]);
+      if (!match(x, y - 1)) edges.push([px, py, px + lay.cx, py]);
+      if (!match(x, y + 1)) edges.push([px, py + lay.cy, px + lay.cx, py + lay.cy]);
+    }
+    ctx.fill();
+    ctx.strokeStyle = '#FFD84D'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (const [a, b, c, d] of edges) { ctx.moveTo(a, b); ctx.lineTo(c, d); }
+    ctx.stroke();
   }
 }
 
@@ -2156,7 +2051,7 @@ function drawLens(canvas, model, x, y, knit) {
   drawCells(ctx, model, x0, Math.min(model.L, x0 + nx), y0, Math.min(model.W, y0 + ny), -x0 * cx, -y0 * cy, cx, cy, { knit });
 }
 
-function drawThumb(canvas, model, width, potential) {
+function drawThumb(canvas, model, width, markEls) {
   const dpr = window.devicePixelRatio || 1;
   const cx = width / model.L, cy = cx / STITCH_ASPECT * 1.6;
   const h = model.W * cy;
@@ -2164,7 +2059,7 @@ function drawThumb(canvas, model, width, potential) {
   canvas.style.width = width + 'px'; canvas.style.height = h + 'px';
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawCells(ctx, model, 0, model.L, 0, model.W, 0, 0, cx, cy, { knit: false, potential });
+  drawCells(ctx, model, 0, model.L, 0, model.W, 0, 0, cx, cy, { knit: false, markEls });
 }
 
 function patternPNG(model) {
@@ -2192,8 +2087,8 @@ const store = {
 
 const state = {
   profile: null, games: [], stats: null, statsAll: null, ms: [], el: null, overrides: {},
-  curation: null, curations: {}, lengthCm: 150, side: 'front', knit: true, segs: 2,
-  future: 0, potential: false, name: '', scarf: null, lay: null, pinned: null, tab: 'ai',
+  curation: null, curations: {}, lengthCm: 150, side: 'front', knit: true, segs: 3,
+  future: 0, potential: true, name: '', scarf: null, lay: null, pinned: null, tab: 'ai',
   msMode: 'auto',
 };
 
@@ -2248,6 +2143,8 @@ function update() {
   const ov = state.msMode === 'all' ? Object.fromEntries(ELEMENTS.map(e => [e.id, 'on']))
     : state.msMode === 'none' ? Object.fromEntries(ELEMENTS.filter(e => !e.basis).map(e => [e.id, 'off'])) : {};
   state.el = resolveElements(state.ms, { ...ov, ...state.overrides });
+  const before = resolveElements(evaluateMilestones(state.stats), { ...ov, ...state.overrides }).active;
+  state.newEls = new Set(ELEMENTS.filter(e => state.el.active[e.id] && !before[e.id]).map(e => e.id));
   const byNr = new Map(state.games.map(g => [g.nr, g]));
   const hl = state.curation.highlights.map(h => byNr.get(h.nr)).filter(Boolean);
   state.scarf = buildScarf({
@@ -2271,53 +2168,37 @@ function renderScarf() {
   const model = currentModel();
   const stage = $('#stage');
   const width = Math.max(300, stage.clientWidth);
-  state.lay = drawScarf($('#scarf'), model, { width, segs: state.segs, knit: state.knit, potential: state.potential && state.side === 'front' });
-  drawHover($('#hover'), state.lay, model, state.pinned != null ? state.pinned : null);
-  const info = state.scarf.front.info;
-  const lvl = DENSITY[info.level];
+  const mark = state.potential && state.fut.length ? state.newEls : null;
+  state.lay = drawScarf($('#scarf'), model, { width, segs: state.segs, knit: state.knit, markEls: mark });
+  drawHover($('#hover'), state.lay, model, state.pinned);
   $('#scarfTitle').textContent = `Saison ${seasonLabel(state.season)} · ${state.side === 'front' ? 'Vorderseite' : 'Rückseite'}`;
   const n = state.games.length + state.fut.length;
-  $('#densityChip').textContent = info.level === 'leer' ? 'Noch keine Spiele'
-    : `${lvl.name} · ${rowsRange(info.rpg)} Reihen/Spiel · ${n} Spiele`;
-  $('#densityChip').title = lvl ? lvl.desc : '';
-  const decoded = decodeCodeBand(model);
+  const reached = state.ms.filter(m => m.reached).length;
+  $('#densityChip').textContent = `${n} ${n === 1 ? 'Spiel' : 'Spiele'} · ${reached}/${state.ms.length} Meilensteine`;
+  const decoded = decodeCodeBand(state.scarf.back);
   $('#codeChip').textContent = decoded ? `✓ Strickcode gelesen: ${decoded.code} · Saison ${seasonLabel(decoded.season)}` : 'Strickcode aus';
   $('#codeChip').className = 'chip ' + (decoded ? 'green' : '');
   const activeCount = ELEMENTS.filter(e => state.el.active[e.id]).length;
   $('#elChip').textContent = `${activeCount}/${ELEMENTS.length} Design-Elemente aktiv`;
   renderLegend();
-  if (state.pinned != null) showReader(state.pinned);
+  if (state.pinned) showReader(state.pinned);
   drawLens($('#lens'), model, state.lensX != null ? state.lensX : Math.floor(model.L / 2), state.lensY != null ? state.lensY : 36, state.knit);
 }
 
-function rowsRange(r) {
-  const a = Math.floor(r), b = Math.min(MAX_ROWS_PER_GAME, Math.ceil(r - 1e-9));
-  return a === b ? String(a) : `${a}–${b}`;
-}
+function elementSide(e) { return e.where.startsWith('Rückseite') ? 'back' : 'front'; }
 
 function renderLegend() {
   const a = state.el.active;
-  const items = [];
-  if (state.side === 'front') {
-    if (a.results) items.push(['R', 'Sieg'], ['W', 'Remis'], ['N', 'Niederlage']);
-    if (a.goals) items.push([null, '● links: Bayern-Tore']);
-    if (a.against) items.push([null, '● rechts: Gegentore']);
-    if (a.awaySeam) items.push([a.tour ? 'G' : null, '┆ Kante: auswärts']);
-    if (a.clStars) items.push([null, '✦ Champions League']);
-    if (a.cupTexture) items.push([null, '░ DFB-Pokal']);
-    if (a.streak) items.push(['G', 'längste Serie']);
-    if (state.scarf.front.info.filler > 0) items.push([null, '▭ Grundmuster: hier wächst dein Schal']);
-    if (state.fut.length) items.push([null, '▒ blass: kommende Spiele']);
-  } else {
-    items.push(['N', 'Rückseite: Infos, Statistik, Strickcode']);
-    if (a.legend) items.push(['B', 'Rauten (Allesfahrer)']);
-  }
-  $('#legend').innerHTML = items.map(([c, t]) => `<span>${c ? `<i style="background:${YARN[c].hex}"></i>` : ''}${esc(t)}</span>`).join('');
+  const list = ELEMENTS.filter(e => a[e.id] && elementSide(e) === state.side);
+  const info = state.scarf[state.side].info;
+  let html = `<span class="tiny muted" style="width:100%">Auf der ${state.side === 'front' ? 'Vorderseite' : 'Rückseite'}:</span>` +
+    list.map(e => `<span class="chip ${state.newEls.has(e.id) && state.fut.length ? 'gold' : ''}" title="${esc(e.desc)}">${esc(e.name)}</span>`).join('');
+  if (info.dropped) html += `<span class="chip red">${info.dropped} Feld(er) passen bei ${state.lengthCm} cm nicht auf die Rückseite</span>`;
+  $('#legend').innerHTML = html;
 }
 
-function regionText(reg, cell) {
-  if (!reg) return null;
-  const a = state.el.active;
+function tagText(t) {
+  if (!t) return null;
   const gameHtml = (m, title) => {
     const flags = [];
     if (m.final) flags.push('Finale');
@@ -2327,67 +2208,61 @@ function regionText(reg, cell) {
     if (m.pens) flags.push(`Elfmeterschießen ${m.pens === 'W' ? 'gewonnen' : 'verloren'}`);
     if (m.klassiker) flags.push('Klassiker');
     if (m.weather === 'rain') flags.push('Regen'); if (m.weather === 'snow') flags.push('Schnee');
-    if (state.statsAll.firstVisit.has(m.nr) && m.venue !== 'H') flags.push('erster Besuch in diesem Stadion');
-    return `${title ? `<b>${esc(title)}</b><br>` : ''}<b>Spiel #${m.nr}</b> · ${fmtDateLong(m.date)}<br>${esc(COMP_DE[m.comp])}, ${esc(m.round)} · ${m.venue === 'H' ? 'Allianz Arena' : esc(m.city)}<br>${esc(scoreLong(m))}${flags.length ? '<br><span style="opacity:.8">' + esc(flags.join(' · ')) + '</span>' : ''}`;
+    return `${title ? `<b>${esc(title)}</b><br>` : ''}<b>Spiel #${m.nr}</b> der Saison · ${fmtDateLong(m.date)}<br>${esc(COMP_DE[m.comp])}, ${esc(m.round)} · ${m.venue === 'H' ? 'Allianz Arena' : esc(m.city)}<br>${esc(scoreLong(m))}${flags.length ? '<br><span style="opacity:.8">' + esc(flags.join(' · ')) + '</span>' : ''}`;
   };
-  switch (reg.type) {
-    case 'game': return gameHtml(reg.game);
-    case 'future': return `<b>Kommendes Spiel (simuliert)</b><br>${fmtDateLong(reg.game.date)} · ${esc(COMP_DE[reg.game.comp])}<br>${esc(scoreLong(reg.game))}<br><span style="opacity:.8">Wird nach dem Spiel mit dem echten Ergebnis eingestrickt.</span>`;
+  if (t.el) {
+    const e = ELEMENT_BY_ID[t.el]; if (!e) return null;
+    const m = milestoneForElement(t.el);
+    const st = m && state.ms.find(x => x.id === m.id);
+    const src = m ? `Freigeschaltet durch <b>${esc(m.name)}</b>: ${esc(m.cond)}${st ? ` (${Math.min(st.current, st.target)}/${st.target})` : ''}` : 'Grundausstattung';
+    return `<b>${esc(e.name)}</b><br>${esc(e.desc)}<br><span style="opacity:.8">${src}${st && !st.reached ? ' · noch nicht erreicht, manuell eingeschaltet' : ''}</span>`;
+  }
+  switch (t.type) {
     case 'panel': {
-      const h = state.curation.highlights.find(x => x.nr === reg.game.nr);
-      return `${reg.heart ? '♥ Herzstück · ' : ''}Highlight-Feld<br>` + gameHtml(reg.game, h && h.title);
+      const h = state.curation.highlights.find(x => x.nr === t.game.nr);
+      return `${t.heart ? '♥ Herzstück · ' : ''}Highlight-Feld (KI-Auswahl)<br>` + gameHtml(t.game, h && h.title);
     }
-    case 'filler': return '<b>Grundmuster</b><br>Klassische Blockstreifen. Neue Spiele ersetzen diese Fläche, bis der Schal voll ist.';
-    case 'sep': return `<b>Monatsnaht</b><br>Ab hier: ${{ 1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni', 7: 'Juli', 8: 'August', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember' }[reg.month]}`;
-    case 'crown': return `<b>Saison-Krone ${seasonLabel(reg.season)}</b><br>Alle 17 Bundesliga-Heimspiele dieser Saison besucht.`;
-    case 'season': { const s = reg.s; return `<b>Saison ${seasonLabel(s.season)}</b> (Saison-Verdichtung)<br>${s.games.length} Spiele · ${s.W} S · ${s.D} U · ${s.L} N${s.future ? ` · ${s.future} kommend` : ''}<br><span style="opacity:.8">Rot/Weiß/Nachtblau zeigen die Anteile quer über die Breite.</span>`; }
-    case 'code': return `<b>Strickcode</b> (Ende ${reg.side})<br>${esc(state.profile.code)} und Saison ${seasonLabel(state.season)} als 45 Bit zwischen zwei Prüfmustern. Fotografiert die App dieses Band, findet sie die Geschichte hinter dem Schal.`;
-    case 'element': { const e = ELEMENT_BY_ID[reg.el]; const m = milestoneForElement(reg.el); return `<b>${esc(e.name)}</b><br>${esc(e.desc)}${m ? `<br><span style="opacity:.8">Freigeschaltet durch: ${esc(m.name)} (${esc(m.cond)})</span>` : ''}`; }
-    case 'hem': return '<b>Saum</b>';
-    case 'gap': return null;
-    case 'backBase': return a.legend ? '<b>Rauten-Rückseite</b><br>Allesfahrer: 50 Spiele in einer Saison' : '<b>Rückseite</b><br>Nachtblau mit roten Nadelstreifen';
+    case 'code': return `<b>Strickcode</b> (Ende ${t.side})<br>${esc(state.profile.code)} und Saison ${seasonLabel(state.season)} als 45 Bit zwischen zwei Prüfmustern. Fotografiert die App dieses Band, erkennt sie Fan und Saison.`;
+    case 'backBase': return '<b>Rückseite</b><br>Nachtblau mit roten Nadelstreifen';
     default: return null;
   }
 }
 
-function showReader(x) {
+function showReader(hit) {
   const model = currentModel();
-  const reg = model.regions[x];
-  const txt = regionText(reg);
-  const [a, b] = regionSpan(model, x);
-  $('#reader').innerHTML = `<h4>Schal lesen · Reihe ${a + 1}${b > a ? '–' + (b + 1) : ''} · ${(a / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm</h4>${txt || '<span class="muted">Zierfläche</span>'}`;
+  const txt = tagText(tagAtCell(model, hit.x, hit.y));
+  $('#reader').innerHTML = `<h4>Schal lesen · ${(hit.x / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm ab Ende A</h4>${txt || '<span class="muted">Grundfläche</span>'}`;
 }
 
 function bindScarf() {
   const cv = $('#scarf'), tip = $('#tip');
-  let last = -1;
+  let last = null;
   cv.addEventListener('mousemove', ev => {
     const rect = cv.getBoundingClientRect();
-    const px = ev.clientX - rect.left, py = ev.clientY - rect.top;
     const model = currentModel();
-    const hit = hitTest(state.lay, model, px, py);
-    if (!hit) { tip.style.display = 'none'; if (state.pinned == null) drawHover($('#hover'), state.lay, model, null); last = -1; return; }
+    const hit = hitTest(state.lay, model, ev.clientX - rect.left, ev.clientY - rect.top);
+    if (!hit) { tip.style.display = 'none'; if (!state.pinned) drawHover($('#hover'), state.lay, model, null); last = null; return; }
     state.lensX = hit.x; state.lensY = hit.y;
     drawLens($('#lens'), model, hit.x, hit.y, state.knit);
-    if (regionSpan(model, hit.x)[0] !== last) {
-      last = regionSpan(model, hit.x)[0];
-      if (state.pinned == null) drawHover($('#hover'), state.lay, model, hit.x);
-      const t = regionText(model.regions[hit.x]);
-      if (t) { tip.innerHTML = t; tip.style.display = 'block'; } else tip.style.display = 'none';
+    const t = tagAtCell(model, hit.x, hit.y);
+    if (t !== last) {
+      last = t;
+      if (!state.pinned) drawHover($('#hover'), state.lay, model, hit);
+      const txt = tagText(t);
+      if (txt) { tip.innerHTML = txt; tip.style.display = 'block'; } else tip.style.display = 'none';
     }
     const stage = $('#stage').getBoundingClientRect();
     let tx = ev.clientX - stage.left + 14, ty = ev.clientY - stage.top + 14;
     if (tx + 300 > stage.width) tx = Math.max(0, ev.clientX - stage.left - 310);
     tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
   });
-  cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (state.pinned == null) drawHover($('#hover'), state.lay, currentModel(), null); last = -1; });
+  cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (!state.pinned) drawHover($('#hover'), state.lay, currentModel(), null); last = null; });
   cv.addEventListener('click', ev => {
     const rect = cv.getBoundingClientRect();
     const hit = hitTest(state.lay, currentModel(), ev.clientX - rect.left, ev.clientY - rect.top);
-    if (!hit) { state.pinned = null; drawHover($('#hover'), state.lay, currentModel(), null); return; }
-    state.pinned = hit.x;
-    drawHover($('#hover'), state.lay, currentModel(), hit.x);
-    showReader(hit.x);
+    state.pinned = hit || null;
+    drawHover($('#hover'), state.lay, currentModel(), hit);
+    if (hit) showReader(hit);
   });
 }
 
@@ -2516,7 +2391,7 @@ function renderPotential() {
   const base = evaluateMilestones(state.stats);
   const newly = state.ms.filter(m => m.reached && !base.find(b => b.id === m.id).reached);
   $('#unlocks').innerHTML = state.future
-    ? (newly.length ? `<p style="margin:10px 0 0"><b>Damit schaltest du frei:</b></p><ul class="unlock-list">${newly.map(m => `<li><b>${esc(ELEMENT_BY_ID[m.element].name)}</b> <span class="muted">· ${esc(m.name)}</span></li>`).join('')}</ul>` : '<p class="muted" style="margin:10px 0 0">Mit diesen Spielen kommt noch kein neues Element dazu. Schieb den Regler weiter.</p>')
+    ? (newly.length ? `<p style="margin:10px 0 0"><b>Damit schaltest du frei</b> <span class="muted">(auf dem Schal gelb markiert, wenn „Neue Elemente markieren“ an ist)</span>:</p><ul class="unlock-list">${newly.map(m => `<li><b>${esc(ELEMENT_BY_ID[m.element].name)}</b> <span class="muted">· ${esc(m.name)}</span></li>`).join('')}</ul>` : '<p class="muted" style="margin:10px 0 0">Mit diesen Spielen kommt noch kein neues Element dazu. Schieb den Regler weiter.</p>')
     : '';
   // Teaser wie in App/E-Mail
   const next = base.filter(m => !m.reached).sort((a, b) => b.progress - a.progress || (a.target - a.current) - (b.target - b.current)).slice(0, 3);
@@ -2524,12 +2399,12 @@ function renderPotential() {
   const s = state.stats;
   $('#teaser').innerHTML = `<div class="phone-top">FC Bayern App · Mein Schal</div>
     <h3>${running ? 'Deine Saison bisher' : 'Deine Saison ' + seasonLabel(state.season)}, ${esc(state.name || state.profile.name)}</h3>
-    <div class="small" style="opacity:.85">Saison ${seasonLabel(state.season)} · ${s.total} Streifen · ${reached} von ${base.length} Meilensteinen · ${state.scarf.front.info.filler > 0 ? Math.round(100 * (1 - state.scarf.front.info.filler / state.scarf.front.info.bodyRows)) + ' % gestrickt' : 'voll gestrickt'}</div>
+    <div class="small" style="opacity:.85">Saison ${seasonLabel(state.season)} · ${s.total} Spiele · ${reached} von ${base.length} Meilensteinen · ${ELEMENTS.filter(e => state.el.active[e.id]).length} Design-Elemente</div>
     <canvas id="thumb"></canvas>
     ${next.map(m => `<div class="next"><span>${esc(ELEMENT_BY_ID[m.element].name)}</span><em>noch ${m.target - m.current}</em><span class="tiny" style="opacity:.75;grid-column:1/-1">${esc(m.cond)}</span><div class="bar"><i style="width:${m.progress * 100}%"></i></div></div>`).join('')}
     <div class="row" style="margin-top:12px"><button class="btn red sm" type="button" onclick="document.querySelector('#survey').scrollIntoView({behavior:'smooth'})">Schal vormerken</button><span class="tiny" style="opacity:.7">Unverbindlich, ab 69 €</span></div>`;
   const tw = $('#teaser').clientWidth - 36;
-  if (tw > 50) drawThumb($('#thumb'), state.scarf.front, tw, true);
+  if (tw > 50) drawThumb($('#thumb'), state.scarf.front, tw, state.fut.length ? state.newEls : null);
 }
 
 /* ---------------------------------------------------------------- Umfrage */
@@ -2579,7 +2454,6 @@ function renderGames() {
     if (g.final) f.push('Finale'); if (g.titleClinch) f.push('Meister'); if (g.comeback) f.push('Comeback');
     if (g.lateWinner) f.push('Last Minute'); if (g.pens) f.push('i.E.'); if (g.klassiker) f.push('Klassiker');
     if (g.weather === 'rain') f.push('Regen'); if (g.weather === 'snow') f.push('Schnee');
-    if (g.nr % 50 === 0) f.push(`${g.nr}. Spiel`);
     return `<tr><td>${g.nr}</td><td><button class="star-btn ${hlSet.has(g.nr) ? 'on' : ''}" data-nr="${g.nr}" title="Als Highlight setzen">★</button></td><td>${fmtDate(g.date)}</td><td>${g.seasonLabel}</td><td>${COMP_DE[g.comp]}</td><td>${esc(g.round)}</td><td>${g.venue === 'H' ? 'Heim' : g.venue === 'A' ? esc(g.city) : esc(g.city) + ' (neutral)'}</td><td>${esc(scoreLine(g))}</td><td><span class="res ${g.result}">${{ W: 'S', D: 'U', L: 'N' }[g.result]}</span></td><td class="muted">${f.join(' · ')}</td></tr>`;
   }).join('') || '<tr><td colspan="10" class="muted">Keine Spiele.</td></tr>';
   $$('#gBody .star-btn').forEach(b => b.onclick = () => {
@@ -2596,20 +2470,6 @@ function renderGames() {
 }
 
 /* ---------------------------------------------------------------- Regelwerk */
-function densityTable() {
-  // typischer Aufbau: Saum, 2x Strickcode, Kopfteil, 5 Highlights (inkl. Herzstück), Jubiläums-Medaillon
-  const fixed = 2 + 12 + 58 + 2 * (PANEL_LEN + 2) + 2 * (PANEL_LEN + 2) + (HEART_LEN + 4) + 34 + 12 + 2;
-  const ns = [3, 10, 20, 30, 40, 50, 57];
-  const head = `<tr><th>Spiele</th>${[150, 180, 220].map(l => `<th>${l} cm</th>`).join('')}</tr>`;
-  const body = ns.map(n => `<tr><td><b>${n}</b></td>${[150, 180, 220].map(l => {
-    const rows = l * ROWS_PER_CM - fixed, r = rows / n;
-    const lvl = r >= 3 ? 'Detail' : r >= 2 ? 'Fein' : 'Hauch';
-    const cm = Math.min(MAX_ROWS_PER_GAME, r) / ROWS_PER_CM;
-    return `<td>${lvl} · ${Math.min(MAX_ROWS_PER_GAME, Math.floor(r))} R. · ${cm.toFixed(1).replace('.', ',')} cm</td>`;
-  }).join('')}</tr>`).join('');
-  return `<table>${head}${body}</table><p class="tiny muted">Grundlage: ${fixed} Reihen feste Teile (Saum, Strickcode, Kopfteil, 5 Highlight-Felder, Medaillon). Höchstens ${MAX_ROWS_PER_GAME} Reihen (${(MAX_ROWS_PER_GAME / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm) pro Spiel, den Rest füllt das Grundmuster.</p>`;
-}
-
 function renderRules() {
   const msRows = MILESTONES.map(m => { const e = ELEMENT_BY_ID[m.element]; return `<tr><td>${esc(MILESTONE_CATEGORIES.find(c => c[0] === m.cat)[1])}</td><td><b>${esc(m.name)}</b></td><td>${esc(m.cond)}</td><td><b>${esc(e.name)}</b>: ${esc(e.desc)}</td><td>${esc(e.where)}</td></tr>`; }).join('');
   $('#rules').innerHTML = `
@@ -2621,25 +2481,25 @@ function renderRules() {
   <div class="card"><h3>2 · Maße &amp; Garn</h3>
     <p>${STITCHES} Maschen Breite (18 cm bei 4 Maschen/cm), ${ROWS_PER_CM} Reihen pro cm. Längen 150, 180 und 220 cm, also ${150 * ROWS_PER_CM} / ${180 * ROWS_PER_CM} / ${220 * ROWS_PER_CM} Reihen. Doppeljacquard mit eigener Vorder- und Rückseite, Einzelfertigung auf Bestellung.</p>
     <p><b>5 Garnfarben:</b> ${CI_KEYS.map(k => `<span class="chip" style="background:${YARN[k].hex};color:${k === 'W' || k === 'G' ? '#0E2240' : '#fff'}">${YARN[k].name}</span>`).join(' ')}</p>
-    <p>Gold ist reserviert: Es erscheint nur, wenn ein Gold-Meilenstein erreicht ist, etwa 50 Spiele, ein Finale, eine Meisterschaft oder eine Serie. Ein Neumitglied strickt deshalb mit 3–4 Farben.</p></div>
-  <div class="card"><h3>3 · Aufbau der Vorderseite</h3>
-    <div class="flow"><span>Saum</span><span class="k">Strickcode</span><span>Auswärts-Rauten*</span><span>Kopfteil „SAISON“</span><span class="h">Highlight 2–3</span><span>Spiele …</span><span class="h">♥ Herzstück</span><span>… Spiele</span><span>Grundmuster</span><span class="h">Highlight 4–5</span><span>Schale* · Medaillon*</span><span>Auswärts-Rauten*</span><span class="k">Strickcode</span><span>Saum</span></div>
-    <p>Die Spiele der Saison laufen chronologisch von Ende A (August) nach Ende B (Mai), mit Monatsnähten dazwischen. Das Herzstück, also Geminis wichtigstes Spiel, sitzt an der Spielgrenze, die der Schalmitte am nächsten ist. Die übrigen Highlights stehen chronologisch an den Enden. * nur mit Meilenstein</p>
-    <p><b>Spuren quer über die Breite:</b> Kante (Masche 0 und 71), Auswärtsnaht (2 und 69), Sterne und Schnee (4–6, 64–66), Serien-Band (7–8), Bayern-Tore (bis 33), Mittelnaht (34–37), Gegentore (ab 38), Klassiker-× (53–55), Comeback/Herz (57–59), Groundhopper-Pin (62–63).</p></div>
-  <div class="card"><h3>4 · Dichte: wenige oder sehr viele Spiele</h3>
-    <p>Eine Saison hat höchstens etwa 57 Spiele (34 Bundesliga, bis zu 6 Pokal, bis zu 17 Champions League, Supercup). Die Länge ist fest, also teilen sich die Spiele die verfügbaren Reihen. Wer wenige Spiele hat, bekommt breite Streifen (höchstens ${(MAX_ROWS_PER_GAME / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm), der Rest ist klassisches Grundmuster. Läuft die Saison noch, füllen neue Spiele diese Fläche.</p>
-    <ul class="small">${Object.values(DENSITY).map(d => `<li><b>${d.name}:</b> ${esc(d.desc)}</li>`).join('')}</ul>
-    ${densityTable()}</div>
+    <p>Gold ist reserviert: Es kommt erst mit einem Gold-Meilenstein in den Schal (${GOLD_ELEMENTS.map(id => esc(ELEMENT_BY_ID[id].name)).join(', ')}). Ein Neumitglied strickt deshalb mit 1–3 Farben.</p></div>
+  <div class="card"><h3>3 · Vorderseite: Ebenen statt Streifen pro Spiel</h3>
+    <p>Die Vorderseite zeigt nicht jedes einzelne Spiel, sondern was der Fan in der Saison erreicht hat. Sie startet <b>einfarbig in Vereinsrot</b> mit weißen Fransen. Jeder Meilenstein legt eine Ebene darüber, bis ein vollständiger Jacquard-Schal entsteht.</p>
+    <div class="flow"><span>Fransen</span><span>Auswärts-Rauten</span><span>Endstreifen</span><span class="h">Endfeld: Sterne · Saison · Pokal · Krone · Stadion-Punkte</span><span>Endstreifen</span><span>Sternenband + Flutlicht</span><span>Musterbänder …</span><span class="k">Mitte: Rauten-Feld + Medaillon (Schale, Pokal, Spielzahl)</span><span>… Musterbänder</span><span>(gespiegelt bis Ende B)</span></div>
+    <p><b>Treue</b> baut die Grundstruktur (Schriftzug, Endstreifen, Blockstreifen, Rand, Gold, Medaillon, Rauten). <b>Wettbewerbe</b> setzen Symbole. <b>Auswärts</b> verändert Enden und Kanten. <b>Momente</b> füllen die Streifenbänder mit Mustern. Mehrere Muster wechseln sich ab, immer symmetrisch zu beiden Enden. <b>Saison komplett</b> veredelt Schriftzug und Rückseite.</p>
+    <p class="small muted">Feste Lage der Ebenen ab jedem Ende: Rauten Reihe ${FRONT.rauten.join('–')}, Endstreifen ${FRONT.stripeA.join('–')} und ${FRONT.stripeB.join('–')}, Endfeld ${FRONT.zone.join('–')}, Sternenband ${FRONT.starBand.join('–')}, Musterbänder ab Reihe ${FRONT.bodyStart} (je ${FRONT.bandLen} Reihen, Abstand ${FRONT.bandPeriod}). Längere Schals bekommen mehr Musterbänder.</p></div>
+  <div class="card"><h3>4 · Rückseite: die Geschichte der Saison</h3>
+    <p>Die Rückseite ist nachtblau mit roten Nadelstreifen. In der Mitte sitzen die <b>5 Highlight-Felder</b> der KI, das Herzstück genau in der Schalmitte. Links stehen Fan-Etikett, Kilometer und Länder, rechts Kalender, Gegner-Sammlung und das Allesfahrer-Feld. An beiden Enden sitzt der <b>Strickcode</b>.</p>
+    <p class="small muted">Was nicht auf die Länge passt, wird weggelassen und in der App angezeigt. Bei 180 und 220 cm passt alles.</p></div>
   <div class="card" style="grid-column:1/-1"><h3>5 · Meilensteine → Design-Elemente (${MILESTONES.length})</h3>
     <div class="table-wrap" style="max-height:none"><table><thead><tr><th>Kategorie</th><th>Meilenstein</th><th>Bedingung</th><th>Schaltet frei</th><th>Wo</th></tr></thead><tbody>${msRows}</tbody></table></div>
     <p class="small muted">Dazu kommt die Grundausstattung jedes Schals: ${ELEMENTS.filter(e => e.basis).map(e => esc(e.name)).join(', ')}.</p></div>
   <div class="card"><h3>6 · Die Rolle der KI</h3>
-    <p><b>Gemini macht:</b> alle Spiele der Saison lesen und einordnen, wie die Saison für den Fan war, bis zu 5 Highlights vorschlagen (das erste wird das Herzstück), jede Wahl begründen und die Fan-Geschichte erzählen. Später kommt dazu: alte Tickets und Fotos den Spielen zuordnen und einen fotografierten Schalstreifen wieder dem Spiel zuordnen.</p>
+    <p><b>Gemini macht:</b> alle Spiele der Saison lesen und einordnen, wie die Saison für den Fan war, bis zu 5 Highlights vorschlagen (das erste wird das Herzstück), jede Wahl begründen und die Fan-Geschichte erzählen. Später kommt dazu: alte Tickets und Fotos den Spielen zuordnen und einen fotografierten Schal über den Strickcode wieder dem Fan zuordnen.</p>
     <p><b>Gemini macht nicht:</b> Ergebnisse, Daten oder Muster erzeugen. Jede Spielnummer wird geprüft, erfundene Nummern werden verworfen. Das Muster ist deterministisch: gleicher Code, gleicher Schal.</p>
     <p><b>Der Fan entscheidet:</b> Jedes Highlight lässt sich tauschen oder entfernen, und jedes Spiel kann zum Herzstück werden.</p></div>
   <div class="card"><h3>7 · Datenquellen im echten Betrieb</h3>
     <p>Besuchte Spiele aus Ticketing, App-Tickets und Dauerkarte, ältere per Ticketfoto. Ergebnisse und Spielverlauf, also Comebacks und späte Tore, aus offiziellen Spieldaten. Wetter aus historischen Wetterdaten. Gegnerwappen nur mit Lizenz, bis dahin neutrale Schilde.</p>
-    <p class="small muted">Im Prototyp sind alle Daten synthetisch, aber für alle Fans gleich. Zwei Fans beim selben Spiel haben deshalb denselben Streifen.</p></div>`;
+    <p class="small muted">Im Prototyp sind alle Daten synthetisch, aber für alle Fans gleich. Zwei Fans mit denselben Spielen bekommen deshalb dasselbe Muster.</p></div>`;
 }
 
 /* ---------------------------------------------------------------- Helfer */
@@ -2695,6 +2555,12 @@ function init() {
   } catch (e) { /* */ }
   loadFan(start);
   if (startSeason && state.seasons.some(([y]) => y === startSeason)) selectSeason(startSeason);
+  window.addEventListener('hashchange', () => {
+    const [h, y] = decodeURIComponent(location.hash.slice(1)).split('/');
+    if (!h || !parseCode(h).ok) return;
+    if (!state.profile || parseCode(h).code !== state.profile.code) loadFan(h);
+    if (Number(y) && Number(y) !== state.season && state.seasons.some(([s2]) => s2 === Number(y))) selectSeason(Number(y));
+  });
 }
 document.addEventListener('DOMContentLoaded', init);
 </script>

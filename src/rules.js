@@ -52,53 +52,54 @@ function computeStats(games) {
 }
 
 /* ---- Design-Elemente ----------------------------------------------------
-   basis: true  → immer freigeschaltet (Grundausstattung jedes Saisonschals)
-   Jedes andere Element wird durch genau einen Meilenstein freigeschaltet.  */
+   Der Schal startet einfarbig in Vereinsrot. Jeder Meilenstein legt eine
+   Design-Ebene darüber: Streifen, Symbole, Musterbänder, Rauten, Gold.
+   basis: true → immer da.  layer: wo das Element auf dem Schal sitzt.        */
 const ELEMENTS = [
   // Basis
-  { id: 'results',  name: 'Ergebnis-Streifen', basis: true, where: 'Vorderseite', desc: 'Jedes Spiel der Saison ist ein Streifen: Sieg Vereinsrot, Remis Weiß, Niederlage Nachtblau.' },
-  { id: 'goals',    name: 'Tor-Punkte', basis: true, where: 'Vorderseite', desc: 'Jedes Bayern-Tor ein Punkt links der Mittelnaht.' },
-  { id: 'against',  name: 'Gegentor-Punkte', basis: true, where: 'Vorderseite', desc: 'Jedes Gegentor ein Punkt rechts der Mittelnaht.' },
-  { id: 'highlights', name: 'Highlight-Felder', basis: true, where: 'Vorderseite', desc: 'Bis zu 5 von der KI vorgeschlagene Spiele der Saison als große Felder mit Ergebnis, Gegner und Datum. Das wichtigste sitzt als „Herzstück“ in der Mitte.' },
-  { id: 'code',     name: 'Strickcode', basis: true, where: 'Beide Enden', desc: 'Fan-Code und Saison als 45-Bit-Muster. Die App liest den Schal damit wieder aus.' },
-  { id: 'backInfo', name: 'Fan-Rückseite', basis: true, where: 'Rückseite', desc: 'Name, Saison, Saisonbilanz und Fan-Code im Klartext.' },
-  // Treue
-  { id: 'head',       name: 'Kopfteil „SAISON“', where: 'Vorderseite, Ende A', desc: 'Rondell und die Saison in großen Ziffern.' },
-  { id: 'fringeRed',  name: 'Rote Fransen', where: 'Fransen', desc: 'Die Fransen wechseln von Weiß zu Vereinsrot.' },
-  { id: 'seasonLines', name: 'Monatsnähte', where: 'Vorderseite', desc: 'Eine Naht zwischen den Monaten, damit man den Saisonverlauf abzählen kann.' },
-  { id: 'border',     name: 'Kurvenrand', where: 'Ganzer Schal', desc: 'Weiße Kante entlang beider Längsseiten.' },
-  { id: 'goldFringe', name: 'Goldene Fransen & Zehnernaht', where: 'Fransen, Vorderseite', desc: 'Goldgarn kommt dazu: goldene Fransen, und jedes 10. Spiel der Saison bekommt eine Goldnaht.' },
-  { id: 'centurion',  name: 'Saison-Medaillon', where: 'Vorderseite, Ende B', desc: 'Goldener Ring mit deiner Spielzahl der Saison.' },
-  { id: 'legend',     name: 'Allesfahrer', where: 'Rückseite', desc: 'Die ganze Rückseite in Rauten, dazu der Schriftzug „ALLESFAHRER“.' },
-  // Wettbewerbe
-  { id: 'cupTexture', name: 'Pokal-Raster', where: 'Vorderseite', desc: 'Pokalspiele bekommen eine Rasterstruktur.' },
-  { id: 'clStars',    name: 'Henkelpott-Sterne', where: 'Vorderseite', desc: 'Champions-League-Spiele bekommen eine Sternenreihe.' },
-  { id: 'floodlight', name: 'Flutlicht-Linie', where: 'Vorderseite', desc: 'Jeder Europapokal-Abend beginnt mit einer Goldlinie.' },
-  { id: 'compBand',   name: 'Wettbewerbs-Krone', where: 'Kopfteil', desc: 'Vier Sterne im Kopfteil, einer pro Wettbewerb.' },
-  { id: 'cup',        name: 'Pokal-Motiv', where: 'Highlight-Feld, Vorderseite', desc: 'Finalspiele bekommen goldene Kanten und im Highlight-Feld einen Pokal.' },
-  { id: 'plate',      name: 'Meisterschale', where: 'Ende B, Vorderseite', desc: 'Eine Schale im Endteil, und das Spiel der Titelentscheidung bekommt eine Goldmitte.' },
-  // Auswärts
-  { id: 'awaySeam',   name: 'Auswärtsnaht', where: 'Vorderseite', desc: 'Auswärtsspiele bekommen eine gestrichelte Naht an beiden Kanten.' },
-  { id: 'km',         name: 'Kilometer-Zähler', where: 'Rückseite', desc: 'Deine Reisekilometer in dieser Saison, hin und zurück.' },
-  { id: 'awayDiamond', name: 'Auswärts-Rauten', where: 'Beide Enden', desc: 'Ein Rautenband an beiden Schalenden.' },
-  { id: 'countries',  name: 'Länderband', where: 'Rückseite', desc: 'Die Kürzel aller Länder, in denen du in dieser Saison auswärts warst.' },
-  { id: 'ground',     name: 'Groundhopper-Pins', where: 'Vorderseite', desc: 'Jeder erste Besuch in einem Stadion in dieser Saison bekommt einen Pin.' },
-  { id: 'tour',       name: 'Komplett-Tour', where: 'Vorderseite', desc: 'Die Auswärtsnaht wird golden.' },
-  // Serien & Momente
-  { id: 'streak',     name: 'Serien-Band', where: 'Vorderseite', desc: 'Ein Goldband über deine längste Serie ohne Niederlage.' },
-  { id: 'fest',       name: 'Torfestival-Funken', where: 'Vorderseite', desc: 'Bei Spielen mit 5 oder mehr Bayern-Toren werden die Tor-Punkte golden.' },
-  { id: 'klassiker',  name: 'Klassiker-Kreuz', where: 'Vorderseite', desc: 'Spiele gegen Dortmund bekommen ein ×.' },
-  { id: 'comeback',   name: 'Comeback-Pfeil', where: 'Vorderseite', desc: 'Siege nach Rückstand bekommen einen Pfeil nach oben.' },
-  { id: 'late',       name: 'Herzschlag-Stich', where: 'Vorderseite', desc: 'Siege in letzter Minute bekommen ein kleines Herz.' },
-  { id: 'weather',    name: 'Wetter-Textur', where: 'Vorderseite', desc: 'Regenspiele bekommen schräge Schraffur, Schneespiele Flocken.' },
-  { id: 'loyal',      name: 'Trotzdem-da-Linie', where: 'Vorderseite', desc: 'Niederlagen bekommen eine weiße Mittellinie: Du warst trotzdem da.' },
+  { id: 'base', name: 'Vereinsrot', basis: true, where: 'Vorderseite', desc: 'Jeder Saisonschal beginnt einfarbig rot mit weißen Fransen. Alles andere kommt über Meilensteine dazu.' },
+  { id: 'highlights', name: 'Highlight-Felder', basis: true, where: 'Rückseite', desc: 'Bis zu 5 von der KI ausgewählte Spiele der Saison als Felder mit Ergebnis, Gegner und Datum. Das wichtigste sitzt als „Herzstück“ in der Mitte.' },
+  { id: 'backInfo', name: 'Fan-Etikett', basis: true, where: 'Rückseite', desc: 'Name, Saison, Saisonbilanz und Fan-Code im Klartext.' },
+  { id: 'code', name: 'Strickcode', basis: true, where: 'Rückseite, beide Enden', desc: 'Fan-Code und Saison als 45-Bit-Muster. Die App erkennt den Schal daran wieder.' },
+  // Treue: Grundstruktur
+  { id: 'season', name: 'Saison-Schriftzug', where: 'Vorderseite, beide Enden', desc: 'Die Saison in großen weißen Ziffern an beiden Enden.' },
+  { id: 'endStripes', name: 'Endstreifen', where: 'Vorderseite, beide Enden', desc: 'Zwei weiße Querstreifen rahmen die Enden ein, die Fransen werden rot-weiß.' },
+  { id: 'blocks', name: 'Blockstreifen', where: 'Vorderseite, Mittelteil', desc: 'Breite weiße Querstreifen im klassischen Rot-Weiß-Rhythmus.' },
+  { id: 'border', name: 'Kurvenrand', where: 'Vorderseite, Längskanten', desc: 'Eine weiße Kante entlang beider Längsseiten.' },
+  { id: 'gold', name: 'Goldgarn', where: 'Vorderseite, Fransen', desc: 'Goldene Nadelstreifen neben jedem Streifenband und goldene Fransen.' },
+  { id: 'medal', name: 'Saison-Medaillon', where: 'Vorderseite, Mitte', desc: 'Ein Medaillon in der Schalmitte mit deiner Spielzahl der Saison.' },
+  { id: 'rautenField', name: 'Rauten-Mittelfeld', where: 'Vorderseite, Mitte', desc: 'Die Schalmitte wird blau-weiß gerautet, das höchste Treue-Abzeichen.' },
+  // Wettbewerbe: Symbole
+  { id: 'cupIcon', name: 'Pokal-Symbol', where: 'Vorderseite, beide Enden', desc: 'Ein kleiner Pokal unter dem Saison-Schriftzug.' },
+  { id: 'starBand', name: 'Sternenband', where: 'Vorderseite, beide Enden', desc: 'Ein nachtblaues Band mit weißen Sternen für die Europapokal-Nächte.' },
+  { id: 'floodlight', name: 'Flutlicht', where: 'Vorderseite, beide Enden', desc: 'Goldene Linien rahmen das Sternenband ein.' },
+  { id: 'fourStars', name: 'Vier Sterne', where: 'Vorderseite, beide Enden', desc: 'Vier goldene Sterne über dem Saison-Schriftzug, einer pro Wettbewerb.' },
+  { id: 'cup', name: 'Pokal im Medaillon', where: 'Vorderseite, Mitte', desc: 'Ein goldener Pokal in der Schalmitte.' },
+  { id: 'plate', name: 'Meisterschale', where: 'Vorderseite, Mitte', desc: 'Die Meisterschale in der Schalmitte.' },
+  // Auswärts: Kanten & Enden
+  { id: 'awaySeam', name: 'Auswärtsnaht', where: 'Vorderseite, Längskanten', desc: 'Eine gestrichelte Naht entlang beider Längsseiten.' },
+  { id: 'km', name: 'Kilometer-Zähler', where: 'Rückseite', desc: 'Deine Reisekilometer der Saison, hin und zurück.' },
+  { id: 'awayRauten', name: 'Auswärts-Rauten', where: 'Vorderseite, beide Enden', desc: 'Ein blau-weißes Rautenband direkt an den Fransen.' },
+  { id: 'countries', name: 'Länderband', where: 'Rückseite', desc: 'Die Kürzel aller Länder, in denen du auswärts warst.' },
+  { id: 'stadiumDots', name: 'Stadion-Punkte', where: 'Vorderseite, beide Enden', desc: 'Eine Punktreihe an den Enden: ein Punkt pro besuchtem Stadion.' },
+  { id: 'tour', name: 'Goldene Naht', where: 'Vorderseite, Längskanten', desc: 'Die Auswärtsnaht wird golden.' },
+  // Momente: Muster in den Streifenbändern
+  { id: 'mZigzag', name: 'Muster: Zickzack', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Eine durchgehende Zickzacklinie, ungeschlagen von oben bis unten.' },
+  { id: 'mSparks', name: 'Muster: Funken', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Funkelnde Sterne, golden sobald Goldgarn im Schal ist.' },
+  { id: 'mCross', name: 'Muster: Klassiker-Kreuze', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Eine Kette aus nachtblauen ×.' },
+  { id: 'mArrows', name: 'Muster: Pfeile', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Pfeile nach oben, für das Spiel, das gedreht wurde.' },
+  { id: 'mHearts', name: 'Muster: Herzen', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Rote Herzen, für das Tor in letzter Minute.' },
+  { id: 'mRain', name: 'Muster: Regen', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Blaue Regenschraffur.' },
+  { id: 'mDiamonds', name: 'Muster: Rautenkette', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Eine Kette aus nachtblauen Rauten: Du warst auch in schweren Spielen da.' },
   // Saison komplett
-  { id: 'rings',      name: 'Saison-Kalender', where: 'Rückseite', desc: 'Ein Balken pro Monat von August bis Mai.' },
-  { id: 'decade',     name: 'Ganzjahres-Siegel', where: 'Kopfteil', desc: 'Die Saison im Kopfteil wird golden, dazu „AUG–MAI“.' },
-  { id: 'crown',      name: 'Saison-Krone', where: 'Vorderseite', desc: 'Die Spiele beginnen mit einer goldenen Krone.' },
+  { id: 'calendar', name: 'Saison-Kalender', where: 'Rückseite', desc: 'Ein Balken pro Monat von August bis Mai.' },
+  { id: 'monthSeal', name: 'Goldener Schriftzug', where: 'Vorderseite, beide Enden', desc: 'Der Saison-Schriftzug wird golden, darunter steht „AUG–MAI“.' },
+  { id: 'crown', name: 'Krone', where: 'Vorderseite, beide Enden', desc: 'Eine goldene Krone an beiden Enden.' },
   { id: 'collection', name: 'Gegner-Sammlung', where: 'Rückseite', desc: '17 Felder, eines pro Bundesliga-Gegner der Saison. Jeder gesehene Gegner füllt ein Feld.' },
 ];
 const ELEMENT_BY_ID = Object.fromEntries(ELEMENTS.map(e => [e.id, e]));
+const MOTIF_ORDER = ['mHearts', 'mCross', 'mSparks', 'mArrows', 'mDiamonds', 'mRain', 'mZigzag'];
+const GOLD_ELEMENTS = ['gold', 'floodlight', 'fourStars', 'cup', 'plate', 'tour', 'monthSeal', 'crown'];
 
 /* ---- Meilensteine (alle pro Saison) ----------------------------------- */
 const MILESTONE_CATEGORIES = [
@@ -111,38 +112,38 @@ const MILESTONE_CATEGORIES = [
 
 const MILESTONES = [
   // Treue
-  { id: 'first', cat: 'treue', name: 'Saisonstart', cond: '1 Spiel in der Saison', target: 1, value: s => s.total, element: 'head' },
-  { id: 'g5', cat: 'treue', name: 'Wiederholungstäter', cond: '5 Spiele in der Saison', target: 5, value: s => s.total, element: 'fringeRed' },
-  { id: 'g10', cat: 'treue', name: 'Zweistellig', cond: '10 Spiele in der Saison', target: 10, value: s => s.total, element: 'seasonLines' },
+  { id: 'first', cat: 'treue', name: 'Saisonstart', cond: '1 Spiel in der Saison', target: 1, value: s => s.total, element: 'season' },
+  { id: 'g5', cat: 'treue', name: 'Wiederholungstäter', cond: '5 Spiele in der Saison', target: 5, value: s => s.total, element: 'endStripes' },
+  { id: 'g10', cat: 'treue', name: 'Zweistellig', cond: '10 Spiele in der Saison', target: 10, value: s => s.total, element: 'blocks' },
   { id: 'g20', cat: 'treue', name: 'Kurvengesicht', cond: '20 Spiele in der Saison', target: 20, value: s => s.total, element: 'border' },
-  { id: 'g30', cat: 'treue', name: 'Goldenes Garn', cond: '30 Spiele in der Saison', target: 30, value: s => s.total, element: 'goldFringe' },
-  { id: 'g40', cat: 'treue', name: 'Vierziger', cond: '40 Spiele in der Saison', target: 40, value: s => s.total, element: 'centurion' },
-  { id: 'g50', cat: 'treue', name: 'Allesfahrer', cond: '50 Spiele in der Saison', target: 50, value: s => s.total, element: 'legend' },
+  { id: 'g30', cat: 'treue', name: 'Goldenes Garn', cond: '30 Spiele in der Saison', target: 30, value: s => s.total, element: 'gold' },
+  { id: 'g40', cat: 'treue', name: 'Vierziger', cond: '40 Spiele in der Saison', target: 40, value: s => s.total, element: 'medal' },
+  { id: 'g50', cat: 'treue', name: 'Allesfahrer', cond: '50 Spiele in der Saison', target: 50, value: s => s.total, element: 'rautenField' },
   // Wettbewerbe
-  { id: 'dfb1', cat: 'wettbewerbe', name: 'Pokalnacht', cond: '1 DFB-Pokalspiel', target: 1, value: s => s.byComp.DFB, element: 'cupTexture' },
-  { id: 'cl1', cat: 'wettbewerbe', name: 'Hymne live', cond: '1 Champions-League-Spiel', target: 1, value: s => s.byComp.CL, element: 'clStars' },
+  { id: 'dfb1', cat: 'wettbewerbe', name: 'Pokalnacht', cond: '1 DFB-Pokalspiel', target: 1, value: s => s.byComp.DFB, element: 'cupIcon' },
+  { id: 'cl1', cat: 'wettbewerbe', name: 'Hymne live', cond: '1 Champions-League-Spiel', target: 1, value: s => s.byComp.CL, element: 'starBand' },
   { id: 'cl5', cat: 'wettbewerbe', name: 'Europapokal-Abende', cond: '5 Champions-League-Spiele', target: 5, value: s => s.byComp.CL, element: 'floodlight' },
-  { id: 'comp4', cat: 'wettbewerbe', name: 'Grand Slam', cond: 'In allen 4 Wettbewerben (BL, Pokal, CL, Supercup)', target: 4, value: s => Object.values(s.byComp).filter(n => n > 0).length, element: 'compBand' },
+  { id: 'comp4', cat: 'wettbewerbe', name: 'Grand Slam', cond: 'In allen 4 Wettbewerben (BL, Pokal, CL, Supercup)', target: 4, value: s => Object.values(s.byComp).filter(n => n > 0).length, element: 'fourStars' },
   { id: 'final', cat: 'wettbewerbe', name: 'Endspiel', cond: '1 Finale live', target: 1, value: s => s.finals, element: 'cup' },
   { id: 'title', cat: 'wettbewerbe', name: 'Meister-Moment', cond: 'Beim Spiel der Titelentscheidung dabei', target: 1, value: s => s.titles, element: 'plate' },
   // Auswärts
   { id: 'a1', cat: 'auswaerts', name: 'Erste Auswärtsfahrt', cond: '1 Auswärtsspiel', target: 1, value: s => s.away, element: 'awaySeam' },
   { id: 'a5', cat: 'auswaerts', name: 'Vielfahrer', cond: '5 Auswärtsspiele', target: 5, value: s => s.away, element: 'km' },
-  { id: 'a10', cat: 'auswaerts', name: 'Auswärtsfahrer', cond: '10 Auswärtsspiele', target: 10, value: s => s.away, element: 'awayDiamond' },
+  { id: 'a10', cat: 'auswaerts', name: 'Auswärtsfahrer', cond: '10 Auswärtsspiele', target: 10, value: s => s.away, element: 'awayRauten' },
   { id: 'countries2', cat: 'auswaerts', name: 'Länderpunkte', cond: 'Auswärts in 2 Ländern außerhalb Deutschlands', target: 2, value: s => s.awayCountries.size, element: 'countries' },
-  { id: 'stadiums8', cat: 'auswaerts', name: 'Groundhopper', cond: '8 verschiedene Stadien', target: 8, value: s => s.stadiums.size, element: 'ground' },
+  { id: 'stadiums8', cat: 'auswaerts', name: 'Groundhopper', cond: '8 verschiedene Stadien', target: 8, value: s => s.stadiums.size, element: 'stadiumDots' },
   { id: 'tour17', cat: 'auswaerts', name: 'Komplett-Tour', cond: 'Alle 17 Bundesliga-Auswärtsspiele', target: 17, value: s => s.awayBLOpp.size, element: 'tour' },
   // Momente
-  { id: 'streak10', cat: 'momente', name: 'Ungeschlagen', cond: '10 Spiele in Folge ohne Niederlage', target: 10, value: s => s.longestUnbeaten.len, element: 'streak' },
-  { id: 'fest', cat: 'momente', name: 'Torfestival', cond: '1 Spiel mit 5+ Bayern-Toren', target: 1, value: s => s.fest, element: 'fest' },
-  { id: 'klassiker2', cat: 'momente', name: 'Beide Klassiker', cond: '2 Spiele gegen Dortmund', target: 2, value: s => s.klassiker, element: 'klassiker' },
-  { id: 'comeback', cat: 'momente', name: 'Nie aufgeben', cond: '1 Comeback-Sieg nach Rückstand', target: 1, value: s => s.comebacks, element: 'comeback' },
-  { id: 'late', cat: 'momente', name: 'Herzschlagfinale', cond: '1 Siegtor in letzter Minute', target: 1, value: s => s.late, element: 'late' },
-  { id: 'rain3', cat: 'momente', name: 'Allwetterfan', cond: '3 Regenspiele', target: 3, value: s => s.rain, element: 'weather' },
-  { id: 'loss3', cat: 'momente', name: 'Trotzdem da', cond: '3 Niederlagen miterlebt', target: 3, value: s => s.L, element: 'loyal' },
+  { id: 'streak10', cat: 'momente', name: 'Ungeschlagen', cond: '10 Spiele in Folge ohne Niederlage', target: 10, value: s => s.longestUnbeaten.len, element: 'mZigzag' },
+  { id: 'fest', cat: 'momente', name: 'Torfestival', cond: '1 Spiel mit 5+ Bayern-Toren', target: 1, value: s => s.fest, element: 'mSparks' },
+  { id: 'klassiker2', cat: 'momente', name: 'Beide Klassiker', cond: '2 Spiele gegen Dortmund', target: 2, value: s => s.klassiker, element: 'mCross' },
+  { id: 'comeback', cat: 'momente', name: 'Nie aufgeben', cond: '1 Comeback-Sieg nach Rückstand', target: 1, value: s => s.comebacks, element: 'mArrows' },
+  { id: 'late', cat: 'momente', name: 'Herzschlagfinale', cond: '1 Siegtor in letzter Minute', target: 1, value: s => s.late, element: 'mHearts' },
+  { id: 'rain3', cat: 'momente', name: 'Allwetterfan', cond: '3 Regenspiele', target: 3, value: s => s.rain, element: 'mRain' },
+  { id: 'loss3', cat: 'momente', name: 'Trotzdem da', cond: '3 Niederlagen miterlebt', target: 3, value: s => s.L, element: 'mDiamonds' },
   // Saison komplett
-  { id: 'months6', cat: 'sammlung', name: 'Halbes Jahr', cond: 'Spiele in 6 verschiedenen Monaten', target: 6, value: s => s.monthCount, element: 'rings' },
-  { id: 'months10', cat: 'sammlung', name: 'Ganzjahresfan', cond: 'In jedem Monat von August bis Mai im Stadion', target: 10, value: s => s.monthCount, element: 'decade' },
+  { id: 'months6', cat: 'sammlung', name: 'Halbes Jahr', cond: 'Spiele in 6 verschiedenen Monaten', target: 6, value: s => s.monthCount, element: 'calendar' },
+  { id: 'months10', cat: 'sammlung', name: 'Ganzjahresfan', cond: 'In jedem Monat von August bis Mai im Stadion', target: 10, value: s => s.monthCount, element: 'monthSeal' },
   { id: 'fullSeason', cat: 'sammlung', name: 'Dauerbrenner', cond: 'Alle 17 Bundesliga-Heimspiele', target: 17, value: s => s.homeBL, element: 'crown' },
   { id: 'allOpp', cat: 'sammlung', name: 'Gegner-Sammler', cond: 'Alle 17 Bundesliga-Gegner gesehen (heim oder auswärts)', target: 17, value: s => s.blOpp.size, element: 'collection' },
 ];
@@ -168,9 +169,3 @@ function resolveElements(milestoneStates, overrides) {
 }
 function milestoneForElement(id) { return MILESTONES.find(m => m.element === id); }
 
-// Dichte-Stufen: wie viele Strickreihen bekommt ein Spiel?
-const DENSITY = {
-  detail: { name: 'Detail', min: 3, desc: 'Ab 3 Reihen pro Spiel: alle Details inklusive Tor-Punkten und Motiven. Eine volle Saison (bis ca. 57 Spiele) passt bei 150 cm immer in diese Stufe.' },
-  fein: { name: 'Fein', min: 2, desc: '2 Reihen pro Spiel: Ergebnisfarbe, Tor-Punkte und Kantenmarken, aber keine Motive.' },
-  hauch: { name: 'Hauch', min: 1, desc: '1 Reihe pro Spiel: nur Ergebnisfarbe und Kantenmarken. Nur bei sehr kurzen Sonderlängen.' },
-};
