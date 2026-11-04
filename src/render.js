@@ -175,7 +175,7 @@ function overlayText(ctx, o, ox, oy, k, color, opts = {}) {
   const sx = Math.min(1, (o.maxW * k) / Math.max(1, m.width));
   o.w = m.width * sx / k;
   ctx.save();
-  ctx.translate(ox + o.u * k, oy + o.v * k); ctx.scale(sx, 1);
+  ctx.translate(ox + o.u * k, oy + o.v * k); if (o.rot) ctx.rotate(o.rot); ctx.scale(sx, 1);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   const asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent, by = (asc - desc) / 2;
   if (opts.flat) { ctx.fillStyle = color; ctx.fillText(o.text, 0, by); ctx.restore(); return; }
@@ -238,19 +238,46 @@ function drawPatchReal(ctx, o, ox, oy, k) {
 
 function overlayBox(o) {
   if (o.kind === 'patch') return [o.u0, o.u1, o.v0, o.v1];
+  if (o.kind === 'badge') return [o.u - o.r, o.u + o.r, o.v - o.r, o.v + o.r];
   const w = o.w != null ? o.w : Math.min(o.maxW, o.text.length * o.h * 0.55);
+  if (o.rot) return [o.u - o.h / 2 - 0.2, o.u + o.h / 2 + 0.2, o.v - w / 2 - 0.15, o.v + w / 2 + 0.15];
   return [o.u - w / 2 - 0.15, o.u + w / 2 + 0.15, o.v - o.h / 2 - 0.2, o.v + o.h / 2 + 0.2];
+}
+
+// Rundes Abzeichen (Momente)
+function drawBadgeReal(ctx, o, ox, oy, k) {
+  const x = ox + o.u * k, y = oy + o.v * k, R = o.r * k;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(2, k * 0.3); ctx.shadowOffsetY = Math.max(1, k * 0.12);
+  ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fillStyle = '#F6F1E6'; ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.beginPath(); ctx.arc(x, y, R - k * 0.15, 0, 7); ctx.strokeStyle = '#C8102E'; ctx.lineWidth = Math.max(1, k * 0.3); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, R - k * 0.55, 0, 7); ctx.setLineDash([k * 0.22, k * 0.15]); ctx.strokeStyle = '#0E2240'; ctx.lineWidth = Math.max(0.5, k * 0.06); ctx.stroke(); ctx.setLineDash([]);
+  ctx.save(); ctx.translate(ox, oy); ctx.scale(k, k); ctx.fillStyle = ctx.strokeStyle = '#0E2240'; ctx.beginPath();
+  const u = o.u, v = o.v - 0.45;
+  switch (o.icon) {
+    case 'zigzag': ctx.lineWidth = 0.28; ctx.lineJoin = 'round'; ctx.moveTo(u - 1.2, v + 0.5); ctx.lineTo(u - 0.6, v - 0.5); ctx.lineTo(u, v + 0.5); ctx.lineTo(u + 0.6, v - 0.5); ctx.lineTo(u + 1.2, v + 0.5); ctx.stroke(); break;
+    case 'spark': ctx.fillStyle = ctx.strokeStyle = '#B4862A'; SHAPES.spark(ctx, u, v, 1.9); break;
+    case 'cross': SHAPES.cross(ctx, u, v, 1.3); break;
+    case 'arrow': ctx.fillStyle = '#C8102E'; SHAPES.arrow(ctx, u, v, 1.8); break;
+    case 'heart': ctx.fillStyle = '#C8102E'; SHAPES.heart(ctx, u, v + 0.1, 1.7); break;
+    case 'rain': ctx.fillStyle = '#0074C8'; ctx.arc(u - 0.4, v - 0.2, 0.5, 0, 7); ctx.arc(u + 0.3, v - 0.35, 0.6, 0, 7); ctx.arc(u + 0.8, v - 0.05, 0.4, 0, 7); ctx.fill(); ctx.beginPath(); ctx.strokeStyle = '#0074C8'; ctx.lineWidth = 0.14; for (const d of [-0.5, 0, 0.5]) { ctx.moveTo(u + d, v + 0.35); ctx.lineTo(u + d - 0.2, v + 0.85); } ctx.stroke(); break;
+    default: SHAPES.diamond(ctx, u, v, 1.7);
+  }
+  ctx.restore();
+  overlayText(ctx, { text: o.label, u: o.u, v: o.v + 1.15, h: 0.42, maxW: o.r * 1.5 }, ox, oy, k, '#0E2240', { flat: true });
+  ctx.restore();
 }
 
 function drawOverlay(ctx, model, ox, oy, k, mode) {
   for (const o of model.overlay || []) {
-    if (mode === 'real') { if (o.kind === 'patch') drawPatchReal(ctx, o, ox, oy, k); else overlayText(ctx, o, ox, oy, k); continue; }
+    if (mode === 'real') { if (o.kind === 'patch') drawPatchReal(ctx, o, ox, oy, k); else if (o.kind === 'badge') drawBadgeReal(ctx, o, ox, oy, k); else overlayText(ctx, o, ox, oy, k); continue; }
     // Produktionsansicht: nur Umrisse der Stick- und Patch-Flächen
     if (o.kind === 'emb') overlayText(ctx, o, ox, oy, k, 'rgba(255,216,77,.9)', { flat: true });
     const [u0, u1, v0, v1] = overlayBox(o);
-    ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = o.kind === 'patch' ? '#FFD84D' : 'rgba(255,216,77,.7)'; ctx.lineWidth = 1;
+    ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = o.kind === 'emb' ? 'rgba(255,216,77,.7)' : '#FFD84D'; ctx.lineWidth = 1;
     ctx.strokeRect(ox + u0 * k, oy + v0 * k, (u1 - u0) * k, (v1 - v0) * k);
-    if (o.kind === 'patch') { ctx.fillStyle = '#FFD84D'; ctx.font = `700 ${Math.max(8, k * 0.9)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText('PATCH', ox + (u0 + u1) / 2 * k, oy + (v0 + v1) / 2 * k); }
+    if (o.kind !== 'emb') { ctx.fillStyle = '#FFD84D'; ctx.font = `700 ${Math.max(8, k * 0.9)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText('PATCH', ox + (u0 + u1) / 2 * k, oy + (v0 + v1) / 2 * k); }
     ctx.restore();
   }
 }

@@ -69,6 +69,7 @@ function modeOverrides() {
 function update() {
   state.fut = futureGames();
   state.statsAll = computeStats(state.games.concat(state.fut));
+  state.stats.memberYears = state.statsAll.memberYears = Math.max(0, state.season - (state.profile.start || state.season));
   state.ms = evaluateMilestones(state.statsAll);
   const ov = { ...modeOverrides(), ...state.overrides };
   state.el = resolveElements(state.ms, ov);
@@ -131,7 +132,7 @@ function tagText(t) {
   return null;
 }
 
-const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', patch: '🏷️ aufgenähter Patch' };
+const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', patch: '🏷️ aufgenähter Patch', badge: '🏷️ aufgenähtes Abzeichen' };
 function hitText(hit) {
   const it = hit.item;
   const txt = tagText(it ? it.tag : tagAtCell(state.scarf[hit.side], hit.x, hit.y));
@@ -333,12 +334,12 @@ function renderRules() {
   <div class="card"><h3>Gestrickt, gestickt, aufgenäht</h3>
     <p>Wie beim Mitgliederschal werden drei Techniken kombiniert:</p>
     <p>🧶 <b>Gestrickt (Jacquard):</b> alles Grafische, also Grundfarbe, Bänder, Muster, Rauten, Sterne, Medaillon-Ring, große Saison-Ziffern und das Vereinswappen. Daraus entsteht die Strickdatei.</p>
-    <p>🪡 <b>Gestickt:</b> Schrift, die klar lesbar sein muss: Name, Saison, Fan-Code, Bilanz, Kilometer, Länder, die Spielzahl im Medaillon und „AUG–MAI“. Sie wird nach dem Stricken aufgestickt (Stickdatei als SVG).</p>
+    <p>🪡 <b>Gestickt:</b> Schrift, die klar lesbar sein muss: Name, Saison, Mitglied seit, Bilanz, Kilometer, Länder und die Spielzahl im Medaillon. Name und Saison sitzen am Ende und sind quer gestickt, damit man sie lesen kann, wenn der Schal hängt. Sie wird nach dem Stricken aufgestickt (Stickdatei als SVG).</p>
     <p>🏷️ <b>Patches:</b> die 5 Highlight-Spiele als gewebte Aufnäher mit Overlock-Rand. Sie werden für jeden Fan einzeln gedruckt oder gewebt und aufgenäht. So muss das Strickmuster keine feine Schrift tragen.</p>
     <p class="small muted">Noch zu klären: Stickerei geht beim doppellagigen Gestrick durch beide Seiten. Lösung: Unterfaden in der Farbe der Gegenseite, oder nur in Bereichen sticken, die auf der Gegenseite schlicht sind. Das sollte ein Probestück zeigen. Das Wappen ist für den Prototyp nachgezeichnet, die Nutzung muss mit dem Verein abgestimmt werden.</p></div>
-  <div class="card"><h3>Die fünf Reihen</h3>
-    <p><b>Treue</b> baut den Grundaufbau. <b>Wettbewerbe</b> setzen Symbole und färben die Rückseite um. <b>Auswärts</b> verändert Kanten, Enden und Fransenfarbe. <b>Momente</b> füllen die Streifenbänder mit Mustern, die sich abwechseln. <b>Saison komplett</b> veredelt das Endfeld und die Rückseite.</p>
-    <div class="flow"><span>Fransen</span><span>Rauten-Enden</span><span>Endstreifen</span><span class="h">Endfeld: Sterne · Saison · AUG–MAI · Pokal · Krone · Stadion-Punkte</span><span>Endstreifen</span><span>Sternenband</span><span>Musterbänder …</span><span class="k">Mitte: Rauten + Medaillon</span><span>… gespiegelt bis Ende B</span></div></div>
+  <div class="card"><h3>Die sechs Reihen</h3>
+    <p><b>Treue</b> lässt die Streifen wachsen: 1 weißer, dann 3 weiße, dann Blockstreifen, Rand, goldene Nadelstreifen, Medaillon, Rauten-Mitte. <b>Wettbewerbe</b> setzen wenige Symbole und färben die Rückseite um. <b>Auswärts</b> verändert Kanten, Enden und Fransenfarbe. <b>Momente</b> sind runde Abzeichen-Patches auf der Rückseite. <b>Saison komplett</b> bringt die Krone und goldene Längsfäden (Upgrade in 3 Stufen). <b>Mitgliedschaft</b> verändert das Wappen nach 5 und 10 Jahren.</p>
+    <div class="flow"><span>Fransen</span><span>Rauten-Enden</span><span>Endstreifen</span><span class="h">1 bzw. 3 weiße Streifen · dazwischen Sterne, Pokal, Krone · Stadion-Punkte</span><span>Sternenband</span><span>Blockstreifen …</span><span class="k">Mitte: Rauten + Medaillon</span><span>… gespiegelt bis Ende B</span></div></div>
   <div class="card"><h3>Rolle der KI</h3>
     <p><b>Gemini macht:</b> alle Spiele der Saison lesen, einordnen, wie die Saison für den Fan war, und bis zu 5 Highlights wählen und begründen. <b>Gemini macht nicht:</b> Ergebnisse oder Muster erzeugen. Jede Spielnummer wird geprüft, und gleicher Code plus gleiche Saison ergeben immer denselben Schal.</p></div>
   <div class="card" style="grid-column:1/-1"><h3>Alle Meilensteine (${MILESTONES.length})</h3>

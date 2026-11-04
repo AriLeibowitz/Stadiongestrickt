@@ -1,6 +1,6 @@
 # Stadion gestrickt
 
-**Ein Schal pro Saison, der mit jedem Meilenstein wächst.** Die Vorderseite startet einfarbig in Vereinsrot. Jeder Saison-Meilenstein legt eine neue Ebene darauf: Streifen, Symbole, Musterbänder, Rauten, Gold. Die Rückseite erzählt die Geschichte der Saison: Gemini liest alle besuchten Spiele, wählt die 5 größten Momente für die Highlight-Felder aus und beschreibt, wie die Saison war. Gestrickt wird erst auf Bestellung, in Einzelfertigung.
+**Ein Schal pro Saison, der mit jedem Meilenstein wächst.** Die Vorderseite startet einfarbig in Vereinsrot. Jeder Saison-Meilenstein legt eine neue Ebene darauf: Streifen, Goldfäden, Rauten, Symbole, Gold. Die Rückseite erzählt die Geschichte der Saison: Gemini liest alle besuchten Spiele, wählt die 5 größten Momente für die Highlight-Felder aus und beschreibt, wie die Saison war. Gestrickt wird erst auf Bestellung, in Einzelfertigung.
 
 Konzept-Prototyp für die **FC Bayern AI-deation 2026**. Das ist keine offizielle FC-Bayern-Anwendung.
 
@@ -22,22 +22,23 @@ Unter „Mehr“ stehen alle Spiele der Saison, die Kauf-Umfrage (mit CSV-Export
 
 ## Design-System
 
-- **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm. Schrift (Barlow Condensed, eingebettet) und Symbole werden als Vektoren in Zentimetern gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt.
-- **Vorderseite:** Sie startet einfarbig rot. Die fünf Meilenstein-Reihen legen Ebenen darüber:
-  - **Treue:** Schriftzug, Endstreifen, Blockstreifen, Rand, Goldgarn, Medaillon, Rauten-Mitte
-  - **Wettbewerbe:** Pokal, Sternenband, vier Sterne, Pokal und Schale im Medaillon
-  - **Auswärts:** Naht, Fransenfarbe, Rauten-Enden, Stadion-Punkte, goldene Naht und Fransen
-  - **Momente:** 7 Muster in den Streifenbändern
-  - **Saison komplett:** AUG–MAI, Krone
-- **Rückseite:** Sie ist ebenfalls rot. Der Meilenstein „Europapokal-Abende“ ändert ihre Grundfarbe zu Nachtblau mit Sternenhimmel. Sie zeigt die KI-Highlights, das Fan-Etikett, Reise-Feld, Kalender, Gegner-Sammlung und den Strickcode.
+- **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm. Schrift (Barlow Condensed, eingebettet) und Symbole werden als Vektoren gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt.
+- **Vorderseite:** Sie startet einfarbig rot. Sechs Meilenstein-Reihen verändern sie, mit Elementen statt vieler Symbole:
+  - **Treue:** 1 weißer Streifen, dann 3 weiße Streifen, dann Blockstreifen, Rand, goldene Nadelstreifen, Medaillon und Rauten-Mitte
+  - **Wettbewerbe:** Pokal, Sternenband, vier Sterne, Pokal und Schale im Medaillon. Außerdem färbt diese Reihe die Rückseite nachtblau.
+  - **Auswärts:** Naht, rot-weiße Fransen, Rauten-Enden, Stadion-Punkte, goldene Naht und Fransen
+  - **Momente:** runde Abzeichen-Patches auf der Rückseite
+  - **Saison komplett:** Krone und goldene Längsfäden in 3 Upgrade-Stufen (6, 12 und 17 Gegner)
+  - **Mitgliedschaft:** Traditionswappen ab 5 Jahren, Retro-Wappen ab 10 Jahren (stilisierte Entwürfe)
+- **Rückseite:** Sie ist rot. An Ende A stehen der gestickte Name und das Wappen, beide so ausgerichtet, dass sie lesbar sind, wenn der Schal hängt. In der Mitte sitzen die 5 KI-Highlight-Patches, dazu kommen Reise-Feld, Abzeichen und der Strickcode.
 
 ## Gestrickt, gestickt, aufgenäht
 
 Wie beim Mitgliederschal werden drei Techniken kombiniert. In der App lässt sich zwischen **Realistisch** und **Produktion** umschalten.
 
 - **Gestrickt (Jacquard):** Grundfarbe, Bänder, Muster, Rauten, Sterne, Medaillon-Ring, große Ziffern und das Vereinswappen auf der Rückseite. Export als Strickdatei.
-- **Gestickt:** Name, Saison, Fan-Code, Bilanz, Kilometer, Länder, die Spielzahl im Medaillon und „AUG–MAI“. Export als Stickdatei (SVG, mm).
-- **Patches:** die 5 Highlight-Spiele als gewebte Aufnäher mit Overlock-Rand.
+- **Gestickt:** Name, Saison, Mitglied seit, Bilanz, Kilometer, Länder und die Spielzahl im Medaillon. Export als Stickdatei (SVG, mm).
+- **Aufgenäht:** die 5 Highlight-Spiele als gewebte Patches mit Overlock-Rand und die Momente als runde Abzeichen.
 
 Das Vereinswappen ist für den Prototyp nachgezeichnet. Die Nutzung muss mit dem Verein abgestimmt werden.
 
