@@ -238,102 +238,53 @@ function decodeCodeBand(model) {
 }
 
 /* ---- Vorderseite ------------------------------------------------------- */
+const TREUE_IDS = ['stripe1', 'stripe3', 'blocks', 'border', 'gold', 'centerStripe', 'rautenField'];
+function treueLevel(act) { return TREUE_IDS.reduce((lv, id, i) => act[id] ? i + 1 : lv, 0); }
 function goldAvailable(act) { return GOLD_ELEMENTS.some(k => act[k]); }
 
 function buildFront(ctx) {
   const { act, stats, lengthCm } = ctx;
   const L = lengthCm * ROWS_PER_CM, C = lengthCm / 2;
   const g = new Grid(L), r = new Raster(g), overlay = [];
-  const goldOn = goldAvailable(act);
+  const lv = treueLevel(act), lvId = TREUE_IDS[lv - 1];
   const el = (id, extra) => g.use({ el: id, ...extra });
   const uOf = (end, d) => end === 0 ? d : lengthCm - d;
   const band = (end, a, b) => end === 0 ? [a, b] : [lengthCm - b, lengthCm - a];
-  // weißer Querstreifen mit optionalen goldenen Nadelstreifen
-  const stripe = (id, a, b) => {
-    el(id, { layer: 'body' }); r.rect('W', a, b, 0, WIDTH_CM);
-    if (act.gold) { el('gold', { layer: 'body' }); r.rect('G', a - 0.55, a - 0.3, 0, WIDTH_CM); r.rect('G', b + 0.3, b + 0.55, 0, WIDTH_CM); }
+  const stripe = (a, b, goldEdge) => {
+    el(lvId, { layer: 'body' }); r.rect('W', a, b, 0, WIDTH_CM);
+    if (goldEdge) r.rect('G', a - 0.55, a - 0.3, 0, WIDTH_CM), r.rect('G', b + 0.3, b + 0.55, 0, WIDTH_CM);
   };
 
   el('base', { layer: 'body' }); g.rect(0, L - 1, 0, STITCHES - 1, 'R');
 
-  if (act.rautenField) {
-    el('rautenField');
-    paintRauten(r, C - FRONT.rautenHalf, C + FRONT.rautenHalf, 0, WIDTH_CM);
-    r.rect('W', C - FRONT.rautenHalf - 0.6, C - FRONT.rautenHalf, 0, WIDTH_CM);
-    r.rect('W', C + FRONT.rautenHalf, C + FRONT.rautenHalf + 0.6, 0, WIDTH_CM);
-  }
-
-  // Blockstreifen im Mittelteil: zwei breite Streifen pro Hälfte
-  if (act.blocks) {
+  // Treue: genau eine Stufe
+  if (lv >= 3) {
     const bodyLen = C - FRONT.centerHalf - FRONT.bodyStart;
     const n = Math.max(1, Math.round(bodyLen / 18));
     for (let k = 0; k < n; k++) for (const end of [0, 1]) {
       const d = FRONT.bodyStart + (k + 0.5) * bodyLen / n;
       const [a, b] = band(end, d - FRONT.blockLen / 2, d + FRONT.blockLen / 2);
-      stripe('blocks', a, b);
+      stripe(a, b, lv >= 6);
     }
   }
-
-  // Medaillon
-  if (act.medal || act.cup || act.plate) {
-    const R = FRONT.medalR, cv = WIDTH_CM / 2;
-    el(act.medal ? 'medal' : act.plate ? 'plate' : 'cup');
-    r.paint(goldOn ? 'G' : 'W', c => { c.arc(C, cv, R, 0, 7); c.fill(); }, C - R, C + R);
-    r.paint('N', c => { c.arc(C, cv, R - 0.55, 0, 7); c.fill(); }, C - R, C + R);
-    const icons = [act.plate && 'plate', act.cup && 'cup'].filter(Boolean);
-    const vi = act.medal ? 4.6 : cv;
-    icons.forEach((id, i) => {
-      el(id);
-      const u = C + (i - (icons.length - 1) / 2) * 3.4;
-      r.paint('G', c => id === 'plate' ? SHAPES.plate(c, u, vi, act.medal ? 1.35 : 2.2) : SHAPES.cup(c, u, vi, act.medal ? 2.6 : 4.2), u - 3, u + 3);
-    });
-    if (act.medal) {
-      const vn = icons.length ? 9.6 : 8.4;
-      overlay.push(emb({ el: 'medal' }, 'W', String(stats.total), C, vn, icons.length ? 3.2 : 4.0, 9));
-      overlay.push(emb({ el: 'medal' }, goldOn ? 'G' : 'W', 'SPIELE', C, vn + (icons.length ? 3.0 : 3.7), 0.9, 8));
-    }
+  if (lv === 6) stripe(C - 3, C + 3, true);
+  if (lv === 7) {
+    el('rautenField');
+    paintRauten(r, C - FRONT.rautenHalf, C + FRONT.rautenHalf, 0, WIDTH_CM);
+    for (const [a, b] of [[C - FRONT.rautenHalf - 0.9, C - FRONT.rautenHalf], [C + FRONT.rautenHalf, C + FRONT.rautenHalf + 0.9]]) { r.rect('W', a, b, 0, WIDTH_CM); r.rect('G', a + 0.3, b - 0.3, 0, WIDTH_CM); }
   }
-
-  // Enden
   for (const end of [0, 1]) {
+    if (lv === 1) { const [a, b] = band(end, ...FRONT.stripe1); stripe(a, b, false); }
+    if (lv >= 2) for (const st of FRONT.stripes3) { const [a, b] = band(end, ...st); stripe(a, b, lv >= 5); }
     if (act.awayRauten) { el('awayRauten'); const [a, b] = band(end, ...FRONT.rauten); paintRauten(r, a, b, 0, WIDTH_CM, 1.0); }
-    if (act.stripe3) for (const st of FRONT.stripes3) { const [a, b] = band(end, ...st); stripe('stripe3', a, b); }
-    else if (act.stripe1) { const [a, b] = band(end, ...FRONT.stripe1); stripe('stripe1', a, b); }
-    if (act.starBand) {
-      el('starBand'); const [a, b] = band(end, ...FRONT.starBand);
-      r.rect('N', a, b, 0, WIDTH_CM);
-      r.paint('W', c => { for (let i = 0; i < 6; i++) { c.beginPath(); SHAPES.star(c, a + 1.0, 1.6 + i * 3.0, 0.62); c.beginPath(); SHAPES.star(c, a + 2.2, 3.1 + i * 3.0, 0.62); } }, a, b);
-    }
-    // wenige Symbole in den roten Feldern zwischen den Streifen (quer angeordnet, beim Tragen waagrecht)
-    const uA = uOf(end, FRONT.gapA), uB = uOf(end, FRONT.gapB);
-    if (act.fourStars) { el('fourStars'); r.paint('G', c => { for (let i = 0; i < 4; i++) { c.beginPath(); SHAPES.star(c, uA, 9 + (i - 1.5) * 3.2, 1.05); } }, uA - 2, uA + 2); }
-    const syms = [act.cupIcon && 'cupIcon', act.crown && 'crown'].filter(Boolean);
-    syms.forEach((id, i) => {
-      el(id);
-      const v = 9 + (i - (syms.length - 1) / 2) * 5;
-      r.paint(id === 'crown' ? 'G' : 'W', c => {
-        c.translate(uB, v); c.rotate(end === 0 ? Math.PI / 2 : -Math.PI / 2); c.beginPath();
-        id === 'crown' ? SHAPES.crown(c, 0, 0, 2.6) : SHAPES.cup(c, 0, 0, 2.6);
-      }, uB - 2, uB + 2);
-    });
+    if (act.silverBar) { const [a, b] = band(end, 21.3, 21.75); overlay.push({ kind: 'bar', tag: { el: 'silverBar' }, u0: a, u1: b, v0: 0.5, v1: WIDTH_CM - 0.5 }); }
     if (act.stadiumDots) {
       el('stadiumDots');
       const [a, b] = band(end, ...FRONT.stripe1), uc = (a + b) / 2;
       const n = Math.min(stats.stadiums.size, 24), h = (n - 1) * 0.65;
-      r.paint('R', c => { for (let i = 0; i < n; i++) { const v = 9 - h / 2 + i * 0.65; c.moveTo(uc + 0.22, v); c.arc(uc, v, 0.22, 0, 7); } c.fill(); }, uc - 1, uc + 1);
+      r.paint(lv >= 1 ? 'R' : 'W', c => { for (let i = 0; i < n; i++) { const v = 9 - h / 2 + i * 0.65; c.moveTo(uc + 0.22, v); c.arc(uc, v, 0.22, 0, 7); } c.fill(); }, uc - 1, uc + 1);
     }
   }
-
-  // Goldene Längsfäden (Gegner-Sammler I–III), hauchdünn über Grund und Streifen
-  const tiers = ['threads1', 'threads2', 'threads3'].filter(id => act[id]).length;
-  for (let t = 0; t < tiers; t++) {
-    el(['threads1', 'threads2', 'threads3'][t]);
-    for (const v of FRONT.threads[t]) {
-      const y = Math.round(v * ST_PER_CM);
-      for (let x = 0; x < L; x++) { const tg = g.tagAt(x, y); if (tg && (tg.layer === 'body' || tg.el === 'threads1' || tg.el === 'threads2')) g.set(x, y, 'G'); }
-    }
-  }
-
   // Längskanten
   if (act.awaySeam || act.tour) {
     el(act.tour ? 'tour' : 'awaySeam');
@@ -347,15 +298,14 @@ function buildFront(ctx) {
       }
     }
   }
-  if (act.border) { el('border'); g.rect(0, L - 1, 0, 2, 'W'); g.rect(0, L - 1, STITCHES - 3, STITCHES - 1, 'W'); }
-
-  return finishModel(g, { L, lengthCm }, fringeColors(act), overlay);
+  if (lv >= 4) { el(lvId); g.rect(0, L - 1, 0, 2, 'W'); g.rect(0, L - 1, STITCHES - 3, STITCHES - 1, 'W'); }
+  return finishModel(g, { L, lengthCm, level: lv }, fringeColors(act), overlay);
 }
 
 function fringeColors(act) {
   if (act.tour) return ['G', 'R'];
   const base = act.fringeRW ? ['R', 'W'] : ['W'];
-  return act.gold ? [...base, base[0], 'G'] : base;
+  return treueLevel(act) >= 5 ? [...base, base[0], 'G'] : base;
 }
 
 /* ---- Stick- und Patch-Ebene --------------------------------------------
@@ -377,84 +327,100 @@ function shortRound(m) {
 
 function buildBack(ctx) {
   const { profile, act, lengthCm, stats, highlights } = ctx;
-  const L = lengthCm * ROWS_PER_CM, C = lengthCm / 2;
+  const L = lengthCm * ROWS_PER_CM, C = lengthCm / 2, vc = WIDTH_CM / 2;
   const g = new Grid(L), r = new Raster(g), overlay = [];
   const bg = act.night ? 'N' : 'R';
-  const accent = bg === 'R' ? 'N' : 'R';
-  const gold = goldAvailable(act) ? 'G' : 'W';
   g.use(act.night ? { el: 'night' } : { type: 'backBase' });
   g.rect(0, L - 1, 0, STITCHES - 1, bg);
   const baseTag = g.pen;
   const ends = act.code ? 2.4 : 0.6;
+  // Ende A liest sich hängend mit Oberkante zur Mitte (+u): Drehung +90°; Ende B: −90°
+  const ROT_A = Math.PI / 2, ROT_B = -Math.PI / 2;
 
-  // Ende A: gestickter Name + Wappen, beide so ausgerichtet, dass sie beim Tragen
-  // aufrecht stehen (Oberkante zeigt zur Schalmitte, Schrift quer zur Länge)
-  const ROT = Math.PI / 2, vc = WIDTH_CM / 2;
-  let leftEnd = ends;
+  /* --- Ende A: Name, Wappen, Trophäen darüber --- */
+  let aEnd = ends;
   if (act.backInfo) {
-    const t = { el: 'backInfo' };
-    const since = Math.min(profile.start || ctx.season, ctx.season);
-    overlay.push(emb(t, 'W', ctx.name || profile.name || 'FAN', ends + 7.6, vc, 2.4, 15, ROT));
-    overlay.push(emb(t, 'W', `SAISON ${seasonLabel(ctx.season)}`, ends + 5.2, vc, 0.95, 14, ROT));
-    overlay.push(emb(t, 'W', `MITGLIED SEIT ${since}`, ends + 3.75, vc, 0.72, 14, ROT));
-    overlay.push(emb(t, 'W', `${stats.total} ${stats.total === 1 ? 'SPIEL' : 'SPIELE'} · ${stats.W} S  ${stats.D} U  ${stats.L} N`, ends + 2.5, vc, 0.66, 14, ROT));
-    leftEnd = ends + 9.4;
+    const t = { el: 'backInfo' }, since = Math.min(profile.start || ctx.season, ctx.season);
+    overlay.push(emb(t, 'W', ctx.name || profile.name || 'FAN', ends + 7.6, vc, 2.4, 15, ROT_A));
+    overlay.push(emb(t, 'W', `SAISON ${seasonLabel(ctx.season)}`, ends + 5.2, vc, 0.95, 14, ROT_A));
+    overlay.push(emb(t, 'W', `MITGLIED SEIT ${since}`, ends + 3.75, vc, 0.72, 14, ROT_A));
+    overlay.push(emb(t, 'W', `${stats.total} ${stats.total === 1 ? 'SPIEL' : 'SPIELE'} · ${stats.W} S  ${stats.D} U  ${stats.L} N`, ends + 2.5, vc, 0.66, 14, ROT_A));
+    aEnd = ends + 9.4;
   }
   if (act.crest) {
     const variant = act.crestRetro ? 'retro' : act.crestTradition ? 'tradition' : 'modern';
     g.use({ el: act.crestRetro ? 'crestRetro' : act.crestTradition ? 'crestTradition' : 'crest' });
-    paintCrest(r, leftEnd + 7.0, vc, 6.5, variant, ROT);
-    leftEnd += 14.2;
+    paintCrest(r, aEnd + 7.0, vc, 6.5, variant, ROT_A);
+    aEnd += 14.2;
+  }
+  // Trophäen und Sterne, eingestickt über dem Wappen (Richtung Schalmitte)
+  const trophies = [act.cupIcon && ['cupIcon', 'cup', 'W', 1.9], act.cup && ['cup', 'cup', 'G', 2.5], act.plate && ['plate', 'plate', 'G', 1.15]].filter(Boolean);
+  if (trophies.length) {
+    trophies.forEach(([id, shape, color, size], i) => overlay.push({ kind: 'shape', tag: { el: id }, shape, color, size, u: aEnd + 1.8, v: vc + (i - (trophies.length - 1) / 2) * 3.6, rot: ROT_A }));
+    aEnd += 3.6;
+  }
+  if (act.fourStars) {
+    for (let i = 0; i < 4; i++) overlay.push({ kind: 'shape', tag: { el: 'fourStars' }, shape: 'star', color: 'G', size: 0.75, u: aEnd + 1.0, v: vc + (i - 1.5) * 2.2, rot: ROT_A });
+    aEnd += 2.0;
   }
 
-  // Highlights als Patches in der Mitte
+  /* --- Ende B: Herzstück allein, darüber Spiele zu zweit, darüber Momente --- */
+  let bEnd = ends;  // Abstand ab Ende B
+  const uB = d => lengthCm - d;
   const hl = act.highlights ? highlights.slice(0, 5) : [];
-  let hs = C, he = C;
   if (hl.length) {
-    const side = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
-    const nA = Math.ceil(side.length / 2);
-    const patch = (u0, len, m, heart) => overlay.push({ kind: 'patch', tag: { type: 'panel', game: m, heart }, u0, u1: u0 + len, v0: 1.3, v1: WIDTH_CM - 1.3, game: m, heart, round: shortRound(m), abbr: clubAbbr(m.opp).slice(0, 3) });
-    hs = C - HEART_LEN / 2; he = C + HEART_LEN / 2;
-    patch(hs, HEART_LEN, hl[0], true);
-    for (const m of side.slice(0, nA).reverse()) { hs -= HL_LEN + HL_GAP; patch(hs, HL_LEN, m, false); }
-    for (const m of side.slice(nA)) { patch(he + HL_GAP, HL_LEN, m, false); he += HL_LEN + HL_GAP; }
+    const hh = 6.6;
+    overlay.push({ kind: 'patch', tag: { type: 'panel', game: hl[0], heart: true }, game: hl[0], heart: true, u: uB(bEnd + 0.6 + hh / 2), v: vc, w: 15.4, h: hh, rot: ROT_B, round: shortRound(hl[0]), abbr: clubAbbr(hl[0].opp).slice(0, 3) });
+    bEnd += 0.6 + hh;
+    const rest = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
+    for (let i = 0; i < rest.length; i += 2) {
+      const ph = 4.6;
+      const pair = rest.slice(i, i + 2);
+      pair.forEach((m, j) => {
+        // hängend gelesen: links/rechts entspricht v (Ende B: rechts = kleines v)
+        const v = pair.length === 1 ? vc : (j === 0 ? vc + 3.95 : vc - 3.95);
+        overlay.push({ kind: 'patch', tag: { type: 'panel', game: m, heart: false }, game: m, heart: false, u: uB(bEnd + 0.6 + ph / 2), v, w: 7.5, h: ph, rot: ROT_B, round: shortRound(m), abbr: clubAbbr(m.opp).slice(0, 3) });
+      });
+      bEnd += 0.6 + ph;
+    }
+  }
+  const marks = ELEMENTS.filter(e => e.mark && act[e.id]);
+  if (marks.length) {
+    bEnd += 0.8;
+    const per = 3, mh = 3.4;
+    marks.forEach((e, i) => {
+      const row = Math.floor(i / per), col = i % per, inRow = Math.min(per, marks.length - row * per);
+      const ms = (ctx.milestones || []).find(m => m.element === e.id);
+      overlay.push({ kind: 'mark', tag: { el: e.id }, icon: e.mark.icon, label: e.mark.label, version: markVersion(ms), u: uB(bEnd + row * mh + mh / 2), v: vc - (col - (inRow - 1) / 2) * 5.4, rot: ROT_B });
+    });
+    bEnd += Math.ceil(marks.length / per) * mh;
   }
 
-  const left = [], right = [];
-  const box = (list, w, fn) => list.push({ w, fn });
-  if (act.travel) box(right, 11, u0 => {
-    const t = { el: 'travel' }, uc = u0 + 5.5;
-    overlay.push(emb(t, accent, 'AUSWÄRTS', uc, 3.6, 0.85, 10));
-    overlay.push(emb(t, 'W', `${stats.km.toLocaleString('de-DE')} KM`, uc, 6.4, 1.7, 10.5));
-    overlay.push(emb(t, 'W', `${stats.away} FAHRTEN`, uc, 8.9, 0.8, 10));
+  /* --- Mitte: Reise-Feld und Goldfäden (stören sich nicht) --- */
+  let travelBox = null;
+  if (act.travel) {
+    const t = { el: 'travel' }, accent = bg === 'R' ? 'N' : 'R';
+    overlay.push(emb(t, accent, 'AUSWÄRTS', C, 4.4, 0.8, 10));
+    overlay.push(emb(t, 'W', `${stats.km.toLocaleString('de-DE')} KM`, C, 7.3, 1.8, 12));
+    overlay.push(emb(t, 'W', `${stats.away} FAHRTEN`, C, 9.8, 0.75, 10));
     const cs = [...stats.awayCountries];
-    for (let i = 0; i < Math.min(3, Math.ceil(cs.length / 3)); i++) overlay.push(emb(t, 'W', cs.slice(i * 3, i * 3 + 3).join(' · '), uc, 11.6 + i * 1.7, 0.85, 10));
-    if (!cs.length) overlay.push(emb(t, 'W', 'DEUTSCHLAND', uc, 11.6, 0.8, 10));
-  });
-  // Momente: runde Abzeichen-Patches
-  const badges = ELEMENTS.filter(e => e.badge && act[e.id]);
-  if (badges.length) {
-    const cols = Math.ceil(badges.length / 2), w = cols * 5.8 + (badges.length > 1 ? 2.9 : 0);
-    box(right, w, u0 => badges.forEach((e, i) => {
-      const row = i % 2, col = Math.floor(i / 2);
-      overlay.push({ kind: 'badge', tag: { el: e.id }, u: u0 + 2.8 + col * 5.8 + row * 2.9, v: row ? 12.9 : 5.1, r: 2.55, icon: e.badge.icon, label: e.badge.label });
-    }));
+    overlay.push(emb(t, 'W', cs.length ? cs.join(' · ') : 'DEUTSCHLAND', C, 12.2, 0.75, 13));
+    travelBox = [C - 7.5, C + 7.5];
+  }
+  const tiers = ['threads1', 'threads2', 'threads3'].filter(id => act[id]).length ? ['threads1', 'threads2', 'threads3'].findIndex(id => act[id]) + 1 : 0;
+  if (tiers) {
+    g.use({ el: ['threads1', 'threads2', 'threads3'][tiers - 1] });
+    const x0 = Math.ceil((aEnd + 1.5) * ROWS_PER_CM), x1 = Math.floor((lengthCm - bEnd - 1.5) * ROWS_PER_CM);
+    for (let t = 0; t < tiers; t++) for (const v of FRONT.threads[t]) {
+      const y = Math.round(v * ST_PER_CM);
+      for (let x = x0; x < x1; x++) { const u = x / ROWS_PER_CM; if (travelBox && u > travelBox[0] && u < travelBox[1]) continue; g.set(x, y, 'G'); }
+    }
   }
 
-  const place = (list, a, b) => {
-    const items = list.slice();
-    while (items.length && items.reduce((s, it) => s + it.w, 0) + 1 * (items.length + 1) > b - a) items.pop();
-    const gap = ((b - a) - items.reduce((s, it) => s + it.w, 0)) / (items.length + 1);
-    let u = a + gap;
-    for (const it of items) { it.fn(u); u += it.w + gap; }
-    return list.length - items.length;
-  };
-  const dropped = place(left, leftEnd, hs) + place(right, he, lengthCm - ends);
   if (act.code) { drawCodeBand(g, 4, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 16, profile.raw, ctx.season, 'B'); }
 
   if (act.night) {
-    // Sternenhimmel nur auf freier Fläche (nicht unter Stickerei, Patches oder Wappen)
-    const free = (u, v) => !overlay.some(o => { const [a, b, c, d] = overlayBox(o); return u > a - 0.4 && u < b + 0.4 && v > c - 0.4 && v < d + 0.4; }) && !(act.crest && Math.hypot(u - (leftEnd - 7.1), v - vc) < 7.2);
+    const free = (u, v) => !overlay.some(o => { const [a, b, c, d] = overlayBox(o); return u > a - 0.4 && u < b + 0.4 && v > c - 0.4 && v < d + 0.4; }) && u > ends + 9.4 + 14.6 && u < lengthCm - ends;
     const rnd = rng('night-' + profile.raw);
     g.use({ el: 'night' });
     for (let i = 0; i < lengthCm * 1.4; i++) {
@@ -465,7 +431,7 @@ function buildBack(ctx) {
       if (ok) for (const [dx, dy] of pts) g.set(x + dx, y + dy, 'W');
     }
   }
-  return finishModel(g, { L, lengthCm, back: true, dropped }, fringeColors(act), overlay);
+  return finishModel(g, { L, lengthCm, back: true, dropped: 0 }, fringeColors(act), overlay);
 }
 
 function finishModel(g, info, fringe, overlay = []) {
@@ -482,9 +448,13 @@ function embroiderySVG(scarf, meta) {
   const side = (model, y0, label) => {
     let out = `<g transform="translate(0 ${y0})"><rect width="${Lmm}" height="${Wmm}" fill="none" stroke="#999" stroke-dasharray="4 3"/><text x="0" y="-4" font-size="8" font-family="sans-serif">${label}</text>`;
     for (const o of model.overlay) {
-      if (o.kind === 'badge') out += `<circle cx="${(o.u * 10).toFixed(1)}" cy="${(o.v * 10).toFixed(1)}" r="${(o.r * 10).toFixed(1)}" fill="none" stroke="#C8102E"/><text x="${(o.u * 10).toFixed(1)}" y="${(o.v * 10 + 3).toFixed(1)}" text-anchor="middle" font-size="5" font-family="sans-serif">${esc2(o.label)}</text>`;
-      else if (o.kind === 'emb') out += `<text transform="rotate(${((o.rot || 0) * 180 / Math.PI).toFixed(0)} ${(o.u * 10).toFixed(1)} ${(o.v * 10).toFixed(1)})" x="${(o.u * 10).toFixed(1)}" y="${((o.v + o.h / 2) * 10).toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="${(o.h / 0.7 * 10).toFixed(1)}" fill="${TH[o.color]}" stroke="#0004" stroke-width="0.2">${esc2(o.text)}</text>`;
-      else out += `<rect x="${(o.u0 * 10).toFixed(1)}" y="${(o.v0 * 10).toFixed(1)}" width="${((o.u1 - o.u0) * 10).toFixed(1)}" height="${((o.v1 - o.v0) * 10).toFixed(1)}" rx="8" fill="none" stroke="#0E2240"/><text x="${((o.u0 + o.u1) * 5).toFixed(1)}" y="${((o.v0 + 1.2) * 10).toFixed(1)}" text-anchor="middle" font-size="7" font-family="sans-serif">PATCH ${o.heart ? '♥ ' : ''}#${o.game.nr} ${esc2(scoreLine(o.game))}</text>`;
+      const deg = ((o.rot || 0) * 180 / Math.PI).toFixed(0);
+      if (o.kind === 'emb') out += `<text transform="rotate(${deg} ${(o.u * 10).toFixed(1)} ${(o.v * 10).toFixed(1)})" x="${(o.u * 10).toFixed(1)}" y="${((o.v + o.h / 2) * 10).toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="${(o.h / 0.7 * 10).toFixed(1)}" fill="${TH[o.color]}" stroke="#0004" stroke-width="0.2">${esc2(o.text)}</text>`;
+      else {
+        const [u0, u1, v0, v1] = overlayBox(o);
+        const label = o.kind === 'patch' ? `PATCH ${o.heart ? '♥ ' : ''}#${o.game.nr} ${scoreLine(o.game)}` : o.kind === 'mark' ? `STICK: ${o.label} V${o.version}` : o.kind === 'bar' ? 'SILBERKORDEL' : `STICK: ${o.shape}`;
+        out += `<rect x="${(u0 * 10).toFixed(1)}" y="${(v0 * 10).toFixed(1)}" width="${((u1 - u0) * 10).toFixed(1)}" height="${((v1 - v0) * 10).toFixed(1)}" rx="4" fill="none" stroke="#0E2240"/><text x="${((u0 + u1) * 5).toFixed(1)}" y="${((v0 + v1) * 5).toFixed(1)}" text-anchor="middle" font-size="5" font-family="sans-serif">${esc2(label)}</text>`;
+      }
     }
     return out + '</g>';
   };

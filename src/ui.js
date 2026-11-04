@@ -80,6 +80,7 @@ function update() {
     profile: state.profile, games: state.games, highlights: state.curation.highlights.map(h => byNr.get(h.nr)).filter(Boolean),
     act: state.el.active, lengthCm: state.lengthCm, stats: state.statsAll, name: state.name,
     season: state.season, blOpponents: seasonBLOpponents(state.season),
+    milestones: state.ms, hlTitles: Object.fromEntries(state.curation.highlights.map(h => [h.nr, h.title])),
   });
   renderScarf();
   renderFuture();
@@ -132,12 +133,13 @@ function tagText(t) {
   return null;
 }
 
-const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', patch: '🏷️ aufgenähter Patch', badge: '🏷️ aufgenähtes Abzeichen' };
+const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', mark: '🪡 gesticktes Zeichen', shape: '🪡 gestickt', bar: '🪡 aufgestickte Silberkordel', patch: '🏷️ aufgenähter Patch' };
 function hitText(hit) {
   const it = hit.item;
   const txt = tagText(it ? it.tag : tagAtCell(state.scarf[hit.side], hit.x, hit.y));
   if (!txt) return null;
-  return `${txt}<br><span class="tech">${TECH[it ? it.kind : 'knit']}</span>`;
+  const ver = it && it.kind === 'mark' ? ` · Version ${it.version} von 3` : '';
+  return `${txt}<br><span class="tech">${TECH[it ? it.kind : 'knit']}${ver}</span>`;
 }
 function showReader(hit) {
   $('#reader').innerHTML = `<div class="small muted">${SIDES[hit.side].title} · ${(hit.x / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm ab Ende A</div>${hitText(hit) || '<span class="muted">Grundfläche Vereinsrot · gestrickt</span>'}`;
@@ -203,15 +205,22 @@ function renderMilestones() {
   $('#msSummary').textContent = `${reached} von ${state.ms.length} erreicht`;
   $('#msRows').innerHTML = MILESTONE_CATEGORIES.map(([cat, title, sub]) => {
     const list = state.ms.filter(m => m.cat === cat);
-    return `<div class="ms-row"><div class="ms-row-head"><b>${title}</b><span>${sub}</span></div><div class="ms-chips">${list.map(m => {
+    const tiered = TIERED.includes(cat);
+    const autoTop = tiered ? (list.filter(m => m.reached).pop() || {}).element : null;
+    return `<div class="ms-row ${tiered ? 'tiered' : ''}"><div class="ms-row-head"><b>${title}</b><span>${sub}</span></div><div class="ms-chips">${list.map(m => {
       const e = ELEMENT_BY_ID[m.element], on = act[e.id];
-      const manual = on !== m.reached;
-      return `<button type="button" class="ms-chip ${on ? 'on' : ''} ${manual ? 'manual' : ''} ${state.newEls.has(e.id) && state.fut.length ? 'new' : ''}" data-el="${e.id}" data-reached="${m.reached ? 1 : 0}" title="${esc(m.cond)} → ${esc(e.desc)}">
+      const manual = tiered ? on !== (e.id === autoTop) : on !== m.reached;
+      return `<button type="button" class="ms-chip ${on ? 'on' : ''} ${manual ? 'manual' : ''} ${state.newEls.has(e.id) && state.fut.length ? 'new' : ''}" data-el="${e.id}" data-cat="${cat}" data-reached="${m.reached ? 1 : 0}" title="${esc(m.cond)} → ${esc(e.desc)}">
         <span class="dot ${m.reached ? 'got' : ''}"></span><span class="nm">${esc(m.name)}</span><span class="pr">${Math.min(m.current, m.target)}/${m.target}</span><span class="elname">${esc(e.name)}</span></button>`;
-    }).join('')}</div></div>`;
+    }).join(tiered ? '<span class="arrow">›</span>' : '')}</div></div>`;
   }).join('');
   $$('#msRows .ms-chip').forEach(b => b.onclick = () => {
-    const id = b.dataset.el, on = state.el.active[id];
+    const id = b.dataset.el, on = state.el.active[id], cat = b.dataset.cat;
+    if (TIERED.includes(cat)) {
+      // gestufte Reihe: genau diese Stufe wählen (oder alle aus, wenn sie schon aktiv ist)
+      for (const m of MILESTONES.filter(x => x.cat === cat)) state.overrides[m.element] = !on && m.element === id ? 'on' : 'off';
+      update(); return;
+    }
     const autoOn = state.msMode === 'all' ? true : state.msMode === 'none' ? false : b.dataset.reached === '1';
     if (!on === autoOn) delete state.overrides[id]; else state.overrides[id] = on ? 'off' : 'on';
     update();
@@ -334,11 +343,11 @@ function renderRules() {
   <div class="card"><h3>Gestrickt, gestickt, aufgenäht</h3>
     <p>Wie beim Mitgliederschal werden drei Techniken kombiniert:</p>
     <p>🧶 <b>Gestrickt (Jacquard):</b> alles Grafische, also Grundfarbe, Bänder, Muster, Rauten, Sterne, Medaillon-Ring, große Saison-Ziffern und das Vereinswappen. Daraus entsteht die Strickdatei.</p>
-    <p>🪡 <b>Gestickt:</b> Schrift, die klar lesbar sein muss: Name, Saison, Mitglied seit, Bilanz, Kilometer, Länder und die Spielzahl im Medaillon. Name und Saison sitzen am Ende und sind quer gestickt, damit man sie lesen kann, wenn der Schal hängt. Sie wird nach dem Stricken aufgestickt (Stickdatei als SVG).</p>
-    <p>🏷️ <b>Patches:</b> die 5 Highlight-Spiele als gewebte Aufnäher mit Overlock-Rand. Sie werden für jeden Fan einzeln gedruckt oder gewebt und aufgenäht. So muss das Strickmuster keine feine Schrift tragen.</p>
+    <p>🪡 <b>Gestickt:</b> Name, Saison, Mitglied seit und Bilanz an Ende A, darüber Trophäen und Sterne über dem Wappen, die Momente-Zeichen an Ende B, das Reise-Feld in der Mitte und die Silberkordel vorne. Alles ist quer ausgerichtet, damit man es lesen kann, wenn der Schal hängt. Sie wird nach dem Stricken aufgestickt (Stickdatei als SVG).</p>
+    <p>🏷️ <b>Patches:</b> die 5 Spiele als kompakte gewebte Aufnäher an Ende B: das Herzstück allein, darüber die anderen zu zweit. Sie werden für jeden Fan einzeln gedruckt oder gewebt und aufgenäht. So muss das Strickmuster keine feine Schrift tragen.</p>
     <p class="small muted">Noch zu klären: Stickerei geht beim doppellagigen Gestrick durch beide Seiten. Lösung: Unterfaden in der Farbe der Gegenseite, oder nur in Bereichen sticken, die auf der Gegenseite schlicht sind. Das sollte ein Probestück zeigen. Das Wappen ist für den Prototyp nachgezeichnet, die Nutzung muss mit dem Verein abgestimmt werden.</p></div>
   <div class="card"><h3>Die sechs Reihen</h3>
-    <p><b>Treue</b> lässt die Streifen wachsen: 1 weißer, dann 3 weiße, dann Blockstreifen, Rand, goldene Nadelstreifen, Medaillon, Rauten-Mitte. <b>Wettbewerbe</b> setzen wenige Symbole und färben die Rückseite um. <b>Auswärts</b> verändert Kanten, Enden und Fransenfarbe. <b>Momente</b> sind runde Abzeichen-Patches auf der Rückseite. <b>Saison komplett</b> bringt die Krone und goldene Längsfäden (Upgrade in 3 Stufen). <b>Mitgliedschaft</b> verändert das Wappen nach 5 und 10 Jahren.</p>
+    <p><b>Treue</b>, <b>Gegner-Sammler</b> und <b>Mitgliedschaft</b> sind gestuft: Es gilt immer nur eine Stufe, die höhere ersetzt die niedrigere. Treue: 1 Streifen, 3 Streifen, Blockstreifen, weißer Rand, Goldstreifen, Mittelstreifen, Rauten-Mitte. Gegner: 2, 4 oder 6 goldene Längsfäden auf der Rückseite. Mitgliedschaft: modernes, Traditions- oder Retro-Wappen. <b>Wettbewerbe</b>, <b>Auswärts</b> und <b>Momente</b> sammeln sich an. Momente sind gestickte Zeichen in 3 Versionen (1×, 2×, 3× das Ziel).</p>
     <div class="flow"><span>Fransen</span><span>Rauten-Enden</span><span>Endstreifen</span><span class="h">1 bzw. 3 weiße Streifen · dazwischen Sterne, Pokal, Krone · Stadion-Punkte</span><span>Sternenband</span><span>Blockstreifen …</span><span class="k">Mitte: Rauten + Medaillon</span><span>… gespiegelt bis Ende B</span></div></div>
   <div class="card"><h3>Rolle der KI</h3>
     <p><b>Gemini macht:</b> alle Spiele der Saison lesen, einordnen, wie die Saison für den Fan war, und bis zu 5 Highlights wählen und begründen. <b>Gemini macht nicht:</b> Ergebnisse oder Muster erzeugen. Jede Spielnummer wird geprüft, und gleicher Code plus gleiche Saison ergeben immer denselben Schal.</p></div>

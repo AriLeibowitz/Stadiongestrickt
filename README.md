@@ -1,6 +1,6 @@
 # Stadion gestrickt
 
-**Ein Schal pro Saison, der mit jedem Meilenstein wächst.** Die Vorderseite startet einfarbig in Vereinsrot. Jeder Saison-Meilenstein legt eine neue Ebene darauf: Streifen, Goldfäden, Rauten, Symbole, Gold. Die Rückseite erzählt die Geschichte der Saison: Gemini liest alle besuchten Spiele, wählt die 5 größten Momente für die Highlight-Felder aus und beschreibt, wie die Saison war. Gestrickt wird erst auf Bestellung, in Einzelfertigung.
+**Ein Schal pro Saison, der mit jedem Meilenstein wächst.** Die Vorderseite startet einfarbig in Vereinsrot. Jeder Saison-Meilenstein legt eine neue Ebene darauf: Streifen, Rauten und Gold, Trophäen und Momente werden eingestickt. Die Rückseite erzählt die Geschichte der Saison: Gemini liest alle besuchten Spiele, wählt die 5 größten Momente für die Highlight-Felder aus und beschreibt, wie die Saison war. Gestrickt wird erst auf Bestellung, in Einzelfertigung.
 
 Konzept-Prototyp für die **FC Bayern AI-deation 2026**. Das ist keine offizielle FC-Bayern-Anwendung.
 
@@ -22,23 +22,28 @@ Unter „Mehr“ stehen alle Spiele der Saison, die Kauf-Umfrage (mit CSV-Export
 
 ## Design-System
 
-- **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm. Schrift (Barlow Condensed, eingebettet) und Symbole werden als Vektoren gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt.
-- **Vorderseite:** Sie startet einfarbig rot. Sechs Meilenstein-Reihen verändern sie, mit Elementen statt vieler Symbole:
-  - **Treue:** 1 weißer Streifen, dann 3 weiße Streifen, dann Blockstreifen, Rand, goldene Nadelstreifen, Medaillon und Rauten-Mitte
-  - **Wettbewerbe:** Pokal, Sternenband, vier Sterne, Pokal und Schale im Medaillon. Außerdem färbt diese Reihe die Rückseite nachtblau.
-  - **Auswärts:** Naht, rot-weiße Fransen, Rauten-Enden, Stadion-Punkte, goldene Naht und Fransen
-  - **Momente:** runde Abzeichen-Patches auf der Rückseite
-  - **Saison komplett:** Krone und goldene Längsfäden in 3 Upgrade-Stufen (6, 12 und 17 Gegner)
-  - **Mitgliedschaft:** Traditionswappen ab 5 Jahren, Retro-Wappen ab 10 Jahren (stilisierte Entwürfe)
-- **Rückseite:** Sie ist rot. An Ende A stehen der gestickte Name und das Wappen, beide so ausgerichtet, dass sie lesbar sind, wenn der Schal hängt. In der Mitte sitzen die 5 KI-Highlight-Patches, dazu kommen Reise-Feld, Abzeichen und der Strickcode.
+- **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm. Schrift (Barlow Condensed, eingebettet) und Formen werden als Vektoren gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt.
+- **Vorderseite:** Sie startet einfarbig rot und besteht nur aus Streifen und Flächen, ohne Symbole.
+- **Gestufte Reihen** (es gilt immer nur eine Stufe):
+  - **Treue:** 1 Streifen, 3 Streifen, Blockstreifen, weißer Rand, Goldstreifen, Mittelstreifen, Rauten-Mitte
+  - **Gegner-Sammler:** 2, 4 oder 6 goldene Längsfäden auf der Rückseite
+  - **Mitgliedschaft:** modernes Wappen, Traditionswappen ab 5 Jahren, Retro-Wappen ab 10 Jahren (stilisierte Entwürfe)
+- **Sammelnde Reihen:**
+  - **Wettbewerbe:** Silberkordel vorne, nachtblaue Rückseite, und über dem Wappen eingestickt Pokal, Finalpokal, Meisterschale und vier Sterne
+  - **Auswärts:** Naht, Fransen, Rauten-Enden, Stadion-Punkte, Reise-Feld, goldene Naht
+  - **Momente:** gestickte Zeichen in 3 Versionen
+- **Rückseite:** Alles ist so ausgerichtet, dass es lesbar ist, wenn der Schal hängt.
+  - **Ende A:** Name, Wappen und Trophäen
+  - **Ende B:** das Herzstück-Patch, darüber 4 Spiele-Patches zu zweit, darüber die Momente-Zeichen
+  - **Mitte:** Reise-Feld und Goldfäden
 
 ## Gestrickt, gestickt, aufgenäht
 
 Wie beim Mitgliederschal werden drei Techniken kombiniert. In der App lässt sich zwischen **Realistisch** und **Produktion** umschalten.
 
 - **Gestrickt (Jacquard):** Grundfarbe, Bänder, Muster, Rauten, Sterne, Medaillon-Ring, große Ziffern und das Vereinswappen auf der Rückseite. Export als Strickdatei.
-- **Gestickt:** Name, Saison, Mitglied seit, Bilanz, Kilometer, Länder und die Spielzahl im Medaillon. Export als Stickdatei (SVG, mm).
-- **Aufgenäht:** die 5 Highlight-Spiele als gewebte Patches mit Overlock-Rand und die Momente als runde Abzeichen.
+- **Gestickt:** Name, Saison, Bilanz, Trophäen und Sterne über dem Wappen, Momente-Zeichen, Reise-Feld und die Silberkordel. Export als Stickdatei (SVG, mm).
+- **Aufgenäht:** die 5 Spiele als kompakte gewebte Patches mit Overlock-Rand an Ende B.
 
 Das Vereinswappen ist für den Prototyp nachgezeichnet. Die Nutzung muss mit dem Verein abgestimmt werden.
 

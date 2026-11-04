@@ -193,91 +193,141 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 
+// Lokales Koordinatensystem eines gedrehten Overlay-Objekts (cm, Ursprung = Mittelpunkt)
+function withLocal(ctx, o, ox, oy, k, fn) {
+  ctx.save(); ctx.translate(ox + o.u * k, oy + o.v * k); if (o.rot) ctx.rotate(o.rot);
+  fn(); ctx.restore();
+}
+function localText(ctx, k, text, x, y, h, maxW, color, align = 'center') {
+  const fs = h / 0.7 * k;
+  ctx.font = `700 ${fs}px ${SCARF_FONT}`;
+  const t = String(text).toUpperCase(), m = ctx.measureText(t);
+  const sx = Math.min(1, maxW * k / Math.max(1, m.width));
+  ctx.save(); ctx.translate(x * k, y * k); ctx.scale(sx, 1);
+  ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = color;
+  ctx.fillText(t, 0, (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+  ctx.restore();
+}
+function localShape(ctx, k, color, fn) { ctx.save(); ctx.scale(k, k); ctx.beginPath(); ctx.fillStyle = ctx.strokeStyle = color; fn(ctx); ctx.restore(); }
+
 function drawPatchReal(ctx, o, ox, oy, k) {
-  const x = ox + o.u0 * k, y = oy + o.v0 * k, w = (o.u1 - o.u0) * k, h = (o.v1 - o.v0) * k, m = o.game;
+  const m = o.game, w = o.w, h = o.h;
   const P = o.heart
-    ? { bg: '#0E2240', border: '#C9A13B', text: '#FFFFFF', score: '#EBC75F', shield: '#FFFFFF', abbr: '#0E2240', stitch: '#C9A13B', dim: 'rgba(255,255,255,.75)' }
-    : { bg: '#F6F1E6', border: '#0E2240', text: '#0E2240', score: '#C8102E', shield: '#0E2240', abbr: '#FFFFFF', stitch: '#C8102E', dim: 'rgba(14,34,64,.7)' };
+    ? { bg: '#0E2240', border: '#C9A13B', text: '#FFFFFF', score: '#EBC75F', shield: '#FFFFFF', abbr: '#0E2240', stitch: '#C9A13B', dim: 'rgba(255,255,255,.72)' }
+    : { bg: '#F6F1E6', border: '#0E2240', text: '#0E2240', score: '#C8102E', shield: '#0E2240', abbr: '#FFFFFF', stitch: '#C8102E', dim: 'rgba(14,34,64,.68)' };
+  withLocal(ctx, o, ox, oy, k, () => {
+    const X = -w / 2 * k, Y = -h / 2 * k, W = w * k, H = h * k;
+    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(2, k * 0.3); ctx.shadowOffsetX = o.rot ? Math.sign(o.rot) * Math.max(1, k * 0.12) : 0; ctx.shadowOffsetY = o.rot ? 0 : Math.max(1, k * 0.12);
+    roundRectPath(ctx, X, Y, W, H, k * 0.55); ctx.fillStyle = P.bg; ctx.fill();
+    ctx.shadowColor = 'transparent';
+    roundRectPath(ctx, X + k * 0.13, Y + k * 0.13, W - k * 0.26, H - k * 0.26, k * 0.45);
+    ctx.strokeStyle = P.border; ctx.lineWidth = Math.max(1, k * 0.26); ctx.stroke();
+    roundRectPath(ctx, X + k * 0.5, Y + k * 0.5, W - k, H - k, k * 0.25);
+    ctx.setLineDash([k * 0.22, k * 0.14]); ctx.strokeStyle = P.stitch; ctx.lineWidth = Math.max(0.5, k * 0.06); ctx.stroke(); ctx.setLineDash([]);
+    const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
+    if (o.heart) {
+      localShape(ctx, k, P.shield, c => SHAPES.shield(c, -5.9, -0.35, 1.9));
+      localText(ctx, k, o.abbr, -5.9, -0.7, 0.5, 1.6, P.abbr);
+      localText(ctx, k, score, -3.0, -0.3, 2.3, 4.2, P.score);
+      localText(ctx, k, o.title || o.round, 3.5, -1.75, 0.72, 7.4, P.score);
+      localText(ctx, k, o.round, 3.5, -0.55, 0.62, 7.4, P.text);
+      localText(ctx, k, fmtDateLong(m.date), 3.5, 0.45, 0.5, 7, P.dim);
+      localText(ctx, k, m.city, 3.5, 1.5, 0.64, 7, P.text);
+      localShape(ctx, k, '#C8102E', c => SHAPES.heart(c, -3.0, 2.15, 0.55));
+    } else {
+      localShape(ctx, k, P.shield, c => SHAPES.shield(c, -2.55, -0.45, 1.25));
+      localText(ctx, k, o.abbr, -2.55, -0.68, 0.32, 1.05, P.abbr);
+      localText(ctx, k, score, -0.75, -0.4, 1.3, 2.4, P.score);
+      localText(ctx, k, o.round, 2.05, -0.95, 0.42, 2.9, P.text);
+      localText(ctx, k, fmtDate(m.date), 2.05, -0.2, 0.36, 2.9, P.dim);
+      localText(ctx, k, m.city, 2.05, 0.6, 0.42, 2.9, P.text);
+      localText(ctx, k, `SPIEL NR. ${m.nr}`, 0, 1.45, 0.3, 5, P.dim);
+    }
+  });
+}
+
+// Gesticktes Moment-Zeichen: schlichtes Symbol + Schriftzug, Version 1–3
+function drawMarkReal(ctx, o, ox, oy, k) {
+  const th = o.version === 3 ? THREAD.G : THREAD.W, pip = o.version >= 2 ? THREAD.G.lo : THREAD.W.lo;
+  withLocal(ctx, o, ox, oy, k, () => {
+    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(0.8, k * 0.06); ctx.shadowOffsetY = Math.max(0.5, k * 0.04);
+    localShape(ctx, k, th.hi, c => {
+      c.lineWidth = 0.17; c.lineCap = 'round'; c.lineJoin = 'round';
+      const y = -0.55;
+      switch (o.icon) {
+        case 'zigzag': c.moveTo(-1, y + 0.4); c.lineTo(-0.5, y - 0.4); c.lineTo(0, y + 0.4); c.lineTo(0.5, y - 0.4); c.lineTo(1, y + 0.4); break;
+        case 'spark': for (let i = 0; i < 4; i++) { const a = i * Math.PI / 4, d = i % 2 ? 0.45 : 0.7; c.moveTo(-Math.cos(a) * d, y - Math.sin(a) * d); c.lineTo(Math.cos(a) * d, y + Math.sin(a) * d); } break;
+        case 'cross': c.moveTo(-0.55, y - 0.55); c.lineTo(0.55, y + 0.55); c.moveTo(0.55, y - 0.55); c.lineTo(-0.55, y + 0.55); break;
+        case 'arrow': c.moveTo(0, y + 0.65); c.lineTo(0, y - 0.6); c.moveTo(-0.5, y - 0.1); c.lineTo(0, y - 0.65); c.lineTo(0.5, y - 0.1); break;
+        case 'heart': c.moveTo(0, y + 0.55); c.bezierCurveTo(-0.95, y - 0.05, -0.5, y - 0.85, 0, y - 0.3); c.bezierCurveTo(0.5, y - 0.85, 0.95, y - 0.05, 0, y + 0.55); break;
+        case 'rain': for (const d of [-0.5, 0, 0.5]) { c.moveTo(d + 0.2, y - 0.55); c.lineTo(d - 0.2, y + 0.55); } break;
+        case 'home': c.moveTo(-0.7, y + 0.6); c.lineTo(-0.7, y - 0.1); c.lineTo(0, y - 0.7); c.lineTo(0.7, y - 0.1); c.lineTo(0.7, y + 0.6); c.closePath(); break;
+        default: c.moveTo(0, y - 0.65); c.lineTo(0.6, y); c.lineTo(0, y + 0.65); c.lineTo(-0.6, y); c.closePath();
+      }
+      c.stroke();
+    });
+    ctx.shadowColor = 'transparent';
+    localText(ctx, k, o.label, 0, 0.85, 0.42, 4.6, th.hi);
+    localShape(ctx, k, pip, c => { for (let i = 0; i < o.version; i++) { c.moveTo((i - (o.version - 1) / 2) * 0.4 + 0.09, 1.55); c.arc((i - (o.version - 1) / 2) * 0.4, 1.55, 0.09, 0, 7); } c.fill(); });
+  });
+}
+
+// Eingestickte Trophäe oder Stern
+function drawShapeReal(ctx, o, ox, oy, k) {
+  const th = THREAD[o.color] || THREAD.W;
+  withLocal(ctx, o, ox, oy, k, () => {
+    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(0.8, k * 0.07); ctx.shadowOffsetY = Math.max(0.5, k * 0.045);
+    const s = o.size, gr = ctx.createLinearGradient(0, -s * k / 2, 0, s * k / 2);
+    gr.addColorStop(0, th.hi); gr.addColorStop(0.6, th.lo); gr.addColorStop(1, th.hi);
+    ctx.save(); ctx.scale(k, k); ctx.beginPath(); ctx.fillStyle = ctx.strokeStyle = gr;
+    ctx.setTransform(ctx.getTransform()); // Verlauf in cm-Koordinaten
+    const g2 = ctx.createLinearGradient(0, -s / 2, 0, s / 2); g2.addColorStop(0, th.hi); g2.addColorStop(0.6, th.lo); g2.addColorStop(1, th.hi);
+    ctx.fillStyle = ctx.strokeStyle = g2;
+    if (o.shape === 'cup') SHAPES.cup(ctx, 0, 0, s); else if (o.shape === 'plate') SHAPES.plate(ctx, 0, 0, s); else SHAPES.star(ctx, 0, 0, s);
+    ctx.restore();
+  });
+}
+
+// Aufgestickte Silberkordel
+function drawBarReal(ctx, o, ox, oy, k) {
+  const x = ox + o.u0 * k, y = oy + o.v0 * k, w = (o.u1 - o.u0) * k, h = (o.v1 - o.v0) * k;
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(2, k * 0.35); ctx.shadowOffsetY = Math.max(1, k * 0.14);
-  roundRectPath(ctx, x, y, w, h, k * 0.75); ctx.fillStyle = P.bg; ctx.fill();
+  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(1, k * 0.08); ctx.shadowOffsetY = Math.max(0.5, k * 0.04);
+  const g = ctx.createLinearGradient(x, 0, x + w, 0);
+  g.addColorStop(0, '#8D96A0'); g.addColorStop(0.45, '#F4F6F8'); g.addColorStop(1, '#A4ADB6');
+  ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
   ctx.shadowColor = 'transparent';
-  if (k >= 5) { // Webstruktur
-    ctx.save(); roundRectPath(ctx, x, y, w, h, k * 0.75); ctx.clip();
-    ctx.strokeStyle = o.heart ? 'rgba(255,255,255,.035)' : 'rgba(14,34,64,.035)'; ctx.lineWidth = 0.6; ctx.beginPath();
-    for (let yy = y; yy < y + h; yy += Math.max(1.5, k * 0.12)) { ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); }
-    ctx.stroke(); ctx.restore();
-  }
-  // Overlock-Rand und Ziernaht
-  roundRectPath(ctx, x + k * 0.15, y + k * 0.15, w - k * 0.3, h - k * 0.3, k * 0.62);
-  ctx.strokeStyle = P.border; ctx.lineWidth = Math.max(1, k * 0.3); ctx.stroke();
-  roundRectPath(ctx, x + k * 0.62, y + k * 0.62, w - k * 1.24, h - k * 1.24, k * 0.35);
-  ctx.setLineDash([k * 0.26, k * 0.17]); ctx.strokeStyle = P.stitch; ctx.lineWidth = Math.max(0.5, k * 0.07); ctx.stroke(); ctx.setLineDash([]);
-  // Inhalt (in cm)
-  const T = (text, u, v, hh, maxW, color) => overlayText(ctx, { text: String(text).toUpperCase(), u, v, h: hh, maxW }, ox, oy, k, color, { flat: true });
-  const S = (fn, color) => { ctx.save(); ctx.translate(ox, oy); ctx.scale(k, k); ctx.beginPath(); ctx.fillStyle = ctx.strokeStyle = color; fn(ctx); ctx.restore(); };
-  const uc = (o.u0 + o.u1) / 2, v0 = o.v0, len = o.u1 - o.u0;
-  const su = o.u0 + (o.heart ? 2.4 : 2.1);
-  S(c => SHAPES.shield(c, su, v0 + 2.4, 1.9), P.shield);
-  T(o.abbr, su, v0 + 2.05, 0.5, 1.6, P.abbr);
-  const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
-  T(score, (su + 1.2 + o.u1 - 0.9) / 2, v0 + 2.4, 2.0, o.u1 - su - 2.3, P.score);
-  T(o.round, uc, v0 + 5.0, 0.85, len - 1.8, P.text);
-  T(fmtDateLong(m.date), uc, v0 + 6.5, 0.72, len - 2, P.dim);
-  S(c => { c.lineWidth = 0.05; c.moveTo(o.u0 + 1.4, v0 + 7.6); c.lineTo(o.u1 - 1.4, v0 + 7.6); c.stroke(); }, P.dim);
-  const iconCol = o.heart ? P.score : '#B4862A';
-  if (m.final) S(c => SHAPES.cup(c, uc, v0 + 9.8, 2.5), iconCol);
-  else if (m.titleClinch) S(c => SHAPES.plate(c, uc, v0 + 9.8, 1.25), iconCol);
-  else if (m.comp === 'CL') S(c => SHAPES.star(c, uc, v0 + 9.8, 1.15), o.heart ? P.score : P.text);
-  else T(m.venue === 'H' ? 'HEIMSPIEL' : m.venue === 'A' ? 'AUSWÄRTS' : 'FINALE', uc, v0 + 9.8, 0.8, len - 2, P.score);
-  T(`SPIEL NR. ${m.nr}`, uc, v0 + 12.1, 0.68, len - 2, P.dim);
-  T(m.city, uc, v0 + 13.5, 0.85, len - 2, P.text);
-  if (o.heart) for (const d of [-1, 1]) S(c => SHAPES.heart(c, uc + d * (len / 2 - 1.6), v0 + 12.0, 0.7), '#C8102E');
+  if (k >= 4) { ctx.strokeStyle = 'rgba(70,80,90,.35)'; ctx.lineWidth = Math.max(0.4, k * 0.03); ctx.beginPath(); for (let yy = y; yy < y + h; yy += Math.max(1.5, k * 0.22)) { ctx.moveTo(x, yy + w * 0.6); ctx.lineTo(x + w, yy); } ctx.stroke(); }
   ctx.restore();
 }
 
 function overlayBox(o) {
-  if (o.kind === 'patch') return [o.u0, o.u1, o.v0, o.v1];
-  if (o.kind === 'badge') return [o.u - o.r, o.u + o.r, o.v - o.r, o.v + o.r];
+  const rotated = o.rot && Math.abs(Math.abs(o.rot) - Math.PI / 2) < 0.01;
+  const box = (w, h) => rotated ? [o.u - h / 2, o.u + h / 2, o.v - w / 2, o.v + w / 2] : [o.u - w / 2, o.u + w / 2, o.v - h / 2, o.v + h / 2];
+  if (o.kind === 'bar') return [o.u0, o.u1, o.v0, o.v1];
+  if (o.kind === 'patch') return box(o.w, o.h);
+  if (o.kind === 'mark') return box(5.0, 3.3);
+  if (o.kind === 'shape') { const s = o.shape === 'plate' ? o.size * 2.1 : o.size * 1.3; return box(s, s); }
   const w = o.w != null ? o.w : Math.min(o.maxW, o.text.length * o.h * 0.55);
-  if (o.rot) return [o.u - o.h / 2 - 0.2, o.u + o.h / 2 + 0.2, o.v - w / 2 - 0.15, o.v + w / 2 + 0.15];
-  return [o.u - w / 2 - 0.15, o.u + w / 2 + 0.15, o.v - o.h / 2 - 0.2, o.v + o.h / 2 + 0.2];
-}
-
-// Rundes Abzeichen (Momente)
-function drawBadgeReal(ctx, o, ox, oy, k) {
-  const x = ox + o.u * k, y = oy + o.v * k, R = o.r * k;
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(2, k * 0.3); ctx.shadowOffsetY = Math.max(1, k * 0.12);
-  ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fillStyle = '#F6F1E6'; ctx.fill();
-  ctx.shadowColor = 'transparent';
-  ctx.beginPath(); ctx.arc(x, y, R - k * 0.15, 0, 7); ctx.strokeStyle = '#C8102E'; ctx.lineWidth = Math.max(1, k * 0.3); ctx.stroke();
-  ctx.beginPath(); ctx.arc(x, y, R - k * 0.55, 0, 7); ctx.setLineDash([k * 0.22, k * 0.15]); ctx.strokeStyle = '#0E2240'; ctx.lineWidth = Math.max(0.5, k * 0.06); ctx.stroke(); ctx.setLineDash([]);
-  ctx.save(); ctx.translate(ox, oy); ctx.scale(k, k); ctx.fillStyle = ctx.strokeStyle = '#0E2240'; ctx.beginPath();
-  const u = o.u, v = o.v - 0.45;
-  switch (o.icon) {
-    case 'zigzag': ctx.lineWidth = 0.28; ctx.lineJoin = 'round'; ctx.moveTo(u - 1.2, v + 0.5); ctx.lineTo(u - 0.6, v - 0.5); ctx.lineTo(u, v + 0.5); ctx.lineTo(u + 0.6, v - 0.5); ctx.lineTo(u + 1.2, v + 0.5); ctx.stroke(); break;
-    case 'spark': ctx.fillStyle = ctx.strokeStyle = '#B4862A'; SHAPES.spark(ctx, u, v, 1.9); break;
-    case 'cross': SHAPES.cross(ctx, u, v, 1.3); break;
-    case 'arrow': ctx.fillStyle = '#C8102E'; SHAPES.arrow(ctx, u, v, 1.8); break;
-    case 'heart': ctx.fillStyle = '#C8102E'; SHAPES.heart(ctx, u, v + 0.1, 1.7); break;
-    case 'rain': ctx.fillStyle = '#0074C8'; ctx.arc(u - 0.4, v - 0.2, 0.5, 0, 7); ctx.arc(u + 0.3, v - 0.35, 0.6, 0, 7); ctx.arc(u + 0.8, v - 0.05, 0.4, 0, 7); ctx.fill(); ctx.beginPath(); ctx.strokeStyle = '#0074C8'; ctx.lineWidth = 0.14; for (const d of [-0.5, 0, 0.5]) { ctx.moveTo(u + d, v + 0.35); ctx.lineTo(u + d - 0.2, v + 0.85); } ctx.stroke(); break;
-    default: SHAPES.diamond(ctx, u, v, 1.7);
-  }
-  ctx.restore();
-  overlayText(ctx, { text: o.label, u: o.u, v: o.v + 1.15, h: 0.42, maxW: o.r * 1.5 }, ox, oy, k, '#0E2240', { flat: true });
-  ctx.restore();
+  return box(w + 0.3, o.h + 0.4);
 }
 
 function drawOverlay(ctx, model, ox, oy, k, mode) {
   for (const o of model.overlay || []) {
-    if (mode === 'real') { if (o.kind === 'patch') drawPatchReal(ctx, o, ox, oy, k); else if (o.kind === 'badge') drawBadgeReal(ctx, o, ox, oy, k); else overlayText(ctx, o, ox, oy, k); continue; }
+    if (mode === 'real') {
+      if (o.kind === 'patch') drawPatchReal(ctx, o, ox, oy, k);
+      else if (o.kind === 'mark') drawMarkReal(ctx, o, ox, oy, k);
+      else if (o.kind === 'shape') drawShapeReal(ctx, o, ox, oy, k);
+      else if (o.kind === 'bar') drawBarReal(ctx, o, ox, oy, k);
+      else overlayText(ctx, o, ox, oy, k);
+      continue;
+    }
     // Produktionsansicht: nur Umrisse der Stick- und Patch-Flächen
     if (o.kind === 'emb') overlayText(ctx, o, ox, oy, k, 'rgba(255,216,77,.9)', { flat: true });
     const [u0, u1, v0, v1] = overlayBox(o);
     ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = o.kind === 'emb' ? 'rgba(255,216,77,.7)' : '#FFD84D'; ctx.lineWidth = 1;
     ctx.strokeRect(ox + u0 * k, oy + v0 * k, (u1 - u0) * k, (v1 - v0) * k);
-    if (o.kind !== 'emb') { ctx.fillStyle = '#FFD84D'; ctx.font = `700 ${Math.max(8, k * 0.9)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText('PATCH', ox + (u0 + u1) / 2 * k, oy + (v0 + v1) / 2 * k); }
+    if (o.kind !== 'emb') { ctx.fillStyle = '#FFD84D'; ctx.font = `700 ${Math.max(7, k * 0.55)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText(o.kind === 'patch' ? 'PATCH' : o.kind === 'bar' ? 'KORDEL' : 'STICK', ox + (u0 + u1) / 2 * k, oy + (v0 + v1) / 2 * k + 3); }
     ctx.restore();
   }
 }

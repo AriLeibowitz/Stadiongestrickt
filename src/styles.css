@@ -281,3 +281,5 @@ details.more h3 { margin-bottom: 8px; }
 .techline { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; color: var(--muted); }
 .tip .tech, .reader .tech { display: inline-block; margin-top: 4px; font-size: 11.5px; background: rgba(255,255,255,.14); border-radius: 99px; padding: 1px 8px; }
 .reader .tech { background: #EEF2F8; color: var(--ink); }
+.ms-row.tiered .ms-chips { align-items: center; }
+.ms-row .arrow { color: #B9BFC9; font-weight: 700; margin: 0 -2px; }
