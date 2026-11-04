@@ -15,7 +15,7 @@ const store = {
 const state = {
   profile: null, allGames: [], seasons: [], season: CURRENT_SEASON, games: [], stats: null, statsAll: null,
   ms: [], el: null, overrides: {}, msMode: 'auto', newEls: new Set(),
-  curation: null, curations: {}, lengthCm: 150, knit: false, future: 0, markNew: true, name: '',
+  curation: null, curations: {}, lengthCm: 150, real: true, future: 0, markNew: true, name: '',
   scarf: null, lays: {}, pinned: null,
 };
 
@@ -96,7 +96,7 @@ function renderScarf() {
   for (const [side, cfg] of Object.entries(SIDES)) {
     const stage = $(cfg.stage), model = state.scarf[side];
     const width = Math.max(320, stage.clientWidth);
-    state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.knit, markEls: mark, title: cfg.title });
+    state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.real, real: state.real, markEls: mark, title: cfg.title });
     drawHover($('.hover', stage), state.lays[side], model, state.pinned && state.pinned.side === side ? state.pinned : null);
   }
   const n = state.games.length + state.fut.length;
@@ -131,9 +131,15 @@ function tagText(t) {
   return null;
 }
 
+const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', patch: '🏷️ aufgenähter Patch' };
+function hitText(hit) {
+  const it = hit.item;
+  const txt = tagText(it ? it.tag : tagAtCell(state.scarf[hit.side], hit.x, hit.y));
+  if (!txt) return null;
+  return `${txt}<br><span class="tech">${TECH[it ? it.kind : 'knit']}</span>`;
+}
 function showReader(hit) {
-  const t = tagAtCell(state.scarf[hit.side], hit.x, hit.y);
-  $('#reader').innerHTML = `<div class="small muted">${SIDES[hit.side].title} · ${(hit.x / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm ab Ende A</div>${tagText(t) || '<span class="muted">Grundfläche Vereinsrot</span>'}`;
+  $('#reader').innerHTML = `<div class="small muted">${SIDES[hit.side].title} · ${(hit.x / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm ab Ende A</div>${hitText(hit) || '<span class="muted">Grundfläche Vereinsrot · gestrickt</span>'}`;
 }
 
 function bindScarf() {
@@ -141,17 +147,17 @@ function bindScarf() {
   for (const [side, cfg] of Object.entries(SIDES)) {
     const stage = $(cfg.stage), cv = $('.scarf', stage);
     let last = null;
-    const hitOf = ev => { const r = cv.getBoundingClientRect(); const h = hitTest(state.lays[side], state.scarf[side], ev.clientX - r.left, ev.clientY - r.top); return h && { ...h, side }; };
+    const hitOf = ev => { const r = cv.getBoundingClientRect(); const h = hitTest(state.lays[side], state.scarf[side], ev.clientX - r.left, ev.clientY - r.top); return h && { ...h, side, item: itemAt(state.scarf[side], h.x, h.y) }; };
     cv.addEventListener('mousemove', ev => {
       const hit = hitOf(ev), model = state.scarf[side];
       if (!hit) { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], model, null); last = null; return; }
       state.lensX = hit.x; state.lensY = hit.y; state.lensSide = side;
       drawLens($('#lens'), model, hit.x, hit.y, true);
-      const t = tagAtCell(model, hit.x, hit.y);
+      const t = hit.item ? hit.item : tagAtCell(model, hit.x, hit.y);
       if (t !== last) {
         last = t;
         if (!state.pinned) drawHover($('.hover', stage), state.lays[side], model, hit);
-        const txt = tagText(t);
+        const txt = hitText(hit);
         if (txt) { tip.innerHTML = txt; tip.style.display = 'block'; } else tip.style.display = 'none';
       }
       const card = $('.scarf-card').getBoundingClientRect();
@@ -324,6 +330,12 @@ function renderRules() {
     <p>${WIDTH_CM} cm breit, 150, 180 oder 220 cm lang. Raster: ${ST_PER_CM} Maschen/cm quer und ${ROWS_PER_CM} Reihen/cm längs, also ${STITCHES} × ${150 * ROWS_PER_CM} Maschen bei 150 cm. Schrift und Symbole werden als Vektoren in Zentimetern gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt, ohne Zwischentöne. Doppeljacquard, Einzelfertigung.</p>
     <p>${CI_KEYS.map(k => `<span class="chip" style="background:${YARN[k].hex};color:${k === 'W' || k === 'G' ? '#0E2240' : '#fff'}">${YARN[k].name}</span>`).join(' ')}</p>
     <p class="small muted">Gold kommt nur über Gold-Meilensteine in den Schal (${GOLD_ELEMENTS.map(id => esc(ELEMENT_BY_ID[id].name)).join(', ')}).</p></div>
+  <div class="card"><h3>Gestrickt, gestickt, aufgenäht</h3>
+    <p>Wie beim Mitgliederschal werden drei Techniken kombiniert:</p>
+    <p>🧶 <b>Gestrickt (Jacquard):</b> alles Grafische, also Grundfarbe, Bänder, Muster, Rauten, Sterne, Medaillon-Ring, große Saison-Ziffern und das Vereinswappen. Daraus entsteht die Strickdatei.</p>
+    <p>🪡 <b>Gestickt:</b> Schrift, die klar lesbar sein muss: Name, Saison, Fan-Code, Bilanz, Kilometer, Länder, die Spielzahl im Medaillon und „AUG–MAI“. Sie wird nach dem Stricken aufgestickt (Stickdatei als SVG).</p>
+    <p>🏷️ <b>Patches:</b> die 5 Highlight-Spiele als gewebte Aufnäher mit Overlock-Rand. Sie werden für jeden Fan einzeln gedruckt oder gewebt und aufgenäht. So muss das Strickmuster keine feine Schrift tragen.</p>
+    <p class="small muted">Noch zu klären: Stickerei geht beim doppellagigen Gestrick durch beide Seiten. Lösung: Unterfaden in der Farbe der Gegenseite, oder nur in Bereichen sticken, die auf der Gegenseite schlicht sind. Das sollte ein Probestück zeigen. Das Wappen ist für den Prototyp nachgezeichnet, die Nutzung muss mit dem Verein abgestimmt werden.</p></div>
   <div class="card"><h3>Die fünf Reihen</h3>
     <p><b>Treue</b> baut den Grundaufbau. <b>Wettbewerbe</b> setzen Symbole und färben die Rückseite um. <b>Auswärts</b> verändert Kanten, Enden und Fransenfarbe. <b>Momente</b> füllen die Streifenbänder mit Mustern, die sich abwechseln. <b>Saison komplett</b> veredelt das Endfeld und die Rückseite.</p>
     <div class="flow"><span>Fransen</span><span>Rauten-Enden</span><span>Endstreifen</span><span class="h">Endfeld: Sterne · Saison · AUG–MAI · Pokal · Krone · Stadion-Punkte</span><span>Endstreifen</span><span>Sternenband</span><span>Musterbänder …</span><span class="k">Mitte: Rauten + Medaillon</span><span>… gespiegelt bis Ende B</span></div></div>
@@ -353,7 +365,7 @@ function init() {
   $('#seasonSel').onchange = () => selectSeason(Number($('#seasonSel').value));
   $('#lenSel').onchange = () => { state.lengthCm = Number($('#lenSel').value); state.pinned = null; update(); };
   $('#nameIn').oninput = () => { state.name = $('#nameIn').value.toUpperCase(); update(); };
-  bindSeg('viewSeg', v => { state.knit = v === 'knit'; renderScarf(); });
+  bindSeg('viewSeg', v => { state.real = v === 'real'; renderScarf(); });
   bindSeg('msMode', v => { state.msMode = v; state.overrides = {}; update(); });
   $('#futureIn').oninput = () => { state.future = Number($('#futureIn').value); update(); };
   $('#markNew').onchange = () => { state.markNew = $('#markNew').checked; renderScarf(); };
@@ -362,6 +374,7 @@ function init() {
   $('#keyIn').value = store.get('sg-key', ''); $('#keyRemember').checked = !!store.get('sg-key', '');
   $('#modelIn').value = store.get('sg-model', 'gemini-2.5-flash');
   $('#dlTxt').onclick = () => download(`strickdatei-${state.profile.code}-${state.season}.txt`, knitFile(state.scarf, { code: state.profile.code, lengthCm: state.lengthCm, season: state.season }), 'text/plain');
+  $('#dlSvg').onclick = () => download(`stickdatei-${state.profile.code}-${state.season}.svg`, embroiderySVG(state.scarf, { code: state.profile.code, lengthCm: state.lengthCm, season: state.season }), 'image/svg+xml');
   $('#dlPng').onclick = () => {
     const a = document.createElement('a'); a.href = patternPNG(state.scarf.front); a.download = `muster-vorderseite-${state.profile.code}-${state.season}.png`; a.click();
     setTimeout(() => { const b = document.createElement('a'); b.href = patternPNG(state.scarf.back); b.download = `muster-rueckseite-${state.profile.code}-${state.season}.png`; b.click(); }, 300);

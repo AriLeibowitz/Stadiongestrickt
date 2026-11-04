@@ -31,6 +31,16 @@ Unter „Mehr“ stehen alle Spiele der Saison, die Kauf-Umfrage (mit CSV-Export
   - **Saison komplett:** AUG–MAI, Krone
 - **Rückseite:** Sie ist ebenfalls rot. Der Meilenstein „Europapokal-Abende“ ändert ihre Grundfarbe zu Nachtblau mit Sternenhimmel. Sie zeigt die KI-Highlights, das Fan-Etikett, Reise-Feld, Kalender, Gegner-Sammlung und den Strickcode.
 
+## Gestrickt, gestickt, aufgenäht
+
+Wie beim Mitgliederschal werden drei Techniken kombiniert. In der App lässt sich zwischen **Realistisch** und **Produktion** umschalten.
+
+- **Gestrickt (Jacquard):** Grundfarbe, Bänder, Muster, Rauten, Sterne, Medaillon-Ring, große Ziffern und das Vereinswappen auf der Rückseite. Export als Strickdatei.
+- **Gestickt:** Name, Saison, Fan-Code, Bilanz, Kilometer, Länder, die Spielzahl im Medaillon und „AUG–MAI“. Export als Stickdatei (SVG, mm).
+- **Patches:** die 5 Highlight-Spiele als gewebte Aufnäher mit Overlock-Rand.
+
+Das Vereinswappen ist für den Prototyp nachgezeichnet. Die Nutzung muss mit dem Verein abgestimmt werden.
+
 ## Wie die KI eingebunden ist
 
 - **Gemini macht:** alle Spiele der Saison lesen, bis zu 5 Highlights auswählen (das erste wird das Herzstück in der Schalmitte), jede Wahl begründen und die Saison-Geschichte schreiben.

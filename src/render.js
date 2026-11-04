@@ -51,6 +51,10 @@ function drawScarf(canvas, model, opts) {
     ctx.fillRect(o.x, o.y, (x1 - x0) * lay.cx, lay.segH);
     ctx.restore();
     drawCells(ctx, model, x0, x1, 0, model.W, o.x - x0 * lay.cx, o.y, lay.cx, lay.cy, opts);
+    ctx.save(); ctx.beginPath(); ctx.rect(o.x, o.y - 6, (x1 - x0) * lay.cx, lay.segH + 12); ctx.clip();
+    if (opts.real) drawKnitTexture(ctx, o.x, o.y, (x1 - x0) * lay.cx, lay.segH, lay.cy, lay.cx);
+    drawOverlay(ctx, model, o.x - x0 * lay.cx, o.y, lay.cx * ROWS_PER_CM, opts.real ? 'real' : 'raster');
+    ctx.restore();
     if (s === 0) drawFringe(ctx, model.fringe, o.x, o.y, lay, -1);
     if (x1 === model.L) drawFringe(ctx, model.fringe, o.x + (x1 - x0) * lay.cx, o.y, lay, 1);
   }
@@ -135,6 +139,129 @@ function drawFringe(ctx, colors, xEdge, yTop, lay, dir) {
   }
 }
 
+/* ---- Realistische Optik ------------------------------------------------ */
+function drawKnitTexture(ctx, x, y, w, h, cy, cx) {
+  ctx.save();
+  // Maschenstäbchen (Wales) entlang der Länge
+  ctx.strokeStyle = 'rgba(0,0,0,.10)'; ctx.lineWidth = Math.max(0.35, cy * 0.22);
+  ctx.beginPath();
+  for (let j = 1; j < STITCHES; j++) { const yy = y + j * cy; ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); }
+  ctx.stroke();
+  if (cx >= 1.6) {
+    ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 0.5; ctx.beginPath();
+    for (let xx = x; xx < x + w; xx += cx * 2) { ctx.moveTo(xx, y); ctx.lineTo(xx, y + h); }
+    ctx.stroke();
+  }
+  // Wölbung des Schals: Kanten dunkler, Mitte mit leichtem Glanz
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, 'rgba(0,0,0,.26)'); g.addColorStop(0.1, 'rgba(0,0,0,.04)'); g.addColorStop(0.38, 'rgba(255,255,255,.06)');
+  g.addColorStop(0.62, 'rgba(255,255,255,0)'); g.addColorStop(0.9, 'rgba(0,0,0,.06)'); g.addColorStop(1, 'rgba(0,0,0,.30)');
+  ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+  ctx.restore();
+}
+
+const THREAD = {
+  W: { hi: '#FFFFFF', lo: '#E2DDD3', edge: 'rgba(80,70,60,.55)' },
+  G: { hi: '#F7DE8E', lo: '#B4862A', edge: 'rgba(90,60,10,.6)' },
+  N: { hi: '#33507E', lo: '#0B1B35', edge: 'rgba(0,0,0,.6)' },
+  R: { hi: '#FF5570', lo: '#BE0329', edge: 'rgba(80,0,15,.6)' },
+  B: { hi: '#3D9BE6', lo: '#005CA3', edge: 'rgba(0,30,70,.6)' },
+};
+
+function overlayText(ctx, o, ox, oy, k, color, opts = {}) {
+  const fs = o.h / 0.7 * k;
+  ctx.font = `700 ${fs}px ${SCARF_FONT}`;
+  const m = ctx.measureText(o.text);
+  const sx = Math.min(1, (o.maxW * k) / Math.max(1, m.width));
+  o.w = m.width * sx / k;
+  ctx.save();
+  ctx.translate(ox + o.u * k, oy + o.v * k); ctx.scale(sx, 1);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  const asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent, by = (asc - desc) / 2;
+  if (opts.flat) { ctx.fillStyle = color; ctx.fillText(o.text, 0, by); ctx.restore(); return; }
+  const th = THREAD[o.color] || THREAD.W;
+  ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = Math.max(0.8, k * 0.07); ctx.shadowOffsetY = Math.max(0.5, k * 0.045);
+  const gr = ctx.createLinearGradient(0, by - asc, 0, by);
+  gr.addColorStop(0, th.hi); gr.addColorStop(0.55, th.lo); gr.addColorStop(1, th.hi);
+  ctx.fillStyle = gr; ctx.fillText(o.text, 0, by);
+  ctx.shadowColor = 'transparent';
+  if (fs >= 9) { ctx.strokeStyle = th.edge; ctx.lineWidth = Math.max(0.3, fs * 0.022); ctx.strokeText(o.text, 0, by); }
+  ctx.restore();
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+function drawPatchReal(ctx, o, ox, oy, k) {
+  const x = ox + o.u0 * k, y = oy + o.v0 * k, w = (o.u1 - o.u0) * k, h = (o.v1 - o.v0) * k, m = o.game;
+  const P = o.heart
+    ? { bg: '#0E2240', border: '#C9A13B', text: '#FFFFFF', score: '#EBC75F', shield: '#FFFFFF', abbr: '#0E2240', stitch: '#C9A13B', dim: 'rgba(255,255,255,.75)' }
+    : { bg: '#F6F1E6', border: '#0E2240', text: '#0E2240', score: '#C8102E', shield: '#0E2240', abbr: '#FFFFFF', stitch: '#C8102E', dim: 'rgba(14,34,64,.7)' };
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(2, k * 0.35); ctx.shadowOffsetY = Math.max(1, k * 0.14);
+  roundRectPath(ctx, x, y, w, h, k * 0.75); ctx.fillStyle = P.bg; ctx.fill();
+  ctx.shadowColor = 'transparent';
+  if (k >= 5) { // Webstruktur
+    ctx.save(); roundRectPath(ctx, x, y, w, h, k * 0.75); ctx.clip();
+    ctx.strokeStyle = o.heart ? 'rgba(255,255,255,.035)' : 'rgba(14,34,64,.035)'; ctx.lineWidth = 0.6; ctx.beginPath();
+    for (let yy = y; yy < y + h; yy += Math.max(1.5, k * 0.12)) { ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); }
+    ctx.stroke(); ctx.restore();
+  }
+  // Overlock-Rand und Ziernaht
+  roundRectPath(ctx, x + k * 0.15, y + k * 0.15, w - k * 0.3, h - k * 0.3, k * 0.62);
+  ctx.strokeStyle = P.border; ctx.lineWidth = Math.max(1, k * 0.3); ctx.stroke();
+  roundRectPath(ctx, x + k * 0.62, y + k * 0.62, w - k * 1.24, h - k * 1.24, k * 0.35);
+  ctx.setLineDash([k * 0.26, k * 0.17]); ctx.strokeStyle = P.stitch; ctx.lineWidth = Math.max(0.5, k * 0.07); ctx.stroke(); ctx.setLineDash([]);
+  // Inhalt (in cm)
+  const T = (text, u, v, hh, maxW, color) => overlayText(ctx, { text: String(text).toUpperCase(), u, v, h: hh, maxW }, ox, oy, k, color, { flat: true });
+  const S = (fn, color) => { ctx.save(); ctx.translate(ox, oy); ctx.scale(k, k); ctx.beginPath(); ctx.fillStyle = ctx.strokeStyle = color; fn(ctx); ctx.restore(); };
+  const uc = (o.u0 + o.u1) / 2, v0 = o.v0, len = o.u1 - o.u0;
+  const su = o.u0 + (o.heart ? 2.4 : 2.1);
+  S(c => SHAPES.shield(c, su, v0 + 2.4, 1.9), P.shield);
+  T(o.abbr, su, v0 + 2.05, 0.5, 1.6, P.abbr);
+  const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
+  T(score, (su + 1.2 + o.u1 - 0.9) / 2, v0 + 2.4, 2.0, o.u1 - su - 2.3, P.score);
+  T(o.round, uc, v0 + 5.0, 0.85, len - 1.8, P.text);
+  T(fmtDateLong(m.date), uc, v0 + 6.5, 0.72, len - 2, P.dim);
+  S(c => { c.lineWidth = 0.05; c.moveTo(o.u0 + 1.4, v0 + 7.6); c.lineTo(o.u1 - 1.4, v0 + 7.6); c.stroke(); }, P.dim);
+  const iconCol = o.heart ? P.score : '#B4862A';
+  if (m.final) S(c => SHAPES.cup(c, uc, v0 + 9.8, 2.5), iconCol);
+  else if (m.titleClinch) S(c => SHAPES.plate(c, uc, v0 + 9.8, 1.25), iconCol);
+  else if (m.comp === 'CL') S(c => SHAPES.star(c, uc, v0 + 9.8, 1.15), o.heart ? P.score : P.text);
+  else T(m.venue === 'H' ? 'HEIMSPIEL' : m.venue === 'A' ? 'AUSWÄRTS' : 'FINALE', uc, v0 + 9.8, 0.8, len - 2, P.score);
+  T(`SPIEL NR. ${m.nr}`, uc, v0 + 12.1, 0.68, len - 2, P.dim);
+  T(m.city, uc, v0 + 13.5, 0.85, len - 2, P.text);
+  if (o.heart) for (const d of [-1, 1]) S(c => SHAPES.heart(c, uc + d * (len / 2 - 1.6), v0 + 12.0, 0.7), '#C8102E');
+  ctx.restore();
+}
+
+function overlayBox(o) {
+  if (o.kind === 'patch') return [o.u0, o.u1, o.v0, o.v1];
+  const w = o.w != null ? o.w : Math.min(o.maxW, o.text.length * o.h * 0.55);
+  return [o.u - w / 2 - 0.15, o.u + w / 2 + 0.15, o.v - o.h / 2 - 0.2, o.v + o.h / 2 + 0.2];
+}
+
+function drawOverlay(ctx, model, ox, oy, k, mode) {
+  for (const o of model.overlay || []) {
+    if (mode === 'real') { if (o.kind === 'patch') drawPatchReal(ctx, o, ox, oy, k); else overlayText(ctx, o, ox, oy, k); continue; }
+    // Produktionsansicht: nur Umrisse der Stick- und Patch-Flächen
+    if (o.kind === 'emb') overlayText(ctx, o, ox, oy, k, 'rgba(255,216,77,.9)', { flat: true });
+    const [u0, u1, v0, v1] = overlayBox(o);
+    ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = o.kind === 'patch' ? '#FFD84D' : 'rgba(255,216,77,.7)'; ctx.lineWidth = 1;
+    ctx.strokeRect(ox + u0 * k, oy + v0 * k, (u1 - u0) * k, (v1 - v0) * k);
+    if (o.kind === 'patch') { ctx.fillStyle = '#FFD84D'; ctx.font = `700 ${Math.max(8, k * 0.9)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText('PATCH', ox + (u0 + u1) / 2 * k, oy + (v0 + v1) / 2 * k); }
+    ctx.restore();
+  }
+}
+
+function itemAt(model, x, y) {
+  const u = (x + 0.5) / ROWS_PER_CM, v = (y + 0.5) / ST_PER_CM;
+  const list = model.overlay || [];
+  for (let i = list.length - 1; i >= 0; i--) { const [a, b, c, d] = overlayBox(list[i]); if (u >= a && u <= b && v >= c && v <= d) return list[i]; }
+  return null;
+}
+
 function hitTest(lay, model, px, py) {
   for (let s = 0; s < lay.segs; s++) {
     const o = segOrigin(lay, s);
@@ -164,6 +291,12 @@ function drawHover(canvas, lay, model, hit) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, lay.width, lay.height);
   if (!hit) return;
+  if (hit.item) {
+    const [u0, u1, v0, v1] = overlayBox(hit.item), k = lay.cx * ROWS_PER_CM, o = segOrigin(lay, 0);
+    ctx.strokeStyle = '#FFD84D'; ctx.lineWidth = 2; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 4;
+    roundRectPath(ctx, o.x + u0 * k - 2, o.y + v0 * k - 2, (u1 - u0) * k + 4, (v1 - v0) * k + 4, 4); ctx.stroke();
+    return;
+  }
   const key = groupKey(tagAtCell(model, hit.x, hit.y));
   if (!key || key === 'el:base' || key === 'backBase') return;
   const W = model.W, keys = new Array(model.tagList.length);
@@ -204,6 +337,7 @@ function drawLens(canvas, model, x, y, knit) {
   const x0 = Math.max(0, Math.min(model.L - nx, x - Math.floor(nx / 2)));
   const y0 = Math.max(0, Math.min(model.W - ny, y - Math.floor(ny / 2)));
   drawCells(ctx, model, x0, Math.min(model.L, x0 + nx), y0, Math.min(model.W, y0 + ny), -x0 * cx, -y0 * cy, cx, cy, { knit });
+  drawOverlay(ctx, model, -x0 * cx, -y0 * cy, cx * ROWS_PER_CM, 'real');
 }
 
 function drawThumb(canvas, model, width, markEls) {

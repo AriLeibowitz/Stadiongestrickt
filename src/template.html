@@ -52,11 +52,12 @@
       <span class="chip" id="sumChip"></span>
       <span class="chip green" id="codeChip"></span>
       <span class="grow"></span>
-      <div class="seg" id="viewSeg"><button data-v="flat" class="on">Fläche</button><button data-v="knit">Strick</button></div>
+      <div class="seg" id="viewSeg" title="Realistisch: so sieht der fertige Schal aus. Produktion: was gestrickt wird, gelb umrandet, was gestickt oder aufgenäht wird."><button data-v="real" class="on">Realistisch</button><button data-v="raster">Produktion</button></div>
     </div>
     <div class="scarf-stage" id="stageFront"><canvas class="scarf" data-side="front"></canvas><canvas class="hover"></canvas></div>
     <div class="scarf-stage" id="stageBack"><canvas class="scarf" data-side="back"></canvas><canvas class="hover"></canvas></div>
     <div class="tip" id="tip"></div>
+    <div class="techline small"><span>🧶 <b>Gestrickt:</b> Farben, Bänder, Muster, Rauten, Wappen, große Ziffern</span><span>🪡 <b>Gestickt:</b> Name, Saison, Zahlen, kleine Schrift</span><span>🏷️ <b>Patches:</b> die 5 Highlight-Spiele</span></div>
 
     <div class="under">
       <div class="stack">
@@ -66,7 +67,7 @@
           <div id="unlocks" class="small"></div>
         </div>
         <div class="reader" id="reader"><span class="muted">Fahr über den Schal: Die App zeigt, welches Element es ist und welcher Meilenstein es freigeschaltet hat. Mit einem Klick hältst du die Auswahl fest.</span></div>
-        <div class="row small yarnrow"><span id="yarns"></span><span class="grow"></span><button class="btn ghost sm" id="dlTxt" type="button">Strickdatei</button><button class="btn ghost sm" id="dlPng" type="button">PNG</button></div>
+        <div class="row small yarnrow"><span id="yarns"></span><span class="grow"></span><button class="btn ghost sm" id="dlTxt" type="button">Strickdatei</button><button class="btn ghost sm" id="dlSvg" type="button">Stickdatei</button><button class="btn ghost sm" id="dlPng" type="button">PNG</button></div>
       </div>
       <div class="lens-wrap"><canvas id="lens"></canvas><span>Lupe · echte Maschen</span></div>
     </div>

@@ -58,8 +58,9 @@ function computeStats(games) {
 const ELEMENTS = [
   // Basis
   { id: 'base', name: 'Vereinsrot', basis: true, where: 'Vorderseite', desc: 'Jeder Saisonschal beginnt einfarbig rot mit weißen Fransen. Alles andere kommt über Meilensteine dazu.' },
-  { id: 'highlights', name: 'Highlight-Felder', basis: true, where: 'Rückseite', desc: 'Die bis zu 5 wichtigsten Spiele der Saison, ausgewählt von der KI. Das wichtigste sitzt als „Herzstück“ in der Mitte.' },
-  { id: 'backInfo', name: 'Fan-Etikett', basis: true, where: 'Rückseite', desc: 'Name, Saison, Fan-Code und Saisonbilanz.' },
+  { id: 'crest', name: 'Vereinswappen', basis: true, where: 'Rückseite, Ende A', desc: 'Das Wappen, eingestrickt wie beim Mitgliederschal. Nachgezeichnet nur für den Prototyp, die Nutzung muss mit dem Verein abgestimmt werden.' },
+  { id: 'highlights', name: 'Highlight-Patches', basis: true, where: 'Rückseite', desc: 'Die bis zu 5 wichtigsten Spiele der Saison, ausgewählt von der KI, als gewebte Aufnäher. Das wichtigste sitzt als „Herzstück“ in der Mitte.' },
+  { id: 'backInfo', name: 'Name & Saison (gestickt)', basis: true, where: 'Rückseite', desc: 'Dein Name, die Saison, Fan-Code und Bilanz, eingestickt wie beim Mitgliederschal.' },
   { id: 'code', name: 'Strickcode', basis: true, where: 'Rückseite, beide Enden', desc: 'Fan-Code und Saison als 45-Bit-Muster. Die App erkennt den Schal daran wieder.' },
   // Reihe Treue: Grundaufbau wächst
   { id: 'season', name: 'Saison-Schriftzug', where: 'Vorderseite, Enden', desc: 'Die Saison in großen Ziffern an beiden Enden.' },
@@ -67,7 +68,7 @@ const ELEMENTS = [
   { id: 'blocks', name: 'Blockstreifen', where: 'Vorderseite, Mittelteil', desc: 'Breite weiße Querstreifen im klassischen Rot-Weiß-Rhythmus.' },
   { id: 'border', name: 'Weißer Rand', where: 'Vorderseite, Längskanten', desc: 'Eine weiße Kante entlang beider Längsseiten.' },
   { id: 'gold', name: 'Goldgarn', where: 'Vorderseite', desc: 'Gold kommt in den Schal: Der Schriftzug wird golden, und jedes Streifenband bekommt goldene Nadelstreifen.' },
-  { id: 'medal', name: 'Medaillon', where: 'Vorderseite, Mitte', desc: 'Ein Medaillon in der Schalmitte mit deiner Spielzahl der Saison.' },
+  { id: 'medal', name: 'Medaillon', where: 'Vorderseite, Mitte', desc: 'Ein Medaillon in der Schalmitte, darin deine Spielzahl der Saison eingestickt.' },
   { id: 'rautenField', name: 'Rauten-Mitte', where: 'Vorderseite, Mitte', desc: 'Die Schalmitte wird blau-weiß gerautet, das höchste Treue-Abzeichen.' },
   // Reihe Wettbewerbe: Symbole & Grundfarbe
   { id: 'cupIcon', name: 'Pokal-Symbol', where: 'Vorderseite, Enden', desc: 'Ein weißer Pokal unter dem Saison-Schriftzug.' },
@@ -80,7 +81,7 @@ const ELEMENTS = [
   { id: 'awaySeam', name: 'Auswärtsnaht', where: 'Vorderseite, Längskanten', desc: 'Eine gestrichelte Naht entlang beider Längsseiten.' },
   { id: 'fringeRW', name: 'Rot-weiße Fransen', where: 'Fransen', desc: 'Die Fransen werden abwechselnd rot und weiß.' },
   { id: 'awayRauten', name: 'Rauten-Enden', where: 'Vorderseite, Enden', desc: 'Ein blau-weißes Rautenband direkt an den Fransen.' },
-  { id: 'travel', name: 'Reise-Feld', where: 'Rückseite', desc: 'Deine Reisekilometer der Saison und die Länder, in denen du warst.' },
+  { id: 'travel', name: 'Reise-Feld', where: 'Rückseite', desc: 'Deine Reisekilometer der Saison und die Länder, in denen du warst, eingestickt.' },
   { id: 'stadiumDots', name: 'Stadion-Punkte', where: 'Vorderseite, Enden', desc: 'Eine Punktreihe unter dem Schriftzug: ein Punkt pro besuchtem Stadion.' },
   { id: 'tour', name: 'Goldene Naht & Fransen', where: 'Vorderseite, Fransen', desc: 'Die Auswärtsnaht wird golden, die Fransen gold-rot.' },
   // Reihe Momente: Muster in den Streifenbändern
@@ -93,7 +94,7 @@ const ELEMENTS = [
   { id: 'mDiamonds', name: 'Muster: Rautenkette', motif: true, where: 'Vorderseite, Streifenbänder', desc: 'Nachtblaue Rauten: Du warst auch in schweren Spielen da.' },
   // Reihe Saison komplett
   { id: 'calendar', name: 'Saison-Kalender', where: 'Rückseite', desc: 'Ein Balken pro Monat von August bis Mai.' },
-  { id: 'monthSeal', name: 'AUG–MAI', where: 'Vorderseite, Enden', desc: 'Unter dem Schriftzug steht in Gold „AUG – MAI“.' },
+  { id: 'monthSeal', name: 'AUG–MAI', where: 'Vorderseite, Enden', desc: 'Unter dem Schriftzug steht in Goldgarn eingestickt „AUG – MAI“.' },
   { id: 'crown', name: 'Krone', where: 'Vorderseite, Enden', desc: 'Eine goldene Krone unter dem Schriftzug.' },
   { id: 'collection', name: 'Gegner-Sammlung', where: 'Rückseite', desc: '17 Wappenfelder, eines pro Bundesliga-Gegner. Jeder gesehene Gegner füllt eines.' },
 ];

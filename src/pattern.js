@@ -59,6 +59,27 @@ class Raster {
     for (let y = 0; y < g.W; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] >= 128) g.set(x0 + x, y, color);
   }
   rect(color, u0, u1, v0, v1) { this.paint(color, c => c.fillRect(u0, v0, u1 - u0, v1 - v0), u0, u1); }
+  // Text entlang eines Kreisbogens (für das Wappen). top: oben lesbar, sonst unten.
+  arcText(color, str, cu, cv, radius, h, top) {
+    this.paint(color, c => {
+      const k = ST_PER_CM; c.scale(1 / k, 1 / k);          // isotrope Einheit: 1/6 cm
+      c.font = `700 ${h / 0.7 * k}px ${SCARF_FONT}`;
+      c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+      const chars = [...str], ws = chars.map(ch => c.measureText(ch).width), track = h * 0.18 * k;
+      const total = ws.reduce((a, b) => a + b, 0) + track * (chars.length - 1);
+      const R = radius * k;
+      let a = (top ? -Math.PI / 2 : Math.PI / 2) + (top ? -1 : 1) * total / 2 / R;
+      chars.forEach((ch, i) => {
+        const half = ws[i] / 2 / R; a += (top ? 1 : -1) * half;
+        c.save();
+        c.translate(cu * k + Math.cos(a) * R, cv * k + Math.sin(a) * R);
+        c.rotate(top ? a + Math.PI / 2 : a - Math.PI / 2);
+        c.fillText(ch, 0, h * k / 2);
+        c.restore();
+        a += (top ? 1 : -1) * (half + track / R);
+      });
+    }, cu - radius - 1, cu + radius + 1);
+  }
   // Text mit Großbuchstaben-Höhe h (cm), zentriert auf (u, v), höchstens maxW breit
   text(color, str, u, v, h, maxW = 99) {
     const s = String(str).toUpperCase();
@@ -130,15 +151,32 @@ const SHAPES = {
 
 // Bayerische Rauten im Rechteck: schräges Schachbrett aus blauen und weißen Rauten,
 // direkt im Maschenraster berechnet (gestochen scharf)
-function paintRauten(r, u0, u1, v0, v1, s = 1.1) {
+function paintRauten(r, u0, u1, v0, v1, s = 1.1, clip = null) {
   const g = r.g, su = s * 0.62, sv = s * 0.95, shear = 0.42;
   const x0 = Math.max(0, Math.round(u0 * ROWS_PER_CM)), x1 = Math.min(g.L, Math.round(u1 * ROWS_PER_CM));
   const y0 = Math.max(0, Math.round(v0 * ST_PER_CM)), y1 = Math.min(g.W, Math.round(v1 * ST_PER_CM));
   for (let x = x0; x < x1; x++) for (let y = y0; y < y1; y++) {
     const u = (x + 0.5) / ROWS_PER_CM, v = (y + 0.5) / ST_PER_CM, uu = u + v * shear;
+    if (clip && !clip(u, v)) continue;
     const a = Math.floor(uu / su + v / sv), b = Math.floor(uu / su - v / sv);
     g.set(x, y, ((a + b) % 2 + 2) % 2 ? 'B' : 'W');
   }
+}
+
+/* ---- Vereinswappen (nachgezeichnet, eingestrickt) ---------------------- */
+function paintCrest(r, cu, cv, R) {
+  const circ = (rad) => c => { c.arc(cu, cv, rad, 0, 7); c.fill(); };
+  r.paint('B', circ(R), cu - R, cu + R);
+  r.paint('W', circ(R - 0.32), cu - R, cu + R);
+  r.paint('R', circ(R - 0.62), cu - R, cu + R);
+  r.paint('W', circ(R * 0.56), cu - R, cu + R);
+  const ri = R * 0.5;
+  paintRauten(r, cu - ri, cu + ri, cv - ri, cv + ri, 0.95, (u, v) => Math.hypot(u - cu, v - cv) <= ri);
+  const rt = (R - 0.62 + R * 0.56) / 2, h = (R - 0.62 - R * 0.56) * 0.62;
+  r.arcText('W', 'FC BAYERN', cu, cv, rt, h, true);
+  r.arcText('W', 'MÜNCHEN', cu, cv, rt, h, false);
+  // kleine Trennpunkte links und rechts
+  r.paint('W', c => { c.arc(cu - rt, cv, h * 0.16, 0, 7); c.fill(); c.beginPath(); c.arc(cu + rt, cv, h * 0.16, 0, 7); c.fill(); }, cu - R, cu + R);
 }
 
 /* ---- Strickcode (direkt im Raster) -------------------------------------- */
@@ -183,7 +221,7 @@ function goldAvailable(act) { return GOLD_ELEMENTS.some(k => act[k]); }
 function buildFront(ctx) {
   const { act, stats, lengthCm, season } = ctx;
   const L = lengthCm * ROWS_PER_CM, C = lengthCm / 2;
-  const g = new Grid(L), r = new Raster(g);
+  const g = new Grid(L), r = new Raster(g), overlay = [];
   const goldOn = goldAvailable(act);
   const el = (id, extra) => g.use({ el: id, ...extra });
   const uOf = (end, d) => end === 0 ? d : lengthCm - d;              // Position ab Ende
@@ -237,8 +275,8 @@ function buildFront(ctx) {
     if (act.medal) {
       el('medal');
       const vn = icons.length ? 9.6 : 8.4;
-      r.text('W', String(stats.total), C, vn, icons.length ? 3.6 : 4.6, 9);
-      r.text(goldOn ? 'G' : 'W', 'SPIELE', C, vn + (icons.length ? 3.4 : 4.1), 1.15, 8);
+      overlay.push(emb({ el: 'medal' }, 'W', String(stats.total), C, vn, icons.length ? 3.2 : 4.0, 9));
+      overlay.push(emb({ el: 'medal' }, goldOn ? 'G' : 'W', 'SPIELE', C, vn + (icons.length ? 3.0 : 3.7), 0.9, 8));
     }
   }
 
@@ -255,7 +293,7 @@ function buildFront(ctx) {
     }
     if (act.fourStars) { el('fourStars'); r.paint('G', c => { for (let i = 0; i < 4; i++) { c.beginPath(); SHAPES.star(c, uc + (i - 1.5) * 2.3, 2.75, 0.9); } }, uc - 5, uc + 5); }
     if (act.season) { el(act.gold ? 'gold' : 'season'); r.text(act.gold ? 'G' : 'W', seasonLabel(season), uc, 7.9, 5.4, 13.4); }
-    if (act.monthSeal) { el('monthSeal'); r.text('G', 'AUG – MAI', uc, 12.2, 1.15, 10); }
+    if (act.monthSeal) overlay.push(emb({ el: 'monthSeal' }, 'G', 'AUG – MAI', uc, 12.2, 1.0, 10));
     const syms = [act.cupIcon && 'cupIcon', act.crown && 'crown'].filter(Boolean);
     syms.forEach((id, i) => {
       el(id);
@@ -284,7 +322,7 @@ function buildFront(ctx) {
   }
   if (act.border) { el('border'); g.rect(0, L - 1, 0, 2, 'W'); g.rect(0, L - 1, STITCHES - 3, STITCHES - 1, 'W'); }
 
-  return finishModel(g, { L, lengthCm, motifs }, fringeColors(act));
+  return finishModel(g, { L, lengthCm, motifs }, fringeColors(act), overlay);
 }
 
 function fringeColors(act) {
@@ -293,34 +331,12 @@ function fringeColors(act) {
   return act.gold ? [...base, base[0], 'G'] : base;
 }
 
-/* ---- Rückseite --------------------------------------------------------- */
-const HL_LEN = 10.5, HEART_LEN = 13, HL_GAP = 1;
+/* ---- Stick- und Patch-Ebene --------------------------------------------
+   Diese Elemente werden nicht gestrickt, sondern nach dem Stricken aufgestickt
+   (Schrift) oder als gewebter Aufnäher aufgenäht (Highlight-Patches).        */
+function emb(tag, color, text, u, v, h, maxW = 99) { return { kind: 'emb', tag, color, text: String(text).toUpperCase(), u, v, h, maxW }; }
 
-function frame(r, color, u0, u1, t = 0.35) {
-  r.paint(color, c => { c.rect(u0, 0.8, u1 - u0, WIDTH_CM - 1.6); c.rect(u0 + t, 0.8 + t, u1 - u0 - 2 * t, WIDTH_CM - 1.6 - 2 * t); c.fill('evenodd'); }, u0, u1);
-}
-
-function drawPanel(g, r, u0, len, m, isHeart, gold, bg) {
-  g.use({ type: 'panel', game: m, heart: isHeart });
-  const u1 = u0 + len, uc = u0 + len / 2;
-  frame(r, isHeart ? gold : 'W', u0, u1, isHeart ? 0.5 : 0.35);
-  if (isHeart) frame(r, 'W', u0 + 0.8, u1 - 0.8, 0.2);
-  // Gegner-Schild (neutral, kein Vereinswappen) + Ergebnis
-  const su = u0 + (isHeart ? 2.6 : 2.2);
-  r.paint('W', c => SHAPES.shield(c, su, 3.1, 2.4), su - 2, su + 2);
-  r.text(bg, clubAbbr(m.opp).slice(0, 3), su, 2.7, 0.75, 2.0);
-  const score = m.venue === 'A' ? `${m.oppGoals}:${m.fcbGoals}` : `${m.fcbGoals}:${m.oppGoals}`;
-  r.text('W', score, (su + 1.4 + u1 - 0.8) / 2, 3.1, 2.4, u1 - su - 2.4);
-  r.text('W', shortRound(m), uc, 6.6, 1.25, len - 1.6);
-  r.text('W', fmtDateLong(m.date), uc, 8.6, 1.1, len - 1.6);
-  if (m.final) r.paint(gold, c => SHAPES.cup(c, uc, 11.1, 2.6), uc - 2, uc + 2);
-  else if (m.titleClinch) r.paint(gold, c => SHAPES.plate(c, uc, 11.1, 1.3), uc - 2, uc + 2);
-  else if (m.comp === 'CL') r.paint('W', c => SHAPES.star(c, uc, 11.1, 1.2), uc - 2, uc + 2);
-  else r.text(bg === 'N' ? 'B' : 'N', m.venue === 'H' ? 'HEIM' : m.venue === 'A' ? 'AUSWÄRTS' : 'FINALE', uc, 11.1, 1.05, len - 1.6);
-  r.text(gold, `NR. ${m.nr}`, uc, 13.4, 1.0, len - 2);
-  r.text('W', m.city, uc, 15.3, 1.0, len - 1.6);
-  if (isHeart) r.paint(bg === 'R' ? 'W' : 'R', c => SHAPES.heart(c, uc, 16.6, 1.1), uc - 1, uc + 1);
-}
+const HL_LEN = 10.5, HEART_LEN = 13, HL_GAP = 1.2;
 
 function shortRound(m) {
   if (m.final) return m.comp === 'DFB' ? 'POKALFINALE' : 'CL-FINALE';
@@ -335,99 +351,120 @@ function shortRound(m) {
 function buildBack(ctx) {
   const { profile, act, lengthCm, stats, highlights } = ctx;
   const L = lengthCm * ROWS_PER_CM, C = lengthCm / 2;
-  const g = new Grid(L), r = new Raster(g);
-  const gold = goldAvailable(act) ? 'G' : 'W';
+  const g = new Grid(L), r = new Raster(g), overlay = [];
   const bg = act.night ? 'N' : 'R';
+  const accent = bg === 'R' ? 'N' : 'R';
+  const gold = goldAvailable(act) ? 'G' : 'W';
   g.use(act.night ? { el: 'night' } : { type: 'backBase' });
   g.rect(0, L - 1, 0, STITCHES - 1, bg);
+  const baseTag = g.pen;
+  const ends = act.code ? 2.4 : 0.6;
 
-  const left = [], right = [];
-  const box = (list, w, id, fn) => list.push({ w, id, fn });
-  if (act.backInfo) box(left, 17, 'backInfo', u0 => {
-    frame(r, 'W', u0, u0 + 17);
-    r.text('W', ctx.name || profile.name || 'FAN', u0 + 8.5, 4.6, 3.4, 14.5);
-    r.text(bg === 'R' ? 'N' : 'R', `SAISON ${seasonLabel(ctx.season)}`, u0 + 8.5, 8.4, 1.25, 14);
-    r.text('W', profile.code, u0 + 8.5, 10.6, 1.0, 14);
-    r.text('W', `${stats.total} SPIELE`, u0 + 8.5, 13.0, 1.25, 14);
-    r.text('W', `${stats.W} S · ${stats.D} U · ${stats.L} N`, u0 + 8.5, 15.2, 1.05, 14);
-  });
-  if (act.travel) box(left, 13, 'travel', u0 => {
-    frame(r, 'W', u0, u0 + 13);
-    r.text(bg === 'R' ? 'N' : 'R', 'AUSWÄRTS', u0 + 6.5, 3.0, 1.05, 11);
-    r.text('W', `${stats.km.toLocaleString('de-DE')} KM`, u0 + 6.5, 5.9, 2.0, 11.6);
-    r.text('W', `${stats.away} FAHRTEN`, u0 + 6.5, 8.6, 1.0, 11);
-    const cs = [...stats.awayCountries];
-    for (let i = 0; i < Math.min(3, Math.ceil(cs.length / 3)); i++) r.text('W', cs.slice(i * 3, i * 3 + 3).join(' '), u0 + 6.5, 11.4 + i * 2, 1.15, 11);
-    if (!cs.length) r.text('W', 'DEUTSCHLAND', u0 + 6.5, 11.4, 1.0, 11);
-  });
-  if (act.calendar) box(right, 12.5, 'calendar', u0 => {
-    frame(r, 'W', u0, u0 + 12.5);
-    r.text(bg === 'R' ? 'N' : 'R', 'KALENDER', u0 + 6.25, 2.9, 1.05, 10);
-    const max = Math.max(1, ...stats.months.values());
-    SEASON_MONTHS.forEach((mo, i) => {
-      const n = stats.months.get(mo) || 0, u = u0 + 1.3 + i * 1.03, h = n ? 0.4 + 8.6 * n / max : 0.2;
-      r.rect(n === max ? gold : 'W', u, u + 0.72, 14.0 - h, 14.0);
-      r.text('W', MONTH_SHORT[mo][0], u + 0.36, 15.5, 0.8, 1);
-    });
-  });
-  if (act.collection) box(right, 14, 'collection', u0 => {
-    frame(r, 'W', u0, u0 + 14);
-    r.text(bg === 'R' ? 'N' : 'R', `GEGNER ${stats.blOpp.size}/17`, u0 + 7, 2.9, 1.05, 12);
-    (ctx.blOpponents || CURRENT_BL).forEach((id, i) => {
-      const row = i < 9 ? 0 : 1, col = row ? i - 9 : i;
-      const u = u0 + 1.5 + col * 1.37 + (row ? 0.68 : 0), v = 6.6 + row * 3.6;
-      r.paint(stats.blOpp.has(id) ? 'W' : (bg === 'R' ? 'N' : 'B'), c => SHAPES.shield(c, u, v, 1.05), u - 1, u + 1);
-    });
-    r.text('W', 'GESEHEN', u0 + 7, 14.8, 1.0, 12);
-  });
-  if (act.rautenField) box(right, 11, 'rautenField', u0 => {
-    frame(r, 'W', u0, u0 + 11);
-    paintRauten(r, u0 + 0.6, u0 + 10.4, 1.4, 4.6, 0.8); paintRauten(r, u0 + 0.6, u0 + 10.4, 13.4, 16.6, 0.8);
-    r.text(gold, 'ALLESFAHRER', u0 + 5.5, 8.0, 1.2, 9.6);
-    r.text('W', `${stats.total} SPIELE`, u0 + 5.5, 10.6, 1.0, 9);
-  });
+  // Ende A: Wappen + gestickter Name (wie beim Mitgliederschal)
+  let leftEnd = ends;
+  if (act.crest) { g.use({ el: 'crest' }); paintCrest(r, ends + 7.4, WIDTH_CM / 2, 6.6); leftEnd = ends + 14.8; }
 
-  // Highlights in der Mitte
+  // Highlights als Patches in der Mitte
   const hl = act.highlights ? highlights.slice(0, 5) : [];
   let hs = C, he = C;
   if (hl.length) {
     const side = hl.slice(1).sort((a, b) => a.date.localeCompare(b.date));
     const nA = Math.ceil(side.length / 2);
+    const patch = (u0, len, m, heart) => overlay.push({ kind: 'patch', tag: { type: 'panel', game: m, heart }, u0, u1: u0 + len, v0: 1.3, v1: WIDTH_CM - 1.3, game: m, heart, round: shortRound(m), abbr: clubAbbr(m.opp).slice(0, 3) });
     hs = C - HEART_LEN / 2; he = C + HEART_LEN / 2;
-    drawPanel(g, r, hs, HEART_LEN, hl[0], true, gold, bg);
-    for (const m of side.slice(0, nA).reverse()) { hs -= HL_LEN + HL_GAP; drawPanel(g, r, hs, HL_LEN, m, false, gold, bg); }
-    for (const m of side.slice(nA)) { drawPanel(g, r, he + HL_GAP, HL_LEN, m, false, gold, bg); he += HL_LEN + HL_GAP; }
+    patch(hs, HEART_LEN, hl[0], true);
+    for (const m of side.slice(0, nA).reverse()) { hs -= HL_LEN + HL_GAP; patch(hs, HL_LEN, m, false); }
+    for (const m of side.slice(nA)) { patch(he + HL_GAP, HL_LEN, m, false); he += HL_LEN + HL_GAP; }
   }
-  const ends = act.code ? 2.4 : 0.5;
+
+  const left = [], right = [];
+  const box = (list, w, fn) => list.push({ w, fn });
+  if (act.backInfo) box(left, 18, u0 => {
+    const t = { el: 'backInfo' }, uc = u0 + 9;
+    overlay.push(emb(t, 'W', ctx.name || profile.name || 'FAN', uc, 6.2, 2.6, 17));
+    overlay.push(emb(t, 'W', `SAISON ${seasonLabel(ctx.season)}`, uc, 10.2, 1.0, 16));
+    overlay.push(emb(t, 'W', `${stats.total} ${stats.total === 1 ? 'SPIEL' : 'SPIELE'} · ${stats.W} S  ${stats.D} U  ${stats.L} N`, uc, 12.5, 0.8, 16));
+    overlay.push(emb(t, 'W', profile.code, uc, 14.5, 0.7, 16));
+  });
+  if (act.travel) box(right, 11, u0 => {
+    const t = { el: 'travel' }, uc = u0 + 5.5;
+    overlay.push(emb(t, accent, 'AUSWÄRTS', uc, 3.6, 0.85, 10));
+    overlay.push(emb(t, 'W', `${stats.km.toLocaleString('de-DE')} KM`, uc, 6.4, 1.7, 10.5));
+    overlay.push(emb(t, 'W', `${stats.away} FAHRTEN`, uc, 8.9, 0.8, 10));
+    const cs = [...stats.awayCountries];
+    for (let i = 0; i < Math.min(3, Math.ceil(cs.length / 3)); i++) overlay.push(emb(t, 'W', cs.slice(i * 3, i * 3 + 3).join(' · '), uc, 11.6 + i * 1.7, 0.85, 10));
+    if (!cs.length) overlay.push(emb(t, 'W', 'DEUTSCHLAND', uc, 11.6, 0.8, 10));
+  });
+  if (act.calendar) box(right, 11, u0 => {
+    g.use({ el: 'calendar' });
+    overlay.push(emb({ el: 'calendar' }, accent, 'KALENDER', u0 + 5.5, 3.6, 0.85, 10));
+    const max = Math.max(1, ...stats.months.values());
+    SEASON_MONTHS.forEach((mo, i) => {
+      const n = stats.months.get(mo) || 0, u = u0 + 0.9 + i * 0.96, h = n ? 0.4 + 8 * n / max : 0.25;
+      r.rect(n === max ? gold : 'W', u, u + 0.66, 14.0 - h, 14.0);
+      overlay.push(emb({ el: 'calendar' }, 'W', MONTH_SHORT[mo][0], u + 0.33, 15.6, 0.65, 1));
+    });
+  });
+  if (act.collection) box(right, 12.5, u0 => {
+    g.use({ el: 'collection' });
+    overlay.push(emb({ el: 'collection' }, accent, `GEGNER ${stats.blOpp.size}/17`, u0 + 6.25, 3.6, 0.85, 11));
+    (ctx.blOpponents || CURRENT_BL).forEach((id, i) => {
+      const row = i < 9 ? 0 : 1, col = row ? i - 9 : i;
+      const u = u0 + 0.9 + col * 1.33 + (row ? 0.66 : 0), v = 7.2 + row * 3.4;
+      r.paint(stats.blOpp.has(id) ? 'W' : accent === 'N' ? 'N' : 'B', c => SHAPES.shield(c, u, v, 1.0), u - 1, u + 1);
+    });
+    overlay.push(emb({ el: 'collection' }, 'W', 'GESEHEN', u0 + 6.25, 14.6, 0.8, 11));
+  });
+
   const place = (list, a, b) => {
     const items = list.slice();
     while (items.length && items.reduce((s, it) => s + it.w, 0) + 1 * (items.length + 1) > b - a) items.pop();
     const gap = ((b - a) - items.reduce((s, it) => s + it.w, 0)) / (items.length + 1);
     let u = a + gap;
-    for (const it of items) { g.use({ el: it.id }); it.fn(u); u += it.w + gap; }
+    for (const it of items) { it.fn(u); u += it.w + gap; }
     return list.length - items.length;
   };
-  const dropped = place(left, ends, hs) + place(right, he, lengthCm - ends);
+  const dropped = place(left, leftEnd, hs) + place(right, he, lengthCm - ends);
+  if (act.code) { drawCodeBand(g, 4, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 16, profile.raw, ctx.season, 'B'); }
+
   if (act.night) {
-    // Sternenhimmel nur auf freier Fläche (nicht in Feldern und Texten)
-    const rnd = rng('night-' + profile.raw), baseTag = g.tags[0];
+    // Sternenhimmel nur auf freier Fläche (nicht unter Stickerei, Patches oder Wappen)
+    const free = (u, v) => !overlay.some(o => o.kind === 'patch' ? u > o.u0 - 0.4 && u < o.u1 + 0.4 : Math.abs(u - o.u) < Math.min(o.maxW, o.text.length * o.h * 0.6) / 2 + 0.5 && Math.abs(v - o.v) < o.h);
+    const rnd = rng('night-' + profile.raw);
     g.use({ el: 'night' });
     for (let i = 0; i < lengthCm * 1.4; i++) {
       const x = Math.floor(rnd() * L), y = 4 + Math.floor(rnd() * (STITCHES - 8)), big = rnd() < 0.3;
+      if (!free(x / ROWS_PER_CM, y / ST_PER_CM)) continue;
       const pts = big ? [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]] : [[0, 0]];
-      const ok = pts.every(([dx, dy]) => x + dx >= 0 && x + dx < L && g.tags[(x + dx) * STITCHES + y + dy] === baseTag)
-        && [[2, 0], [-2, 0], [0, 2], [0, -2]].every(([dx, dy]) => x + dx >= 0 && x + dx < L && g.tags[(x + dx) * STITCHES + y + dy] === baseTag);
+      const ok = [[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2]].every(([dx, dy]) => x + dx >= 0 && x + dx < L && g.tags[(x + dx) * STITCHES + y + dy] === baseTag);
       if (ok) for (const [dx, dy] of pts) g.set(x + dx, y + dy, 'W');
     }
   }
-  if (act.code) { drawCodeBand(g, 4, profile.raw, ctx.season, 'A'); drawCodeBand(g, L - 16, profile.raw, ctx.season, 'B'); }
-  return finishModel(g, { L, lengthCm, back: true, dropped }, fringeColors(act));
+  return finishModel(g, { L, lengthCm, back: true, dropped }, fringeColors(act), overlay);
 }
 
-function finishModel(g, info, fringe) {
+function finishModel(g, info, fringe, overlay = []) {
   const counts = [0, 0, 0, 0, 0];
   for (let i = 0; i < g.cells.length; i++) counts[g.cells[i]]++;
-  return { L: g.L, W: g.W, cells: g.cells, tags: g.tags, tagList: g.tagList, info, fringe, counts };
+  return { L: g.L, W: g.W, cells: g.cells, tags: g.tags, tagList: g.tagList, info, fringe, counts, overlay };
+}
+
+// Stickdatei (SVG, Maße in mm): Stickerei und Patch-Positionen für die Konfektion
+function embroiderySVG(scarf, meta) {
+  const Lmm = meta.lengthCm * 10, Wmm = WIDTH_CM * 10;
+  const TH = { W: '#FFFFFF', G: '#D9AE45', N: '#0E2240', R: '#DC052D', B: '#0074C8' };
+  const esc2 = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const side = (model, y0, label) => {
+    let out = `<g transform="translate(0 ${y0})"><rect width="${Lmm}" height="${Wmm}" fill="none" stroke="#999" stroke-dasharray="4 3"/><text x="0" y="-4" font-size="8" font-family="sans-serif">${label}</text>`;
+    for (const o of model.overlay) {
+      if (o.kind === 'emb') out += `<text x="${(o.u * 10).toFixed(1)}" y="${((o.v + o.h / 2) * 10).toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="${(o.h / 0.7 * 10).toFixed(1)}" fill="${TH[o.color]}" stroke="#0004" stroke-width="0.2">${esc2(o.text)}</text>`;
+      else out += `<rect x="${(o.u0 * 10).toFixed(1)}" y="${(o.v0 * 10).toFixed(1)}" width="${((o.u1 - o.u0) * 10).toFixed(1)}" height="${((o.v1 - o.v0) * 10).toFixed(1)}" rx="8" fill="none" stroke="#0E2240"/><text x="${((o.u0 + o.u1) * 5).toFixed(1)}" y="${((o.v0 + 1.2) * 10).toFixed(1)}" text-anchor="middle" font-size="7" font-family="sans-serif">PATCH ${o.heart ? '♥ ' : ''}#${o.game.nr} ${esc2(scoreLine(o.game))}</text>`;
+    }
+    return out + '</g>';
+  };
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Lmm}mm" height="${Wmm * 2 + 40}mm" viewBox="0 -12 ${Lmm} ${Wmm * 2 + 40}">
+<!-- Stadion gestrickt · Stickdatei (Prototyp) · ${meta.code} · Saison ${seasonLabel(meta.season)} · Maße in mm -->
+${side(scarf.front, 0, 'VORDERSEITE – Stickerei')}${side(scarf.back, Wmm + 24, 'RÜCKSEITE – Stickerei und Patches')}</svg>`;
 }
 
 function buildScarf(ctx) { return { front: buildFront(ctx), back: buildBack(ctx) }; }
