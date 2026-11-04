@@ -97,7 +97,9 @@ function renderScarf() {
   const mark = state.markNew && state.fut.length ? state.newEls : null;
   for (const [side, cfg] of Object.entries(SIDES)) {
     const stage = $(cfg.stage), model = state.scarf[side];
-    const width = Math.round(state.sizePx * (state.lengthCm + 12) / 162);
+    // Der ganze Schal passt in die Höhe des Bereichs (Länge inkl. Fransen)
+    const avail = Math.max(320, stage.clientHeight || ($('#scarfLayout').clientHeight - 60));
+    const width = Math.floor(avail);
     state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.real, real: state.real, markEls: mark, orient: state.orient });
     drawHover($('.hover', stage), state.lays[side], model, state.pinned && state.pinned.side === side ? state.pinned : null);
   }
@@ -113,7 +115,7 @@ function renderScarf() {
   $('#yarns').innerHTML = `<span class="muted">Garn:</span> ` + usage.used.map(k => `<span class="yarn-dot" style="background:${YARN[k].hex}" title="${YARN[k].name}"></span>${YARN[k].name}`).join(' ') + ` <span class="muted">· ${usage.used.length}/5 Farben${state.scarf.back.info.dropped ? ` · ${state.scarf.back.info.dropped} Feld(er) der Rückseite passen bei ${state.lengthCm} cm nicht` : ''}</span>`;
   if (state.pinned) showReader(state.pinned);
   const lm = state.scarf[state.lensSide || 'front'];
-  drawLens($('#lens'), lm, state.lensX != null ? state.lensX : Math.round(FRONT.zoneC * ROWS_PER_CM), state.lensY != null ? state.lensY : 48, true);
+  drawLens($('#lens'), lm, state.lensX != null ? state.lensX : Math.round(FRONT.zoneC * ROWS_PER_CM), state.lensY != null ? state.lensY : 48, true, state.orient);
 }
 
 function tagText(t) {
@@ -134,12 +136,12 @@ function tagText(t) {
   return null;
 }
 
-const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', mark: '🪡 gesticktes Zeichen', shape: '🪡 gestickt', bar: '🪡 aufgestickte Silberkordel', patch: '🏷️ aufgenähter Patch' };
+const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', mark: '🏷️ gestickter Moment-Patch', shape: '🪡 gestickt', bar: '🪡 aufgestickte Silberkordel', patch: '🏷️ aufgenähter Patch' };
 function hitText(hit) {
   const it = hit.item;
   const txt = tagText(it ? it.tag : tagAtCell(state.scarf[hit.side], hit.x, hit.y));
   if (!txt) return null;
-  const ver = it && it.kind === 'mark' ? ` · Version ${it.version} von 3` : '';
+  const ver = it && it.kind === 'mark' ? ` · Akzent ${['', 'weiß', 'silber', 'gold'][it.version]}` : '';
   return `${txt}<br><span class="tech">${TECH[it ? it.kind : 'knit']}${ver}</span>`;
 }
 function showReader(hit) {
@@ -161,7 +163,7 @@ function bindScarf() {
       const hit = hitOf(ev), model = state.scarf[side];
       if (!hit) { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], model, null); last = null; return; }
       state.lensX = hit.x; state.lensY = hit.y; state.lensSide = side;
-      drawLens($('#lens'), model, hit.x, hit.y, true);
+      drawLens($('#lens'), model, hit.x, hit.y, true, state.orient);
       const t = hit.item ? hit.item : tagAtCell(model, hit.x, hit.y);
       if (t !== last) {
         last = t;
@@ -381,7 +383,6 @@ function init() {
   $('#nameIn').oninput = () => { state.name = $('#nameIn').value.toUpperCase(); update(); };
   bindSeg('viewSeg', v => { state.real = v === 'real'; renderScarf(); });
   bindSeg('orientSeg', v => { state.orient = v; state.pinned = null; renderScarf(); });
-  bindSeg('sizeSeg', v => { state.sizePx = Number(v); state.pinned = null; renderScarf(); });
   bindSeg('msMode', v => { state.msMode = v; state.overrides = {}; update(); });
   $('#futureIn').oninput = () => { state.future = Number($('#futureIn').value); update(); };
   $('#markNew').onchange = () => { state.markNew = $('#markNew').checked; renderScarf(); };

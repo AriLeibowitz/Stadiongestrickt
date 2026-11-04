@@ -28,7 +28,37 @@
   Gegner erscheinen nur als neutrales Schild mit Kürzel. <b>Die Rechte an Vereinslogos und -namen sind noch nicht geklärt.</b>
 </div></div>
 
-<main class="wrap">
+<main class="wrap app">
+ <div class="app-grid">
+  <!-- Schal: links, fixiert, immer komplett sichtbar -->
+  <section class="card scarf-card scarf-pane">
+    <div class="pane-head">
+      <h2 id="scarfTitle">Dein Schal</h2>
+      <div class="row small"><span class="chip" id="sumChip"></span><span class="chip green" id="codeChip"></span></div>
+      <div class="row">
+        <div class="seg" id="viewSeg" title="Realistisch: so sieht der fertige Schal aus. Produktion: gelb umrandet, was gestickt oder aufgenäht wird."><button data-v="real" class="on">Realistisch</button><button data-v="raster">Produktion</button></div>
+        <div class="seg" id="orientSeg" title="Drehen: Die Schrift an Ende A bzw. Ende B ist lesbar, wenn dieses Ende unten hängt."><button data-v="A" class="on">Ende A unten</button><button data-v="B">Ende B unten</button></div>
+      </div>
+    </div>
+    <div class="scarf-layout" id="scarfLayout">
+      <div class="scarf-col">
+        <div class="col-label">Vorderseite</div>
+        <div class="end-label" data-end="top"></div>
+        <div class="scarf-stage" id="stageFront"><canvas class="scarf" data-side="front"></canvas><canvas class="hover"></canvas></div>
+        <div class="end-label" data-end="bottom"></div>
+      </div>
+      <div class="scarf-col">
+        <div class="col-label">Rückseite</div>
+        <div class="end-label" data-end="top"></div>
+        <div class="scarf-stage" id="stageBack"><canvas class="scarf" data-side="back"></canvas><canvas class="hover"></canvas></div>
+        <div class="end-label" data-end="bottom"></div>
+      </div>
+    </div>
+    <div class="tip" id="tip"></div>
+  </section>
+
+  <!-- Optionen: rechts, scrollbar -->
+  <div class="control-pane">
   <!-- 1 · Auswahl -->
   <section class="card controls">
     <div class="ctl">
@@ -45,31 +75,7 @@
     <div class="err" id="codeErr"></div>
   </section>
 
-  <!-- 2 · Schal -->
-  <section class="card scarf-card">
-    <div class="scarf-head">
-      <h2 id="scarfTitle">Dein Schal</h2>
-      <span class="chip" id="sumChip"></span>
-      <span class="chip green" id="codeChip"></span>
-      <span class="grow"></span>
-      <div class="seg" id="viewSeg" title="Realistisch: so sieht der fertige Schal aus. Produktion: gelb umrandet, was gestickt oder aufgenäht wird."><button data-v="real" class="on">Realistisch</button><button data-v="raster">Produktion</button></div>
-      <div class="seg" id="orientSeg" title="Drehen: Die Schrift an Ende A und Ende B ist jeweils lesbar, wenn dieses Ende unten hängt."><button data-v="A" class="on">⟲ Ende A unten</button><button data-v="B">⟳ Ende B unten</button></div>
-      <div class="seg" id="sizeSeg"><button data-v="900">S</button><button data-v="1300" class="on">M</button><button data-v="2000">L</button></div>
-    </div>
-    <div class="scarf-layout">
-      <div class="scarf-col">
-        <div class="col-label">Vorderseite</div>
-        <div class="end-label" data-end="top"></div>
-        <div class="scarf-stage" id="stageFront"><canvas class="scarf" data-side="front"></canvas><canvas class="hover"></canvas></div>
-        <div class="end-label" data-end="bottom"></div>
-      </div>
-      <div class="scarf-col">
-        <div class="col-label">Rückseite</div>
-        <div class="end-label" data-end="top"></div>
-        <div class="scarf-stage" id="stageBack"><canvas class="scarf" data-side="back"></canvas><canvas class="hover"></canvas></div>
-        <div class="end-label" data-end="bottom"></div>
-      </div>
-      <div class="scarf-side stack">
+  <section class="card scarf-info stack">
         <div class="future" id="future">
           <div class="row between"><b id="futureLabel"></b><label class="small row nowrap"><input type="checkbox" id="markNew" checked> Neues markieren</label></div>
           <input type="range" id="futureIn" min="0" max="20" value="0" aria-label="Kommende Spiele simulieren">
@@ -77,12 +83,9 @@
         </div>
         <div class="reader" id="reader"><span class="muted">Fahr über den Schal: Die App zeigt, welches Element es ist und welcher Meilenstein es freigeschaltet hat. Mit einem Klick hältst du die Auswahl fest.</span></div>
         <div class="lens-wrap"><canvas id="lens"></canvas><span>Lupe · echte Maschen</span></div>
-        <div class="techline small"><span>🧶 <b>Gestrickt:</b> Grundfarbe, Streifen, Rauten, Goldfäden, Wappen</span><span>🪡 <b>Gestickt:</b> Name, Saison, Reise-Zeile, Trophäen, Momente-Zeichen, Silberkordel</span><span>🏷️ <b>Aufgenäht:</b> 5 Spiele-Patches an Ende B</span></div>
+        <div class="techline small"><span>🧶 <b>Gestrickt:</b> Grundfarbe, Streifen, Rauten, Goldfäden, Wappen</span><span>🪡 <b>Gestickt:</b> Name, Saison, Reise-Zeile, Trophäen, Silberkordel</span><span>🏷️ <b>Aufgenäht:</b> Spiele-Patches und Moment-Patches an Ende B</span></div>
         <div class="small yarnrow" id="yarns"></div>
         <div class="row"><button class="btn ghost sm" id="dlTxt" type="button">Strickdatei</button><button class="btn ghost sm" id="dlSvg" type="button">Stickdatei</button><button class="btn ghost sm" id="dlPng" type="button">PNG</button></div>
-      </div>
-    </div>
-    <div class="tip" id="tip"></div>
   </section>
 
   <!-- 3 · Meilensteine -->
@@ -146,6 +149,8 @@
     <h3 style="margin-top:22px">Regelwerk</h3>
     <div class="rules" id="rules"></div>
   </details>
+ </div>
+ </div>
 </main>
 <footer>
   Stadion gestrickt ist ein Konzept-Prototyp für die FC Bayern AI-deation 2026. Alle Spiel- und Fandaten sind synthetisch. Die Rechte an Vereinslogos und -namen sind noch nicht geklärt. Schrift: Barlow Condensed (SIL Open Font License).

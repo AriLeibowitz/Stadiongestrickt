@@ -254,36 +254,135 @@ function drawPatchReal(ctx, o, ox, oy, k) {
       localShape(ctx, k, '#C8102E', c => SHAPES.heart(c, -4.0, -2.35, 0.5));
     } else {
       localText(ctx, k, score, -1.65, -0.35, 1.4, 3.0, P.score);
-      localText(ctx, k, o.round, 2.05, -0.95, 0.42, 2.9, P.text);
-      localText(ctx, k, fmtDate(m.date), 2.05, -0.2, 0.36, 2.9, P.dim);
-      localText(ctx, k, m.city, 2.05, 0.6, 0.42, 2.9, P.text);
+      localText(ctx, k, o.round, 1.8, -0.95, 0.4, 2.5, P.text);
+      localText(ctx, k, fmtDate(m.date), 1.8, -0.2, 0.36, 2.5, P.dim);
+      localText(ctx, k, m.city, 1.8, 0.6, 0.42, 2.5, P.text);
       localText(ctx, k, `SPIEL NR. ${m.nr}`, 0, 1.45, 0.3, 5, P.dim);
     }
   });
 }
 
-// Gesticktes Moment-Zeichen: schlichtes Symbol + Schriftzug, Version 1–3
+// Runder gestickter Moment-Patch (Stil: dunkelroter Grund, Bogentitel, Illustration, Akzent weiß/silber/gold)
+const PATCH_ACCENT = {
+  1: { hi: '#FFFDF8', lo: '#E4DED2', edge: '#6E0A18' },
+  2: { hi: '#F2F5F7', lo: '#9EA7B1', edge: '#5A0712' },
+  3: { hi: '#F6D57A', lo: '#C48F2C', edge: '#5A0712' },
+};
+const PATCH_RED = '#8A0F22', PATCH_DARK = '#5E0815';
+
+function localArcText(ctx, k, str, radius, h, top, fill, outline) {
+  const fs = h / 0.7 * k, R = radius * k;
+  ctx.save();
+  ctx.font = `700 ${fs}px ${SCARF_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const chars = [...str], ws = chars.map(c => ctx.measureText(c).width), track = fs * 0.1;
+  const total = ws.reduce((a, b) => a + b, 0) + track * (chars.length - 1);
+  let a = (top ? -Math.PI / 2 : Math.PI / 2) + (top ? -1 : 1) * total / 2 / R;
+  chars.forEach((ch, i) => {
+    const half = ws[i] / 2 / R; a += (top ? 1 : -1) * half;
+    ctx.save(); ctx.translate(Math.cos(a) * R, Math.sin(a) * R); ctx.rotate(top ? a + Math.PI / 2 : a - Math.PI / 2);
+    if (outline) { ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, fs * 0.16); ctx.strokeStyle = outline; ctx.strokeText(ch, 0, 0); }
+    ctx.fillStyle = fill; ctx.fillText(ch, 0, 0);
+    ctx.restore();
+    a += (top ? 1 : -1) * (half + track / R);
+  });
+  ctx.restore();
+}
+
+const PATCH_ICONS = {
+  // Torrausch: Ball im Netz mit Flammen
+  spark(c, A) {
+    c.lineWidth = 0.05; c.strokeStyle = A.lo;
+    for (let i = -3; i <= 3; i++) { c.beginPath(); c.moveTo(0.2 + i * 0.28, -1.0); c.quadraticCurveTo(0.6 + i * 0.25, 0.1, 0.2 + i * 0.3, 1.1); c.stroke(); }
+    for (let j = -2; j <= 2; j++) { c.beginPath(); c.moveTo(-0.6, j * 0.4); c.quadraticCurveTo(0.4, j * 0.36 + 0.15, 1.3, j * 0.42); c.stroke(); }
+    c.fillStyle = A.hi; c.strokeStyle = PATCH_DARK; c.lineWidth = 0.06;
+    for (const [dx, dy, s] of [[-1.25, -0.25, 0.75], [-1.45, 0.3, 0.6], [-1.05, 0.6, 0.5]]) {
+      c.beginPath(); c.moveTo(dx - s, dy); c.quadraticCurveTo(dx - s * 0.2, dy - s * 0.45, dx + s * 0.55, dy - s * 0.05); c.quadraticCurveTo(dx, dy + s * 0.35, dx - s, dy); c.fill(); c.stroke();
+    }
+    c.beginPath(); c.arc(0.35, 0.05, 0.72, 0, 7); c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.07; c.strokeStyle = PATCH_DARK; c.stroke();
+    c.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5, p = [0.35 + Math.cos(a) * 0.26, 0.05 + Math.sin(a) * 0.26]; i ? c.lineTo(...p) : c.moveTo(...p); } c.closePath(); c.fillStyle = PATCH_DARK; c.fill();
+    for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; c.beginPath(); c.moveTo(0.35 + Math.cos(a) * 0.26, 0.05 + Math.sin(a) * 0.26); c.lineTo(0.35 + Math.cos(a) * 0.68, 0.05 + Math.sin(a) * 0.68); c.stroke(); }
+  },
+  // Klassiker: doppelter Blitz mit Funken
+  cross(c, A) {
+    const bolt = (dx) => { c.beginPath(); c.moveTo(dx + 0.35, -1.25); c.lineTo(dx - 0.45, 0.1); c.lineTo(dx + 0.02, 0.1); c.lineTo(dx - 0.35, 1.25); c.lineTo(dx + 0.5, -0.2); c.lineTo(dx + 0.02, -0.2); c.lineTo(dx + 0.55, -1.25); c.closePath(); c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.07; c.strokeStyle = PATCH_DARK; c.stroke(); };
+    bolt(-0.3); bolt(0.3);
+    c.strokeStyle = A.hi; c.lineWidth = 0.05; c.beginPath();
+    for (const [x, y, dx, dy] of [[-1.05, 0.05, -0.3, 0], [1.05, -0.15, 0.3, 0], [0.9, -0.55, 0.22, -0.12], [-0.9, 0.45, -0.22, 0.12], [0.1, -1.4, 0, -0.2]]) { c.moveTo(x, y); c.lineTo(x + dx, y + dy); }
+    c.stroke();
+  },
+  // Niemals aufgeben: Zickzack-Pfeil nach oben rechts
+  arrow(c, A) {
+    const path = (off) => { c.beginPath(); c.moveTo(-1.3 + off, 1.0 + off); c.lineTo(-0.45 + off, 0.05 + off); c.lineTo(-0.15 + off, 0.45 + off); c.lineTo(0.85 + off, -0.75 + off); };
+    c.lineCap = 'butt'; c.lineJoin = 'miter';
+    path(0); c.lineWidth = 0.34; c.strokeStyle = PATCH_DARK; c.stroke(); c.lineWidth = 0.22; c.strokeStyle = A.hi; c.stroke();
+    path(0.3); c.lineWidth = 0.07; c.strokeStyle = A.lo; c.stroke();
+    c.beginPath(); c.moveTo(1.25, -1.15); c.lineTo(0.45, -0.95); c.lineTo(1.05, -0.35); c.closePath(); c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.06; c.strokeStyle = PATCH_DARK; c.stroke();
+  },
+  // Sturmerprobt: Wolken, Blitz, Regen, Stadion
+  rain(c, A) {
+    c.fillStyle = PATCH_DARK; c.strokeStyle = A.lo; c.lineWidth = 0.04;
+    for (const [x, y, r] of [[-0.7, -0.75, 0.42], [-0.2, -0.95, 0.5], [0.4, -0.8, 0.45], [0.85, -0.7, 0.32]]) { c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); }
+    c.strokeStyle = A.lo; c.beginPath(); for (let i = 0; i < 12; i++) { const x = -1.0 + i * 0.18; c.moveTo(x, -0.35); c.lineTo(x - 0.12, 0.25); } c.stroke();
+    c.beginPath(); c.moveTo(0.15, -0.8); c.lineTo(-0.15, -0.1); c.lineTo(0.08, -0.1); c.lineTo(-0.15, 0.55); c.lineWidth = 0.09; c.strokeStyle = A.hi; c.stroke();
+    c.beginPath(); c.ellipse(0, 0.75, 1.15, 0.28, 0, 0, 7); c.lineWidth = 0.14; c.strokeStyle = A.hi; c.stroke();
+    c.beginPath(); c.moveTo(-1.15, 0.75); c.lineTo(-1.1, 1.2); c.lineTo(1.1, 1.2); c.lineTo(1.15, 0.75); c.lineWidth = 0.07; c.stroke();
+    c.beginPath(); for (let i = -4; i <= 4; i++) { c.moveTo(i * 0.25, 1.0); c.lineTo(i * 0.25, 1.2); } c.lineWidth = 0.04; c.stroke();
+  },
+  // Unbesiegbar: Schild mit Zinnen
+  zigzag(c, A) {
+    c.lineJoin = 'miter'; c.strokeStyle = A.hi;
+    c.beginPath(); c.moveTo(-0.85, -1.2); c.lineTo(-0.85, -0.95); c.lineTo(-0.55, -0.95); c.lineTo(-0.55, -1.2); c.lineTo(-0.15, -1.2); c.lineTo(-0.15, -0.95); c.lineTo(0.15, -0.95); c.lineTo(0.15, -1.2); c.lineTo(0.55, -1.2); c.lineTo(0.55, -0.95); c.lineTo(0.85, -0.95); c.lineTo(0.85, -1.2);
+    c.lineTo(0.85, 0.15); c.quadraticCurveTo(0.85, 0.85, 0, 1.25); c.quadraticCurveTo(-0.85, 0.85, -0.85, 0.15); c.closePath(); c.lineWidth = 0.16; c.stroke();
+    c.beginPath(); c.moveTo(-0.55, -0.6); c.lineTo(0.55, -0.6); c.lineTo(0.55, 0.15); c.quadraticCurveTo(0.55, 0.65, 0, 0.92); c.quadraticCurveTo(-0.55, 0.65, -0.55, 0.15); c.closePath(); c.lineWidth = 0.09; c.stroke();
+  },
+  // Last Minute: Stoppuhr mit 90+
+  heart(c, A) {
+    c.strokeStyle = A.hi; c.fillStyle = A.hi;
+    c.beginPath(); c.arc(0, 0.15, 1.0, 0, 7); c.lineWidth = 0.15; c.stroke();
+    c.beginPath(); c.rect(-0.17, -1.17, 0.34, 0.25); c.fill(); c.beginPath(); c.rect(-0.3, -1.32, 0.6, 0.15); c.fill();
+    c.beginPath(); for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; c.moveTo(Math.cos(a) * 0.78, 0.15 + Math.sin(a) * 0.78); c.lineTo(Math.cos(a) * 0.88, 0.15 + Math.sin(a) * 0.88); } c.lineWidth = 0.05; c.stroke();
+    c.beginPath(); c.moveTo(0, 0.15); c.lineTo(-0.12, -0.6); c.lineWidth = 0.08; c.stroke();
+  },
+  // Trotzdem da: doppeltes Herz
+  diamond(c, A) {
+    const heart = (s) => { c.beginPath(); c.moveTo(0, 0.95 * s); c.bezierCurveTo(-1.7 * s, -0.1 * s, -0.85 * s, -1.4 * s, 0, -0.5 * s); c.bezierCurveTo(0.85 * s, -1.4 * s, 1.7 * s, -0.1 * s, 0, 0.95 * s); };
+    c.translate(0, 0.15); heart(1.0); c.lineWidth = 0.15; c.strokeStyle = A.hi; c.stroke();
+    heart(0.62); c.lineWidth = 0.06; c.setLineDash([0.12, 0.08]); c.strokeStyle = A.lo; c.stroke(); c.setLineDash([]);
+  },
+  // Dauerbrenner: Flamme
+  home(c, A) {
+    c.beginPath(); c.moveTo(0, -1.25); c.bezierCurveTo(0.75, -0.45, 0.95, 0.2, 0.7, 0.75); c.quadraticCurveTo(0.35, 1.25, 0, 1.25); c.quadraticCurveTo(-0.35, 1.25, -0.7, 0.75); c.bezierCurveTo(-0.95, 0.2, -0.45, -0.25, -0.2, -0.75); c.quadraticCurveTo(-0.05, -0.3, 0.1, -0.45); c.quadraticCurveTo(0.2, -0.85, 0, -1.25);
+    c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.06; c.strokeStyle = PATCH_DARK; c.stroke();
+    c.beginPath(); c.moveTo(0, -0.1); c.bezierCurveTo(0.4, 0.3, 0.45, 0.75, 0.2, 1.0); c.quadraticCurveTo(0, 1.1, -0.2, 1.0); c.bezierCurveTo(-0.45, 0.75, -0.3, 0.35, 0, -0.1); c.fillStyle = PATCH_RED; c.fill();
+  },
+};
+
 function drawMarkReal(ctx, o, ox, oy, k) {
-  const th = o.version === 3 ? THREAD.G : o.version === 2 ? THREAD.S : THREAD.W;
+  const A = PATCH_ACCENT[o.version] || PATCH_ACCENT[1], R = o.r || 2.75;
   withLocal(ctx, o, ox, oy, k, () => {
-    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(0.8, k * 0.06); ctx.shadowOffsetY = Math.max(0.5, k * 0.04);
-    localShape(ctx, k, th.hi, c => {
-      c.lineWidth = 0.17; c.lineCap = 'round'; c.lineJoin = 'round';
-      const y = -0.55;
-      switch (o.icon) {
-        case 'zigzag': c.moveTo(-1, y + 0.4); c.lineTo(-0.5, y - 0.4); c.lineTo(0, y + 0.4); c.lineTo(0.5, y - 0.4); c.lineTo(1, y + 0.4); break;
-        case 'spark': for (let i = 0; i < 4; i++) { const a = i * Math.PI / 4, d = i % 2 ? 0.45 : 0.7; c.moveTo(-Math.cos(a) * d, y - Math.sin(a) * d); c.lineTo(Math.cos(a) * d, y + Math.sin(a) * d); } break;
-        case 'cross': c.moveTo(-0.55, y - 0.55); c.lineTo(0.55, y + 0.55); c.moveTo(0.55, y - 0.55); c.lineTo(-0.55, y + 0.55); break;
-        case 'arrow': c.moveTo(0, y + 0.65); c.lineTo(0, y - 0.6); c.moveTo(-0.5, y - 0.1); c.lineTo(0, y - 0.65); c.lineTo(0.5, y - 0.1); break;
-        case 'heart': c.moveTo(0, y + 0.55); c.bezierCurveTo(-0.95, y - 0.05, -0.5, y - 0.85, 0, y - 0.3); c.bezierCurveTo(0.5, y - 0.85, 0.95, y - 0.05, 0, y + 0.55); break;
-        case 'rain': for (const d of [-0.5, 0, 0.5]) { c.moveTo(d + 0.2, y - 0.55); c.lineTo(d - 0.2, y + 0.55); } break;
-        case 'home': c.moveTo(-0.7, y + 0.6); c.lineTo(-0.7, y - 0.1); c.lineTo(0, y - 0.7); c.lineTo(0.7, y - 0.1); c.lineTo(0.7, y + 0.6); c.closePath(); break;
-        default: c.moveTo(0, y - 0.65); c.lineTo(0.6, y); c.lineTo(0, y + 0.65); c.lineTo(-0.6, y); c.closePath();
-      }
-      c.stroke();
-    });
-    ctx.shadowColor = 'transparent';
-    localText(ctx, k, o.label, 0, 0.95, 0.46, 4.6, o.version === 2 ? '#D9DEE3' : th.hi);
+    // Grundkörper mit Schatten
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(2, k * 0.3); ctx.shadowOffsetX = o.rot ? Math.sign(o.rot) * Math.max(1, k * 0.12) : 0;
+    ctx.beginPath(); ctx.arc(0, 0, R * k, 0, 7); ctx.fillStyle = PATCH_RED; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.scale(k, k);
+    // Stoffstruktur
+    if (k >= 5) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R - 0.3, 0, 7); ctx.clip(); ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineWidth = 0.03; ctx.beginPath(); for (let t = -R; t < R; t += 0.09) { ctx.moveTo(t, -R); ctx.lineTo(t, R); } ctx.stroke(); ctx.restore(); }
+    // gedrehter Overlock-Rand (Kordel)
+    ctx.beginPath(); ctx.arc(0, 0, R - 0.14, 0, 7); ctx.lineWidth = 0.28; ctx.strokeStyle = A.lo; ctx.stroke();
+    if (o.version === 3) { ctx.save(); ctx.setLineDash([0.07, 0.11]); ctx.strokeStyle = PATCH_RED; ctx.lineWidth = 0.28; ctx.stroke(); ctx.restore(); }
+    else { ctx.beginPath(); ctx.arc(0, 0, R - 0.14, 0, 7); ctx.setLineDash([0.05, 0.08]); ctx.lineWidth = 0.28; ctx.strokeStyle = A.hi; ctx.stroke(); ctx.setLineDash([]); }
+    ctx.beginPath(); ctx.arc(0, 0, R - 0.52, 0, 7); ctx.lineWidth = 0.07; ctx.strokeStyle = A.hi; ctx.stroke();
+    const titleBottom = o.icon === 'zigzag';
+    // Illustration
+    ctx.save(); ctx.translate(0, titleBottom ? -0.35 : 0.42); ctx.scale(0.95, 0.95);
+    ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 0.06; ctx.shadowOffsetY = 0.03;
+    (PATCH_ICONS[o.icon] || PATCH_ICONS.diamond)(ctx, A);
+    ctx.restore();
+    ctx.restore();
+    // Titel im Bogen (Unbesiegbar unten, sonst oben), mit dunkler Kontur
+    localArcText(ctx, k, o.label, R - 1.0, o.label.length > 12 ? 0.5 : 0.6, !titleBottom, A.hi, PATCH_DARK);
+    if (o.icon === 'heart') localText(ctx, k, '90+', 0, 0.62, 0.42, 1.2, A.hi);
+    if (o.icon === 'home') localText(ctx, k, '17/17', 0, 2.05, 0.32, 1.2, A.hi);
+    if (titleBottom) localShape(ctx, k, A.hi, c => SHAPES.star(c, 0, 1.12, 0.12));
   });
 }
 
@@ -321,7 +420,7 @@ function overlayBox(o) {
   const box = (w, h) => rotated ? [o.u - h / 2, o.u + h / 2, o.v - w / 2, o.v + w / 2] : [o.u - w / 2, o.u + w / 2, o.v - h / 2, o.v + h / 2];
   if (o.kind === 'bar') return [o.u0, o.u1, o.v0, o.v1];
   if (o.kind === 'patch') return box(o.w, o.h);
-  if (o.kind === 'mark') return box(5.0, 3.3);
+  if (o.kind === 'mark') return box(2 * (o.r || 2.75), 2 * (o.r || 2.75));
   if (o.kind === 'shape') { const s = o.shape === 'plate' ? o.size * 2.1 : o.shape === 'bigEars' ? o.size * 1.6 : o.size * 1.3; return box(s, s); }
   const w = o.w != null ? o.w : Math.min(o.maxW, o.text.length * o.h * 0.55);
   return box(w + 0.3, o.h + 0.4);
@@ -412,15 +511,19 @@ function drawHover(canvas, lay, model, hit) {
   }
 }
 
-function drawLens(canvas, model, x, y, knit) {
+function drawLens(canvas, model, x, y, knit, orient = null) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth || 260, h = canvas.clientHeight || 170;
+  // In der Hochkant-Ansicht wird die Lupe genauso gedreht wie der Schal
+  const hw = orient ? h : w, hh = orient ? w : h;
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#e9e5dc'; ctx.fillRect(0, 0, w, h);
+  if (orient === 'A') ctx.setTransform(0, -dpr, dpr, 0, 0, hw * dpr);
+  if (orient === 'B') ctx.setTransform(0, dpr, -dpr, 0, hh * dpr, 0);
   const cy = 9, cx = cy * STITCH_ASPECT;
-  const nx = Math.ceil(w / cx), ny = Math.ceil(h / cy);
+  const nx = Math.ceil(hw / cx), ny = Math.ceil(hh / cy);
   const x0 = Math.max(0, Math.min(model.L - nx, x - Math.floor(nx / 2)));
   const y0 = Math.max(0, Math.min(model.W - ny, y - Math.floor(ny / 2)));
   drawCells(ctx, model, x0, Math.min(model.L, x0 + nx), y0, Math.min(model.W, y0 + ny), -x0 * cx, -y0 * cy, cx, cy, { knit });

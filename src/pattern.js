@@ -410,11 +410,11 @@ function buildBack(ctx) {
   const marks = ELEMENTS.filter(e => e.mark && act[e.id]);
   if (marks.length) {
     bEnd += 0.8;
-    const per = 3, mh = 3.4;
+    const per = 3, mh = 5.9;
     marks.forEach((e, i) => {
       const row = Math.floor(i / per), col = i % per, inRow = Math.min(per, marks.length - row * per);
       const ms = (ctx.milestones || []).find(m => m.element === e.id);
-      overlay.push({ kind: 'mark', tag: { el: e.id }, icon: e.mark.icon, label: e.mark.label, version: markVersion(ms), u: uB(bEnd + row * mh + mh / 2), v: vc - (col - (inRow - 1) / 2) * 5.4, rot: ROT_B });
+      overlay.push({ kind: 'mark', tag: { el: e.id }, icon: e.mark.icon, label: e.mark.label, version: markVersion(ms), u: uB(bEnd + row * mh + mh / 2), v: vc - (col - (inRow - 1) / 2) * 5.75, rot: ROT_B, r: 2.75 });
     });
     bEnd += Math.ceil(marks.length / per) * mh;
   }
