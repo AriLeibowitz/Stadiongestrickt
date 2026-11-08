@@ -4,7 +4,7 @@
    Symbole werden als Vektoren in Zentimetern gezeichnet und auf das Raster
    übertragen (eine Garnfarbe pro Masche, keine Zwischentöne).
    Vorderseite: startet einfarbig rot, Meilensteine legen Ebenen darüber.
-   Rückseite:   rot (oder nachtblau), KI-Highlights, Etikett, Statistik.
+   Rückseite:   rot (oder schwarz), KI-Highlights, Etikett, Statistik.
    x = Reihe entlang der Länge (0 = Ende A), y = Masche quer (0 = obere Kante).
    ========================================================================= */
 'use strict';
@@ -284,7 +284,7 @@ function buildFront(ctx) {
     if (lv === 1) { const [a, b] = band(end, ...FRONT.stripe1); stripe(a, b, false); }
     if (lv === 2) for (const st of FRONT.stripes3) { const [a, b] = band(end, ...st); stripe(a, b, false); }
     if (lv === 3) for (let k = 0; k < nBlocks; k++) { const [a, b] = band(end, blockD(k) - FRONT.blockLen / 2, blockD(k) + FRONT.blockLen / 2); stripe(a, b, false); }
-    if (lv === 4 || lv === 5) { const [a, b] = band(end, bigA, bigB); stripe(a, b, false); }
+    if (lv >= 4) { const [a, b] = band(end, bigA, bigB); stripe(a, b, false); }   // zwei große Blöcke bleiben ab Stufe 4
     if (lv >= 5) { // Goldstreifen an den Kanten der großen Blöcke, bleiben in Stufe 6 und 7
       for (const d of [bigA - 0.7, bigB + 0.3]) { const [a, b] = band(end, d, d + 0.4); goldLine(a, b); }
     }
@@ -414,7 +414,7 @@ function buildBack(ctx) {
     marks.forEach((e, i) => {
       const row = Math.floor(i / per), col = i % per, inRow = Math.min(per, marks.length - row * per);
       const ms = (ctx.milestones || []).find(m => m.element === e.id);
-      overlay.push({ kind: 'mark', tag: { el: e.id }, icon: e.mark.icon, label: e.mark.label, version: markVersion(ms), u: uB(bEnd + row * mh + mh / 2), v: vc - (col - (inRow - 1) / 2) * 5.75, rot: ROT_B, r: 2.75 });
+      overlay.push({ kind: 'mark', tag: { el: e.id }, icon: e.mark.icon, label: e.mark.label, season: seasonLabel(ctx.season), version: markVersion(ms), u: uB(bEnd + row * mh + mh / 2), v: vc - (col - (inRow - 1) / 2) * 5.75, rot: ROT_B, r: 2.75 });
     });
     bEnd += Math.ceil(marks.length / per) * mh;
   }

@@ -22,22 +22,22 @@ Unter „Mehr“ stehen alle Spiele der Saison, die Kauf-Umfrage (mit CSV-Export
 
 ## Design-System
 
-- **Ansicht:** Der Schal wird hochkant gezeigt, Vorder- und Rückseite nebeneinander. Mit „Ende A unten“ oder „Ende B unten“ dreht man ihn so, dass die Schrift am jeweiligen Ende richtig herum steht. Es gibt 3 Größen (S, M, L).
+- **Ansicht:** Der Schal hängt in der Mitte gefaltet über einer Stange, wie er getragen wird. Beide Enden zeigen nach unten, so steht die Schrift an beiden Enden richtig herum, und der Schal ist doppelt so groß wie in voller Länge. Vorder- und Rückseite hängen nebeneinander und bleiben beim Scrollen fixiert. Eine Lupe folgt dem Mauszeiger und erklärt jedes Element.
 - **Raster:** 6 Maschen/cm quer, 8 Reihen/cm längs, also 108 × 1200 Maschen bei 150 cm.
-- **Treue** (exklusive Stufen, jede ersetzt die vorige, nur die Goldstreifen bleiben ab Stufe 5):
+- **Treue** (Stufen 1 bis 3 ersetzen sich gegenseitig, ab Stufe 4 bleiben die Blöcke und ab Stufe 5 die Goldstreifen):
   1. 1 Streifen
   2. 3 schmale Streifen
   3. nur die Blockstreifen weiter zur Mitte
-  4. zwei große weiße Blöcke
-  5. Goldstreifen
-  6. Mittelstreifen
-  7. Rauten-Mitte
+  4. zwei große weiße Blöcke (bleiben ab hier)
+  5. dazu Goldstreifen
+  6. dazu Mittelstreifen
+  7. Rauten-Mitte statt Mittelstreifen
 - **Wettbewerbe:**
   - Silberkordel (1 CL-Spiel)
-  - nachtblaue Rückseite (5 CL-Spiele)
+  - schwarze Rückseite mit Sternenhimmel (5 CL-Spiele)
   - Trophäen über dem Wappen eingestickt, nur wenn man beim entscheidenden Spiel dabei war: Meisterschale, DFB-Pokal, Henkelpott, Supercup
 - **Auswärts:** Naht, rot-weiße Fransen, Rauten-Enden, Reise-Zeile, Stadion-Punkte, goldene Naht und Fransen
-- **Momente:** gestickte Zeichen an Ende B in Weiß (1×), Silber (2×) oder Gold (3×)
+- **Momente:** runde Stick-Patches an Ende B (Titel oben, Saison unten, ein Motiv), Akzent Weiß (1×), Silber (2×) oder Gold (3×)
 - **Gegner-Sammler** (Stufen): 2, 4 oder 6 Goldfäden auf der Rückseite
 - **Mitgliedschaft** (Stufen): modernes, Traditions- oder Retro-Wappen
 - **Rückseite:**

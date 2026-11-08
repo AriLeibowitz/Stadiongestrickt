@@ -91,31 +91,37 @@ function update() {
 }
 
 /* ---------------------------------------------------------------- Schal */
-const SIDES = { front: { stage: '#stageFront', title: 'Vorderseite' }, back: { stage: '#stageBack', title: 'Rückseite' } };
+// Vier Ansichten: Vorder-/Rückseite × Hälfte A/B (der Schal hängt gefaltet, beide Enden unten)
+const stages = () => $$('.stage');
 
 function renderScarf() {
+  $('#lensFloat').style.display = 'none';
   const mark = state.markNew && state.fut.length ? state.newEls : null;
-  for (const [side, cfg] of Object.entries(SIDES)) {
-    const stage = $(cfg.stage), model = state.scarf[side];
-    // Der ganze Schal passt in die Höhe des Bereichs (Länge inkl. Fransen)
-    const avail = Math.max(320, stage.clientHeight || ($('#scarfLayout').clientHeight - 60));
-    const width = Math.floor(avail);
-    state.lays[side] = drawScarf($('.scarf', stage), model, { width, segs: 1, knit: state.real, real: state.real, markEls: mark, orient: state.orient });
-    drawHover($('.hover', stage), state.lays[side], model, state.pinned && state.pinned.side === side ? state.pinned : null);
+  const hang = $('#hang'), halves = $('.halves');
+  const model = state.scarf.front;
+  // Größe: so groß wie möglich, ohne dass etwas abgeschnitten wird
+  const probe = layoutHalf(model, 1000, 'A');
+  const units = 1000 / probe.cx;
+  const byHeight = Math.max(240, halves.clientHeight - 2);
+  const perHalfW = (hang.clientWidth - 34 - 16 - 40) / 4;
+  const byWidth = (perHalfW - 12) * STITCH_ASPECT * units / STITCHES;
+  const lengthPx = Math.floor(Math.min(byHeight, byWidth));
+  for (const st of stages()) {
+    const side = st.dataset.side, half = st.dataset.half, m = state.scarf[side];
+    const lay = layoutHalf(m, lengthPx, half);
+    state.lays[side + half] = lay;
+    drawHalf($('.scarf', st), m, lay, { knit: state.real, real: state.real, markEls: mark });
+    drawHoverHalf($('.hover', st), lay, m, null);
   }
-  $$('.end-label').forEach(e => { e.textContent = (e.dataset.end === 'bottom') === (state.orient === 'A') ? 'Ende A' : 'Ende B'; });
   const n = state.games.length + state.fut.length;
   const reached = state.ms.filter(m => m.reached).length;
-  $('#scarfTitle').textContent = `Saison ${seasonLabel(state.season)}${state.season === CURRENT_SEASON ? ' (läuft)' : ''}`;
-  $('#sumChip').textContent = `${n} ${n === 1 ? 'Spiel' : 'Spiele'}${state.fut.length ? ` (davon ${state.fut.length} kommend)` : ''} · ${reached}/${state.ms.length} Meilensteine`;
+  const who = state.profile.preset ? state.profile.who.split(',')[0] : (state.name || 'Fan');
+  $('#scarfKicker').textContent = `${who} · ${n} ${n === 1 ? 'Spiel' : 'Spiele'}${state.fut.length ? ` (${state.fut.length} davon simuliert)` : ''} · ${reached} von ${state.ms.length} Meilensteinen`;
+  $('#scarfTitle').textContent = `Saison ${seasonLabel(state.season)}${state.season === CURRENT_SEASON ? ' · läuft' : ''}`;
   const dec = decodeCodeBand(state.scarf.back);
-  $('#codeChip').textContent = dec ? `✓ Strickcode gelesen: ${dec.code} · ${seasonLabel(dec.season)}` : 'Strickcode aus';
-  $('#codeChip').className = 'chip ' + (dec ? 'green' : '');
+  $('#codeChip').textContent = dec ? `✓ Strickcode wird erkannt: ${dec.code} · ${seasonLabel(dec.season)}` : 'Strickcode aus';
   const usage = yarnUsage(state.scarf);
-  $('#yarns').innerHTML = `<span class="muted">Garn:</span> ` + usage.used.map(k => `<span class="yarn-dot" style="background:${YARN[k].hex}" title="${YARN[k].name}"></span>${YARN[k].name}`).join(' ') + ` <span class="muted">· ${usage.used.length}/5 Farben${state.scarf.back.info.dropped ? ` · ${state.scarf.back.info.dropped} Feld(er) der Rückseite passen bei ${state.lengthCm} cm nicht` : ''}</span>`;
-  if (state.pinned) showReader(state.pinned);
-  const lm = state.scarf[state.lensSide || 'front'];
-  drawLens($('#lens'), lm, state.lensX != null ? state.lensX : Math.round(FRONT.zoneC * ROWS_PER_CM), state.lensY != null ? state.lensY : 48, true, state.orient);
+  $('#yarns').innerHTML = `<span class="muted">Garn:</span> ` + usage.used.map(k => `<span class="yarn-dot" style="background:${YARN[k].hex}" title="${YARN[k].name}"></span>${YARN[k].name}`).join(' ') + ` <span class="muted">· ${usage.used.length} von 5 Farben</span>`;
 }
 
 function tagText(t) {
@@ -124,63 +130,48 @@ function tagText(t) {
     const e = ELEMENT_BY_ID[t.el]; if (!e) return null;
     const m = milestoneForElement(t.el);
     const st = m && state.ms.find(x => x.id === m.id);
-    const src = m ? `Meilenstein <b>${esc(m.name)}</b>: ${esc(m.cond)}${st ? ` (${Math.min(st.current, st.target)}/${st.target})` : ''}` : 'Grundausstattung';
-    return `<b>${esc(e.name)}</b>${state.newEls.has(e.id) && state.fut.length ? ' <span class="newtag">neu</span>' : ''}<br>${esc(e.desc)}<br><span class="dim">${src}${st && !st.reached ? ' · manuell eingeschaltet' : ''}</span>`;
+    const src = m ? `Meilenstein „${esc(m.name)}“: ${esc(m.cond)}${st ? ` (${Math.min(st.current, st.target)}/${st.target})` : ''}` : 'Grundausstattung';
+    return `<b>${esc(e.name)}</b>${state.newEls.has(e.id) && state.fut.length ? ' <span class="newtag">neu</span>' : ''}<br>${esc(e.desc)}<br><span class="dim">${src}${st && !st.reached ? ' · manuell an' : ''}</span>`;
   }
   if (t.type === 'panel') {
     const m = t.game, h = state.curation.highlights.find(x => x.nr === m.nr);
-    return `${t.heart ? '♥ Herzstück' : 'Highlight'}${h ? ': <b>' + esc(h.title) + '</b>' : ''}<br>Spiel #${m.nr} · ${fmtDateLong(m.date)} · ${esc(COMP_DE[m.comp])}, ${esc(m.round)}<br>${esc(scoreLong(m))}${h ? `<br><span class="dim">${esc(h.reason)}</span>` : ''}`;
+    return `${t.heart ? '♥ Herzstück' : 'Highlight'}${h ? ': <b>' + esc(h.title) + '</b>' : ''}<br>${esc(scoreLong(m))}<br><span class="dim">${fmtDateLong(m.date)} · ${esc(COMP_DE[m.comp])}, ${esc(m.round)}${h ? ' · ' + esc(h.reason) : ''}</span>`;
   }
-  if (t.type === 'code') return `<b>Strickcode</b> (Ende ${t.side})<br>${esc(state.profile.code)} und Saison ${seasonLabel(state.season)} als 45-Bit-Muster. Daran erkennt die App den Schal.`;
-  if (t.type === 'backBase') return '<b>Rückseite</b><br>Vereinsrot. Der Meilenstein „Europapokal-Abende“ färbt sie nachtblau.';
+  if (t.type === 'code') return `<b>Strickcode</b><br>${esc(state.profile.code)} und Saison ${seasonLabel(state.season)} als Muster. Daran erkennt die App den Schal.`;
+  if (t.type === 'backBase') return '<b>Rückseite</b><br>Vereinsrot. Mit „Europapokal-Abende“ wird sie schwarz.';
   return null;
 }
 
-const TECH = { knit: '🧶 gestrickt (Jacquard)', emb: '🪡 gestickt', mark: '🏷️ gestickter Moment-Patch', shape: '🪡 gestickt', bar: '🪡 aufgestickte Silberkordel', patch: '🏷️ aufgenähter Patch' };
-function hitText(hit) {
+const TECH = { knit: '🧶 gestrickt', emb: '🪡 gestickt', mark: '🏷️ gestickter Patch', shape: '🪡 gestickt', bar: '🪡 aufgestickte Kordel', patch: '🏷️ gewebter Patch' };
+function hitText(side, hit) {
   const it = hit.item;
-  const txt = tagText(it ? it.tag : tagAtCell(state.scarf[hit.side], hit.x, hit.y));
-  if (!txt) return null;
-  const ver = it && it.kind === 'mark' ? ` · Akzent ${['', 'weiß', 'silber', 'gold'][it.version]}` : '';
-  return `${txt}<br><span class="tech">${TECH[it ? it.kind : 'knit']}${ver}</span>`;
-}
-function showReader(hit) {
-  $('#reader').innerHTML = `<div class="small muted">${SIDES[hit.side].title} · ${(hit.x / ROWS_PER_CM).toFixed(1).replace('.', ',')} cm ab Ende A</div>${hitText(hit) || '<span class="muted">Grundfläche Vereinsrot · gestrickt</span>'}`;
+  const txt = tagText(it ? it.tag : tagAtCell(state.scarf[side], hit.x, hit.y));
+  const ver = it && it.kind === 'mark' ? ` · ${['', 'weiß (1×)', 'silber (2×)', 'gold (3×)'][it.version]}` : '';
+  return `${txt || '<b>Vereinsrot</b><br><span class="dim">Grundfläche</span>'}<br><span class="tech">${TECH[it ? it.kind : 'knit']}${ver}</span>`;
 }
 
 function bindScarf() {
-  const tip = $('#tip');
-  for (const [side, cfg] of Object.entries(SIDES)) {
-    const stage = $(cfg.stage), cv = $('.scarf', stage);
+  const lensBox = $('#lensFloat');
+  for (const st of stages()) {
+    const side = st.dataset.side, half = st.dataset.half, cv = $('.scarf', st);
     let last = null;
-    const hitOf = ev => {
-      const r = cv.getBoundingClientRect(), lay = state.lays[side];
-      const [lx, ly] = toLayout(lay, ev.clientX - r.left, ev.clientY - r.top);
-      const h = hitTest(lay, state.scarf[side], lx, ly);
-      return h && { ...h, side, item: itemAt(state.scarf[side], h.x, h.y) };
-    };
+    const hide = () => { lensBox.style.display = 'none'; drawHoverHalf($('.hover', st), state.lays[side + half], state.scarf[side], null); last = null; };
     cv.addEventListener('mousemove', ev => {
-      const hit = hitOf(ev), model = state.scarf[side];
-      if (!hit) { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], model, null); last = null; return; }
-      state.lensX = hit.x; state.lensY = hit.y; state.lensSide = side;
-      drawLens($('#lens'), model, hit.x, hit.y, true, state.orient);
-      const t = hit.item ? hit.item : tagAtCell(model, hit.x, hit.y);
-      if (t !== last) {
-        last = t;
-        if (!state.pinned) drawHover($('.hover', stage), state.lays[side], model, hit);
-        const txt = hitText(hit);
-        if (txt) { tip.innerHTML = txt; tip.style.display = 'block'; } else tip.style.display = 'none';
-      }
-      const card = $('.scarf-card').getBoundingClientRect();
-      tip.style.left = (ev.clientX - card.left + 18) + 'px'; tip.style.top = (ev.clientY - card.top + 12) + 'px';
+      const lay = state.lays[side + half], model = state.scarf[side];
+      const r = cv.getBoundingClientRect();
+      const h = hitHalf(lay, model, ev.clientX - r.left, ev.clientY - r.top);
+      if (!h) { hide(); return; }
+      const hit = { ...h, item: itemAt(model, h.x, h.y) };
+      lensBox.style.display = 'block';
+      drawLens($('#lens'), model, hit.x, hit.y, true, half, Math.max(3.2, lay.cy * 3.5));
+      const key = hit.item || tagAtCell(model, hit.x, hit.y);
+      if (key !== last) { last = key; drawHoverHalf($('.hover', st), lay, model, hit); $('#tipText').innerHTML = hitText(side, hit); }
+      const bw = 270, bh = lensBox.offsetHeight || 300;
+      let x = ev.clientX + 26; if (x + bw > window.innerWidth - 8) x = ev.clientX - bw - 26;
+      let y = ev.clientY - bh / 2; y = Math.max(8, Math.min(window.innerHeight - bh - 8, y));
+      lensBox.style.left = x + 'px'; lensBox.style.top = y + 'px';
     });
-    cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (!state.pinned) drawHover($('.hover', stage), state.lays[side], state.scarf[side], null); last = null; });
-    cv.addEventListener('click', ev => {
-      const hit = hitOf(ev);
-      state.pinned = hit || null;
-      for (const [s2, c2] of Object.entries(SIDES)) drawHover($('.hover', $(c2.stage)), state.lays[s2], state.scarf[s2], hit && hit.side === s2 ? hit : null);
-      if (hit) showReader(hit);
-    });
+    cv.addEventListener('mouseleave', hide);
   }
 }
 
@@ -340,7 +331,7 @@ function renderRules() {
   const msRows = MILESTONES.map(m => { const e = ELEMENT_BY_ID[m.element]; return `<tr><td>${esc(MILESTONE_CATEGORIES.find(c => c[0] === m.cat)[1])}</td><td><b>${esc(m.name)}</b></td><td>${esc(m.cond)}</td><td><b>${esc(e.name)}</b>: ${esc(e.desc)}</td><td>${esc(e.where)}</td></tr>`; }).join('');
   $('#rules').innerHTML = `
   <div class="card"><h3>Ein Schal pro Saison</h3>
-    <p>Jeder Fan kann für jede Saison, in der er im Stadion war, einen eigenen Schal bestellen. Die Vorderseite startet <b>einfarbig rot</b>, jeder Meilenstein der Saison legt eine Ebene darüber. Die Rückseite ist ebenfalls rot (nachtblau mit dem Meilenstein „Europapokal-Abende“) und erzählt die Saison: die 5 Spiele, die Gemini ausgewählt hat, und das Fan-Etikett.</p>
+    <p>Jeder Fan kann für jede Saison, in der er im Stadion war, einen eigenen Schal bestellen. Die Vorderseite startet <b>einfarbig rot</b>, jeder Meilenstein der Saison legt eine Ebene darüber. Die Rückseite ist ebenfalls rot (schwarz mit dem Meilenstein „Europapokal-Abende“) und erzählt die Saison: die 5 Spiele, die Gemini ausgewählt hat, und das Fan-Etikett.</p>
     <p><b>Fan-Code</b> <span class="kbd">FCB-XXXX-XXXX</span>: Crockford-Base32 mit Prüfzeichen. Der <b>Strickcode</b> an den Enden der Rückseite enthält Fan-Code und Saison (45 Bit, 2 Maschen pro Bit), damit die App den Schal erkennt.</p></div>
   <div class="card"><h3>Maße, Raster &amp; Garn</h3>
     <p>${WIDTH_CM} cm breit, 150, 180 oder 220 cm lang. Raster: ${ST_PER_CM} Maschen/cm quer und ${ROWS_PER_CM} Reihen/cm längs, also ${STITCHES} × ${150 * ROWS_PER_CM} Maschen bei 150 cm. Schrift und Symbole werden als Vektoren in Zentimetern gezeichnet und Masche für Masche in eine von 5 Garnfarben übersetzt, ohne Zwischentöne. Doppeljacquard, Einzelfertigung.</p>
@@ -379,10 +370,9 @@ function init() {
   $('#codeForm').onsubmit = ev => { ev.preventDefault(); loadFan($('#codeIn').value); };
   $('#randomBtn').onclick = () => loadFan(randomCode());
   $('#seasonSel').onchange = () => selectSeason(Number($('#seasonSel').value));
-  $('#lenSel').onchange = () => { state.lengthCm = Number($('#lenSel').value); state.pinned = null; update(); };
+  $('#lenSel').onchange = () => { state.lengthCm = Number($('#lenSel').value); update(); };
   $('#nameIn').oninput = () => { state.name = $('#nameIn').value.toUpperCase(); update(); };
   bindSeg('viewSeg', v => { state.real = v === 'real'; renderScarf(); });
-  bindSeg('orientSeg', v => { state.orient = v; state.pinned = null; renderScarf(); });
   bindSeg('msMode', v => { state.msMode = v; state.overrides = {}; update(); });
   $('#futureIn').oninput = () => { state.future = Number($('#futureIn').value); update(); };
   $('#markNew').onchange = () => { state.markNew = $('#markNew').checked; renderScarf(); };
@@ -408,7 +398,7 @@ function init() {
     return true;
   };
   window.addEventListener('hashchange', fromHash);
-  if (!fromHash()) loadFan(PRESETS[2].code);
+  if (!fromHash()) { loadFan(PRESETS[4].code); selectSeason(CURRENT_SEASON - 1); }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

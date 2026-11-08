@@ -181,7 +181,7 @@ function drawKnitTexture(ctx, x, y, w, h, cy, cx) {
 const THREAD = {
   W: { hi: '#FFFFFF', lo: '#E2DDD3', edge: 'rgba(80,70,60,.55)' },
   G: { hi: '#F7DE8E', lo: '#B4862A', edge: 'rgba(90,60,10,.6)' },
-  N: { hi: '#33507E', lo: '#0B1B35', edge: 'rgba(0,0,0,.6)' },
+  N: { hi: '#45454C', lo: '#141417', edge: 'rgba(0,0,0,.6)' },
   R: { hi: '#FF5570', lo: '#BE0329', edge: 'rgba(80,0,15,.6)' },
   B: { hi: '#3D9BE6', lo: '#005CA3', edge: 'rgba(0,30,70,.6)' },
   S: { hi: '#FFFFFF', lo: '#9CA5AF', edge: 'rgba(40,50,60,.55)' },
@@ -232,8 +232,8 @@ function localShape(ctx, k, color, fn) { ctx.save(); ctx.scale(k, k); ctx.beginP
 function drawPatchReal(ctx, o, ox, oy, k) {
   const m = o.game, w = o.w, h = o.h;
   const P = o.heart
-    ? { bg: '#0E2240', border: '#C9A13B', text: '#FFFFFF', score: '#EBC75F', shield: '#FFFFFF', abbr: '#0E2240', stitch: '#C9A13B', dim: 'rgba(255,255,255,.72)' }
-    : { bg: '#F6F1E6', border: '#0E2240', text: '#0E2240', score: '#C8102E', shield: '#0E2240', abbr: '#FFFFFF', stitch: '#C8102E', dim: 'rgba(14,34,64,.68)' };
+    ? { bg: '#17171A', border: '#C9A13B', text: '#FFFFFF', score: '#EBC75F', shield: '#FFFFFF', abbr: '#17171A', stitch: '#C9A13B', dim: 'rgba(255,255,255,.72)' }
+    : { bg: '#F6F1E6', border: '#7E0B1D', text: '#1C1C1F', score: '#C8102E', shield: '#1C1C1F', abbr: '#FFFFFF', stitch: '#C8102E', dim: 'rgba(28,28,31,.65)' };
   withLocal(ctx, o, ox, oy, k, () => {
     const X = -w / 2 * k, Y = -h / 2 * k, W = w * k, H = h * k;
     ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(2, k * 0.3); ctx.shadowOffsetX = o.rot ? Math.sign(o.rot) * Math.max(1, k * 0.12) : 0; ctx.shadowOffsetY = o.rot ? 0 : Math.max(1, k * 0.12);
@@ -262,127 +262,155 @@ function drawPatchReal(ctx, o, ox, oy, k) {
   });
 }
 
-// Runder gestickter Moment-Patch (Stil: dunkelroter Grund, Bogentitel, Illustration, Akzent weiß/silber/gold)
+// Runder Moment-Patch nach Regeln echter Stick-Patches:
+// 2 Farben (Grundstoff + Akzent), Linien ≥ 1 mm, Satinstich-Struktur statt Verläufen,
+// Kordelrand, Innenring, Titel oben im Bogen, Saison unten im Bogen, ein kräftiges Motiv.
 const PATCH_ACCENT = {
-  1: { hi: '#FFFDF8', lo: '#E4DED2', edge: '#6E0A18' },
-  2: { hi: '#F2F5F7', lo: '#9EA7B1', edge: '#5A0712' },
-  3: { hi: '#F6D57A', lo: '#C48F2C', edge: '#5A0712' },
+  1: { hi: '#F4F0E7', lo: '#C9C1B2' },   // weiß: 1× erlebt
+  2: { hi: '#E4E8EC', lo: '#8D97A2' },   // silber: 2×
+  3: { hi: '#EBBB4C', lo: '#A8771D' },   // gold: 3×
 };
-const PATCH_RED = '#8A0F22', PATCH_DARK = '#5E0815';
+const PATCH_BASE = '#7A0A1C', PATCH_BASE_DARK = '#4E0610';
 
-function localArcText(ctx, k, str, radius, h, top, fill, outline) {
+function localArcText(ctx, k, str, radius, h, top, fill) {
   const fs = h / 0.7 * k, R = radius * k;
   ctx.save();
-  ctx.font = `700 ${fs}px ${SCARF_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const chars = [...str], ws = chars.map(c => ctx.measureText(c).width), track = fs * 0.1;
+  ctx.font = `700 ${fs}px ${SCARF_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = fill;
+  const chars = [...str], ws = chars.map(c => ctx.measureText(c).width), track = fs * 0.12;
   const total = ws.reduce((a, b) => a + b, 0) + track * (chars.length - 1);
   let a = (top ? -Math.PI / 2 : Math.PI / 2) + (top ? -1 : 1) * total / 2 / R;
   chars.forEach((ch, i) => {
     const half = ws[i] / 2 / R; a += (top ? 1 : -1) * half;
     ctx.save(); ctx.translate(Math.cos(a) * R, Math.sin(a) * R); ctx.rotate(top ? a + Math.PI / 2 : a - Math.PI / 2);
-    if (outline) { ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, fs * 0.16); ctx.strokeStyle = outline; ctx.strokeText(ch, 0, 0); }
-    ctx.fillStyle = fill; ctx.fillText(ch, 0, 0);
-    ctx.restore();
+    ctx.fillText(ch, 0, 0); ctx.restore();
     a += (top ? 1 : -1) * (half + track / R);
   });
   ctx.restore();
 }
 
+// Fläche im Satinstich: füllen, dann feine Stichlinien in einer Richtung, leichte Kante
+function stitchFill(c, k, path, color, angle, edge = true) {
+  c.save(); c.beginPath(); path(c); c.fillStyle = color; c.fill();
+  c.clip();
+  const sp = Math.max(0.055, 1.25 / k);
+  c.strokeStyle = 'rgba(0,0,0,.16)'; c.lineWidth = Math.max(0.012, 0.35 / k);
+  c.rotate(angle); c.beginPath();
+  for (let t = -3; t < 3; t += sp) { c.moveTo(t, -3); c.lineTo(t, 3); }
+  c.stroke(); c.restore();
+  if (!edge) return;
+  c.save(); c.beginPath(); path(c); c.strokeStyle = 'rgba(0,0,0,.28)'; c.lineWidth = Math.max(0.02, 0.6 / k); c.stroke(); c.restore();
+}
+function stitchStroke(c, k, path, color, width) {
+  c.save(); c.beginPath(); path(c); c.lineWidth = width; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = width + Math.max(0.03, 0.8 / k); c.stroke();
+  c.strokeStyle = color; c.lineWidth = width; c.stroke(); c.restore();
+}
+
+const BOLT = [[0.33, -1.2], [-0.42, 0.1], [0.02, 0.1], [-0.3, 1.2], [0.5, -0.16], [0.07, -0.16], [0.58, -1.2]];
+const polyPath = (pts, dx = 0, dy = 0) => c => { pts.forEach(([x, y], i) => i ? c.lineTo(x + dx, y + dy) : c.moveTo(x + dx, y + dy)); c.closePath(); };
+const heartPath = (s, dy = 0) => c => { c.moveTo(0, 0.95 * s + dy); c.bezierCurveTo(-1.6 * s, -0.05 * s + dy, -0.85 * s, -1.35 * s + dy, 0, -0.48 * s + dy); c.bezierCurveTo(0.85 * s, -1.35 * s + dy, 1.6 * s, -0.05 * s + dy, 0, 0.95 * s + dy); c.closePath(); };
+
 const PATCH_ICONS = {
-  // Torrausch: Ball im Netz mit Flammen
-  spark(c, A) {
-    c.lineWidth = 0.05; c.strokeStyle = A.lo;
-    for (let i = -3; i <= 3; i++) { c.beginPath(); c.moveTo(0.2 + i * 0.28, -1.0); c.quadraticCurveTo(0.6 + i * 0.25, 0.1, 0.2 + i * 0.3, 1.1); c.stroke(); }
-    for (let j = -2; j <= 2; j++) { c.beginPath(); c.moveTo(-0.6, j * 0.4); c.quadraticCurveTo(0.4, j * 0.36 + 0.15, 1.3, j * 0.42); c.stroke(); }
-    c.fillStyle = A.hi; c.strokeStyle = PATCH_DARK; c.lineWidth = 0.06;
-    for (const [dx, dy, s] of [[-1.25, -0.25, 0.75], [-1.45, 0.3, 0.6], [-1.05, 0.6, 0.5]]) {
-      c.beginPath(); c.moveTo(dx - s, dy); c.quadraticCurveTo(dx - s * 0.2, dy - s * 0.45, dx + s * 0.55, dy - s * 0.05); c.quadraticCurveTo(dx, dy + s * 0.35, dx - s, dy); c.fill(); c.stroke();
-    }
-    c.beginPath(); c.arc(0.35, 0.05, 0.72, 0, 7); c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.07; c.strokeStyle = PATCH_DARK; c.stroke();
-    c.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5, p = [0.35 + Math.cos(a) * 0.26, 0.05 + Math.sin(a) * 0.26]; i ? c.lineTo(...p) : c.moveTo(...p); } c.closePath(); c.fillStyle = PATCH_DARK; c.fill();
-    for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; c.beginPath(); c.moveTo(0.35 + Math.cos(a) * 0.26, 0.05 + Math.sin(a) * 0.26); c.lineTo(0.35 + Math.cos(a) * 0.68, 0.05 + Math.sin(a) * 0.68); c.stroke(); }
+  // TORRAUSCH: Ball mit drei Tempo-Flammen
+  spark(c, k, A) {
+    for (const [y, len] of [[-0.42, 0.7], [0, 0.95], [0.42, 0.7]]) stitchFill(c, k, polyPath([[-0.48 - len, y], [-0.42, y - 0.13], [-0.42, y + 0.13]]), A.hi, 0);
+    stitchFill(c, k, cc => cc.arc(0.32, 0, 0.8, 0, 7), A.hi, 0.6);
+    c.save(); c.beginPath(); c.arc(0.32, 0, 0.8, 0, 7); c.clip();
+    const pent = []; for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; pent.push([0.32 + Math.cos(a) * 0.27, Math.sin(a) * 0.27]); }
+    c.beginPath(); polyPath(pent)(c); c.fillStyle = PATCH_BASE; c.fill();
+    c.strokeStyle = PATCH_BASE; c.lineWidth = 0.06; c.beginPath();
+    pent.forEach(([x, y]) => { c.moveTo(x, y); c.lineTo(0.32 + (x - 0.32) * 2.1, y * 2.1); }); c.stroke();
+    c.beginPath(); c.arc(0.32, 0, 0.8, 0, 7); c.lineWidth = 0.08; c.stroke();
+    c.restore();
   },
-  // Klassiker: doppelter Blitz mit Funken
-  cross(c, A) {
-    const bolt = (dx) => { c.beginPath(); c.moveTo(dx + 0.35, -1.25); c.lineTo(dx - 0.45, 0.1); c.lineTo(dx + 0.02, 0.1); c.lineTo(dx - 0.35, 1.25); c.lineTo(dx + 0.5, -0.2); c.lineTo(dx + 0.02, -0.2); c.lineTo(dx + 0.55, -1.25); c.closePath(); c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.07; c.strokeStyle = PATCH_DARK; c.stroke(); };
-    bolt(-0.3); bolt(0.3);
-    c.strokeStyle = A.hi; c.lineWidth = 0.05; c.beginPath();
-    for (const [x, y, dx, dy] of [[-1.05, 0.05, -0.3, 0], [1.05, -0.15, 0.3, 0], [0.9, -0.55, 0.22, -0.12], [-0.9, 0.45, -0.22, 0.12], [0.1, -1.4, 0, -0.2]]) { c.moveTo(x, y); c.lineTo(x + dx, y + dy); }
-    c.stroke();
+  // KLASSIKER: Doppelblitz
+  cross(c, k, A) {
+    stitchFill(c, k, polyPath(BOLT, -0.3, 0), A.hi, 1.05);
+    c.save(); c.beginPath(); polyPath(BOLT, 0.3, 0)(c); c.lineWidth = 0.16; c.strokeStyle = PATCH_BASE; c.lineJoin = 'miter'; c.stroke(); c.restore();
+    stitchFill(c, k, polyPath(BOLT, 0.3, 0), A.hi, 1.05);
   },
-  // Niemals aufgeben: Zickzack-Pfeil nach oben rechts
-  arrow(c, A) {
-    const path = (off) => { c.beginPath(); c.moveTo(-1.3 + off, 1.0 + off); c.lineTo(-0.45 + off, 0.05 + off); c.lineTo(-0.15 + off, 0.45 + off); c.lineTo(0.85 + off, -0.75 + off); };
-    c.lineCap = 'butt'; c.lineJoin = 'miter';
-    path(0); c.lineWidth = 0.34; c.strokeStyle = PATCH_DARK; c.stroke(); c.lineWidth = 0.22; c.strokeStyle = A.hi; c.stroke();
-    path(0.3); c.lineWidth = 0.07; c.strokeStyle = A.lo; c.stroke();
-    c.beginPath(); c.moveTo(1.25, -1.15); c.lineTo(0.45, -0.95); c.lineTo(1.05, -0.35); c.closePath(); c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.06; c.strokeStyle = PATCH_DARK; c.stroke();
+  // NIEMALS AUFGEBEN: Zickzack-Pfeil nach oben
+  arrow(c, k, A) {
+    const line = cc => { cc.moveTo(-1.15, 0.95); cc.lineTo(-0.42, 0.12); cc.lineTo(-0.08, 0.5); cc.lineTo(0.72, -0.52); };
+    c.save(); c.lineJoin = 'miter'; c.lineCap = 'butt';
+    c.beginPath(); line(c); c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 0.4; c.stroke();
+    c.beginPath(); line(c); c.strokeStyle = A.hi; c.lineWidth = 0.34; c.stroke();
+    c.beginPath(); line(c); c.strokeStyle = PATCH_BASE; c.lineWidth = 0.07; c.stroke();
+    c.restore();
+    stitchFill(c, k, polyPath([[1.2, -1.0], [0.38, -0.92], [1.08, -0.2]]), A.hi, 0.8);
   },
-  // Sturmerprobt: Wolken, Blitz, Regen, Stadion
-  rain(c, A) {
-    c.fillStyle = PATCH_DARK; c.strokeStyle = A.lo; c.lineWidth = 0.04;
-    for (const [x, y, r] of [[-0.7, -0.75, 0.42], [-0.2, -0.95, 0.5], [0.4, -0.8, 0.45], [0.85, -0.7, 0.32]]) { c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); }
-    c.strokeStyle = A.lo; c.beginPath(); for (let i = 0; i < 12; i++) { const x = -1.0 + i * 0.18; c.moveTo(x, -0.35); c.lineTo(x - 0.12, 0.25); } c.stroke();
-    c.beginPath(); c.moveTo(0.15, -0.8); c.lineTo(-0.15, -0.1); c.lineTo(0.08, -0.1); c.lineTo(-0.15, 0.55); c.lineWidth = 0.09; c.strokeStyle = A.hi; c.stroke();
-    c.beginPath(); c.ellipse(0, 0.75, 1.15, 0.28, 0, 0, 7); c.lineWidth = 0.14; c.strokeStyle = A.hi; c.stroke();
-    c.beginPath(); c.moveTo(-1.15, 0.75); c.lineTo(-1.1, 1.2); c.lineTo(1.1, 1.2); c.lineTo(1.15, 0.75); c.lineWidth = 0.07; c.stroke();
-    c.beginPath(); for (let i = -4; i <= 4; i++) { c.moveTo(i * 0.25, 1.0); c.lineTo(i * 0.25, 1.2); } c.lineWidth = 0.04; c.stroke();
+  // STURMERPROBT: Wolke, Blitz, Regen
+  rain(c, k, A) {
+    stitchFill(c, k, cc => { cc.arc(-0.5, -0.38, 0.42, 0, 7); cc.moveTo(0.48, -0.62); cc.arc(-0.02, -0.62, 0.5, 0, 7); cc.moveTo(0.92, -0.4); cc.arc(0.5, -0.4, 0.42, 0, 7); cc.rect(-0.92, -0.4, 1.84, 0.4); }, A.hi, 0, false);
+    stitchFill(c, k, polyPath([[0.12, 0.02], [-0.28, 0.6], [-0.04, 0.6], [-0.22, 1.15], [0.32, 0.42], [0.08, 0.42], [0.3, 0.02]]), A.hi, 1.1);
+    for (const x of [-0.75, -0.5, 0.62, 0.87]) stitchStroke(c, k, cc => { cc.moveTo(x, 0.22); cc.lineTo(x - 0.16, 0.66); }, A.hi, 0.1);
   },
-  // Unbesiegbar: Schild mit Zinnen
-  zigzag(c, A) {
-    c.lineJoin = 'miter'; c.strokeStyle = A.hi;
-    c.beginPath(); c.moveTo(-0.85, -1.2); c.lineTo(-0.85, -0.95); c.lineTo(-0.55, -0.95); c.lineTo(-0.55, -1.2); c.lineTo(-0.15, -1.2); c.lineTo(-0.15, -0.95); c.lineTo(0.15, -0.95); c.lineTo(0.15, -1.2); c.lineTo(0.55, -1.2); c.lineTo(0.55, -0.95); c.lineTo(0.85, -0.95); c.lineTo(0.85, -1.2);
-    c.lineTo(0.85, 0.15); c.quadraticCurveTo(0.85, 0.85, 0, 1.25); c.quadraticCurveTo(-0.85, 0.85, -0.85, 0.15); c.closePath(); c.lineWidth = 0.16; c.stroke();
-    c.beginPath(); c.moveTo(-0.55, -0.6); c.lineTo(0.55, -0.6); c.lineTo(0.55, 0.15); c.quadraticCurveTo(0.55, 0.65, 0, 0.92); c.quadraticCurveTo(-0.55, 0.65, -0.55, 0.15); c.closePath(); c.lineWidth = 0.09; c.stroke();
+  // UNBESIEGBAR: Schild mit Zinnen
+  zigzag(c, k, A) {
+    const shield = (s, dy) => cc => {
+      const p = [[-0.85, -1.15], [-0.5, -1.15], [-0.5, -0.9], [-0.17, -0.9], [-0.17, -1.15], [0.17, -1.15], [0.17, -0.9], [0.5, -0.9], [0.5, -1.15], [0.85, -1.15], [0.85, 0.1]];
+      p.forEach(([x, y], i) => i ? cc.lineTo(x * s, y * s + dy) : cc.moveTo(x * s, y * s + dy));
+      cc.quadraticCurveTo(0.85 * s, 0.85 * s + dy, 0, 1.22 * s + dy); cc.quadraticCurveTo(-0.85 * s, 0.85 * s + dy, -0.85 * s, 0.1 * s + dy); cc.closePath();
+    };
+    stitchFill(c, k, shield(1, 0), A.hi, 1.57);
+    c.save(); c.beginPath();
+    c.moveTo(-0.52, -0.62); c.lineTo(0.52, -0.62); c.lineTo(0.52, 0.12); c.quadraticCurveTo(0.52, 0.62, 0, 0.9); c.quadraticCurveTo(-0.52, 0.62, -0.52, 0.12); c.closePath();
+    c.lineWidth = 0.1; c.strokeStyle = PATCH_BASE; c.lineJoin = 'miter'; c.stroke(); c.restore();
   },
-  // Last Minute: Stoppuhr mit 90+
-  heart(c, A) {
-    c.strokeStyle = A.hi; c.fillStyle = A.hi;
-    c.beginPath(); c.arc(0, 0.15, 1.0, 0, 7); c.lineWidth = 0.15; c.stroke();
-    c.beginPath(); c.rect(-0.17, -1.17, 0.34, 0.25); c.fill(); c.beginPath(); c.rect(-0.3, -1.32, 0.6, 0.15); c.fill();
-    c.beginPath(); for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; c.moveTo(Math.cos(a) * 0.78, 0.15 + Math.sin(a) * 0.78); c.lineTo(Math.cos(a) * 0.88, 0.15 + Math.sin(a) * 0.88); } c.lineWidth = 0.05; c.stroke();
-    c.beginPath(); c.moveTo(0, 0.15); c.lineTo(-0.12, -0.6); c.lineWidth = 0.08; c.stroke();
+  // LAST MINUTE: Stoppuhr mit 90+
+  heart(c, k, A) {
+    stitchStroke(c, k, cc => cc.arc(0, 0.12, 0.9, 0, 7), A.hi, 0.22);
+    stitchFill(c, k, cc => { cc.rect(-0.16, -1.02, 0.32, 0.2); cc.rect(-0.32, -1.22, 0.64, 0.17); }, A.hi, 0);
+    stitchFill(c, k, cc => { cc.save(); cc.translate(0.78, -0.62); cc.rotate(0.8); cc.rect(-0.1, -0.13, 0.2, 0.26); cc.restore(); }, A.hi, 0);
+    c.save(); c.scale(1 / k, 1 / k); c.font = `700 ${0.62 / 0.7 * k}px ${SCARF_FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = A.hi;
+    c.fillText('90+', 0, 0.16 * k); c.restore();
   },
-  // Trotzdem da: doppeltes Herz
-  diamond(c, A) {
-    const heart = (s) => { c.beginPath(); c.moveTo(0, 0.95 * s); c.bezierCurveTo(-1.7 * s, -0.1 * s, -0.85 * s, -1.4 * s, 0, -0.5 * s); c.bezierCurveTo(0.85 * s, -1.4 * s, 1.7 * s, -0.1 * s, 0, 0.95 * s); };
-    c.translate(0, 0.15); heart(1.0); c.lineWidth = 0.15; c.strokeStyle = A.hi; c.stroke();
-    heart(0.62); c.lineWidth = 0.06; c.setLineDash([0.12, 0.08]); c.strokeStyle = A.lo; c.stroke(); c.setLineDash([]);
+  // TROTZDEM DA: Herz mit Steppnaht
+  diamond(c, k, A) {
+    stitchFill(c, k, heartPath(1.05, 0.05), A.hi, 0.75);
+    c.save(); c.beginPath(); heartPath(0.68, 0.05)(c); c.setLineDash([0.13, 0.09]); c.lineWidth = 0.075; c.strokeStyle = PATCH_BASE; c.stroke(); c.restore();
   },
-  // Dauerbrenner: Flamme
-  home(c, A) {
-    c.beginPath(); c.moveTo(0, -1.25); c.bezierCurveTo(0.75, -0.45, 0.95, 0.2, 0.7, 0.75); c.quadraticCurveTo(0.35, 1.25, 0, 1.25); c.quadraticCurveTo(-0.35, 1.25, -0.7, 0.75); c.bezierCurveTo(-0.95, 0.2, -0.45, -0.25, -0.2, -0.75); c.quadraticCurveTo(-0.05, -0.3, 0.1, -0.45); c.quadraticCurveTo(0.2, -0.85, 0, -1.25);
-    c.fillStyle = A.hi; c.fill(); c.lineWidth = 0.06; c.strokeStyle = PATCH_DARK; c.stroke();
-    c.beginPath(); c.moveTo(0, -0.1); c.bezierCurveTo(0.4, 0.3, 0.45, 0.75, 0.2, 1.0); c.quadraticCurveTo(0, 1.1, -0.2, 1.0); c.bezierCurveTo(-0.45, 0.75, -0.3, 0.35, 0, -0.1); c.fillStyle = PATCH_RED; c.fill();
+  // DAUERBRENNER: Flamme
+  home(c, k, A) {
+    const flame = (s, dy) => cc => {
+      cc.moveTo(0, -1.25 * s + dy); cc.bezierCurveTo(0.78 * s, -0.45 * s + dy, 0.95 * s, 0.25 * s + dy, 0.68 * s, 0.78 * s + dy);
+      cc.quadraticCurveTo(0.36 * s, 1.22 * s + dy, 0, 1.22 * s + dy); cc.quadraticCurveTo(-0.36 * s, 1.22 * s + dy, -0.68 * s, 0.78 * s + dy);
+      cc.bezierCurveTo(-0.95 * s, 0.22 * s + dy, -0.5 * s, -0.2 * s + dy, -0.22 * s, -0.72 * s + dy); cc.quadraticCurveTo(-0.08 * s, -0.3 * s + dy, 0.1 * s, -0.42 * s + dy); cc.quadraticCurveTo(0.22 * s, -0.85 * s + dy, 0, -1.25 * s + dy); cc.closePath();
+    };
+    stitchFill(c, k, flame(1, 0), A.hi, 1.45);
+    c.save(); c.beginPath(); c.moveTo(0, -0.08); c.bezierCurveTo(0.42, 0.3, 0.46, 0.78, 0.2, 1.0); c.quadraticCurveTo(0, 1.08, -0.2, 1.0); c.bezierCurveTo(-0.46, 0.78, -0.32, 0.34, 0, -0.08); c.closePath(); c.fillStyle = PATCH_BASE; c.fill(); c.restore();
   },
 };
 
 function drawMarkReal(ctx, o, ox, oy, k) {
   const A = PATCH_ACCENT[o.version] || PATCH_ACCENT[1], R = o.r || 2.75;
   withLocal(ctx, o, ox, oy, k, () => {
-    // Grundkörper mit Schatten
-    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(2, k * 0.3); ctx.shadowOffsetX = o.rot ? Math.sign(o.rot) * Math.max(1, k * 0.12) : 0;
-    ctx.beginPath(); ctx.arc(0, 0, R * k, 0, 7); ctx.fillStyle = PATCH_RED; ctx.fill(); ctx.restore();
+    // aufgenäht: flacher Schatten
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(1.5, k * 0.12); ctx.shadowOffsetY = Math.max(0.6, k * 0.05);
+    ctx.beginPath(); ctx.arc(0, 0, R * k, 0, 7); ctx.fillStyle = PATCH_BASE; ctx.fill(); ctx.restore();
     ctx.save(); ctx.scale(k, k);
-    // Stoffstruktur
-    if (k >= 5) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R - 0.3, 0, 7); ctx.clip(); ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineWidth = 0.03; ctx.beginPath(); for (let t = -R; t < R; t += 0.09) { ctx.moveTo(t, -R); ctx.lineTo(t, R); } ctx.stroke(); ctx.restore(); }
-    // gedrehter Overlock-Rand (Kordel)
-    ctx.beginPath(); ctx.arc(0, 0, R - 0.14, 0, 7); ctx.lineWidth = 0.28; ctx.strokeStyle = A.lo; ctx.stroke();
-    if (o.version === 3) { ctx.save(); ctx.setLineDash([0.07, 0.11]); ctx.strokeStyle = PATCH_RED; ctx.lineWidth = 0.28; ctx.stroke(); ctx.restore(); }
-    else { ctx.beginPath(); ctx.arc(0, 0, R - 0.14, 0, 7); ctx.setLineDash([0.05, 0.08]); ctx.lineWidth = 0.28; ctx.strokeStyle = A.hi; ctx.stroke(); ctx.setLineDash([]); }
-    ctx.beginPath(); ctx.arc(0, 0, R - 0.52, 0, 7); ctx.lineWidth = 0.07; ctx.strokeStyle = A.hi; ctx.stroke();
-    const titleBottom = o.icon === 'zigzag';
-    // Illustration
-    ctx.save(); ctx.translate(0, titleBottom ? -0.35 : 0.42); ctx.scale(0.95, 0.95);
-    ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 0.06; ctx.shadowOffsetY = 0.03;
-    (PATCH_ICONS[o.icon] || PATCH_ICONS.diamond)(ctx, A);
+    // Köperbindung des Grundstoffs
+    ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R - 0.3, 0, 7); ctx.clip();
+    ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = Math.max(0.012, 0.3 / k); ctx.beginPath();
+    const sp = Math.max(0.08, 1.5 / k); for (let t = -2 * R; t < 2 * R; t += sp) { ctx.moveTo(t, -R); ctx.lineTo(t + R, R); } ctx.stroke(); ctx.restore();
+    // Kordelrand: Grundring + schräge Stiche
+    ctx.beginPath(); ctx.arc(0, 0, R - 0.16, 0, 7); ctx.lineWidth = 0.32; ctx.strokeStyle = A.lo; ctx.stroke();
+    const n = Math.round(2 * Math.PI * R / Math.max(0.09, 1.6 / k));
+    ctx.strokeStyle = A.hi; ctx.lineWidth = Math.max(0.025, 0.5 / k); ctx.beginPath();
+    for (let i = 0; i < n; i++) { const a = i / n * 2 * Math.PI, b = a + 0.035; ctx.moveTo(Math.cos(a) * (R - 0.3), Math.sin(a) * (R - 0.3)); ctx.lineTo(Math.cos(b) * (R - 0.02), Math.sin(b) * (R - 0.02)); }
+    ctx.stroke();
+    // Innenring
+    ctx.beginPath(); ctx.arc(0, 0, R - 0.55, 0, 7); ctx.lineWidth = 0.07; ctx.strokeStyle = A.hi; ctx.stroke();
+    // Motiv
+    ctx.save(); ctx.translate(0, 0.02); ctx.scale(0.92, 0.92);
+    (PATCH_ICONS[o.icon] || PATCH_ICONS.diamond)(ctx, k * 0.92, A);
     ctx.restore();
+    // Trennrauten zwischen Ober- und Unterschrift
+    for (const s of [-1, 1]) { ctx.save(); ctx.translate(s * (R - 0.98), 0); ctx.rotate(Math.PI / 4); ctx.fillStyle = A.hi; ctx.fillRect(-0.07, -0.07, 0.14, 0.14); ctx.restore(); }
     ctx.restore();
-    // Titel im Bogen (Unbesiegbar unten, sonst oben), mit dunkler Kontur
-    localArcText(ctx, k, o.label, R - 1.0, o.label.length > 12 ? 0.5 : 0.6, !titleBottom, A.hi, PATCH_DARK);
-    if (o.icon === 'heart') localText(ctx, k, '90+', 0, 0.62, 0.42, 1.2, A.hi);
-    if (o.icon === 'home') localText(ctx, k, '17/17', 0, 2.05, 0.32, 1.2, A.hi);
-    if (titleBottom) localShape(ctx, k, A.hi, c => SHAPES.star(c, 0, 1.12, 0.12));
+    const long = o.label.length > 12;
+    localArcText(ctx, k, o.label, R - 0.98, long ? 0.4 : 0.48, true, A.hi);
+    localArcText(ctx, k, o.season || '', R - 0.98, 0.3, false, A.hi);
   });
 }
 
@@ -511,7 +539,7 @@ function drawHover(canvas, lay, model, hit) {
   }
 }
 
-function drawLens(canvas, model, x, y, knit, orient = null) {
+function drawLens(canvas, model, x, y, knit, orient = null, zoomCy = 9) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth || 260, h = canvas.clientHeight || 170;
   // In der Hochkant-Ansicht wird die Lupe genauso gedreht wie der Schal
@@ -522,7 +550,7 @@ function drawLens(canvas, model, x, y, knit, orient = null) {
   ctx.fillStyle = '#e9e5dc'; ctx.fillRect(0, 0, w, h);
   if (orient === 'A') ctx.setTransform(0, -dpr, dpr, 0, 0, hw * dpr);
   if (orient === 'B') ctx.setTransform(0, dpr, -dpr, 0, hh * dpr, 0);
-  const cy = 9, cx = cy * STITCH_ASPECT;
+  const cy = zoomCy, cx = cy * STITCH_ASPECT;
   const nx = Math.ceil(hw / cx), ny = Math.ceil(hh / cy);
   const x0 = Math.max(0, Math.min(model.L - nx, x - Math.floor(nx / 2)));
   const y0 = Math.max(0, Math.min(model.W - ny, y - Math.floor(ny / 2)));
@@ -548,4 +576,84 @@ function patternPNG(model) {
   const ctx = c.getContext('2d');
   drawCells(ctx, model, 0, model.L, 0, model.W, 0, 0, cx, cy, { knit: false });
   return c.toDataURL('image/png');
+}
+
+/* ---- Hängeansicht: der Schal in der Mitte gefaltet, beide Enden hängen nach unten ----
+   Hälfte A (Reihen 0 … L/2) mit Ende A unten, Hälfte B (L/2 … L) mit Ende B unten.
+   So steht die Schrift an beiden Enden richtig herum und der Schal ist doppelt so groß. */
+const FOLD_CM = 1.2;
+function layoutHalf(model, lengthPx, half) {
+  const mid = Math.ceil(model.L / 2);
+  const x0 = half === 'A' ? 0 : mid, x1 = half === 'A' ? mid : model.L;
+  const fold = FOLD_CM * ROWS_PER_CM;
+  const units = (x1 - x0) + FRINGE + fold;
+  const cx = lengthPx / units, cy = cx / STITCH_ASPECT;
+  const segH = model.W * cy, pad = 6;
+  // horizontaler Rahmen: Hälfte A hat die Fransen links, Hälfte B rechts
+  const ox = half === 'A' ? FRINGE * cx : fold * cx;
+  return { half, x0, x1, cx, cy, ox, oy: pad, segH, width: lengthPx, height: segH + 2 * pad, orient: half, fold };
+}
+
+function drawHalf(canvas, model, lay, opts) {
+  const ctx = setupCanvas(canvas, lay);
+  const { x0, x1, cx, cy, ox, oy, segH } = lay, w = (x1 - x0) * cx;
+  ctx.save(); ctx.shadowColor = 'rgba(10,10,20,.28)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+  ctx.fillStyle = '#000'; ctx.fillRect(ox, oy, w, segH); ctx.restore();
+  drawCells(ctx, model, x0, x1, 0, model.W, ox - x0 * cx, oy, cx, cy, opts);
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, w, segH); ctx.clip();
+  if (opts.real) drawKnitTexture(ctx, ox, oy, w, segH, cy, cx);
+  drawOverlay(ctx, model, ox - x0 * cx, oy, cx * ROWS_PER_CM, opts.real ? 'real' : 'raster');
+  // Falte an der Oberkante (zur Schalmitte): Schatten wie über einer Stange
+  const fx = lay.half === 'A' ? ox + w : ox, dir = lay.half === 'A' ? -1 : 1, fw = 3 * ROWS_PER_CM * cx;
+  const g = ctx.createLinearGradient(fx, 0, fx + dir * fw, 0);
+  g.addColorStop(0, 'rgba(0,0,0,.42)'); g.addColorStop(0.35, 'rgba(0,0,0,.12)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(Math.min(fx, fx + dir * fw), oy, fw, segH);
+  ctx.restore();
+  // gerundete Falte
+  ctx.save(); ctx.fillStyle = HEX[model.cells[(lay.half === 'A' ? x1 - 1 : x0) * model.W + 54]];
+  const capW = lay.fold * cx;
+  ctx.beginPath();
+  if (lay.half === 'A') { ctx.moveTo(fx, oy); ctx.quadraticCurveTo(fx + capW * 1.6, oy + segH / 2, fx, oy + segH); }
+  else { ctx.moveTo(fx, oy); ctx.quadraticCurveTo(fx - capW * 1.6, oy + segH / 2, fx, oy + segH); }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill(); ctx.restore();
+  if (lay.half === 'A') drawFringe(ctx, model.fringe, ox, oy, { cx, cy, segH }, -1);
+  else drawFringe(ctx, model.fringe, ox + w, oy, { cx, cy, segH }, 1);
+}
+
+function hitHalf(lay, model, px, py) {
+  const [X, Y] = toLayout(lay, px, py);
+  const x = lay.x0 + Math.floor((X - lay.ox) / lay.cx), y = Math.floor((Y - lay.oy) / lay.cy);
+  if (x < lay.x0 || x >= lay.x1 || y < 0 || y >= model.W) return null;
+  return { x, y };
+}
+
+function drawHoverHalf(canvas, lay, model, hit) {
+  const ctx = setupCanvas(canvas, lay);
+  if (!hit) return;
+  const k = lay.cx * ROWS_PER_CM, ox = lay.ox - lay.x0 * lay.cx;
+  ctx.save(); ctx.beginPath(); ctx.rect(lay.ox, lay.oy - 4, (lay.x1 - lay.x0) * lay.cx, lay.segH + 8); ctx.clip();
+  ctx.strokeStyle = '#FFD84D'; ctx.lineWidth = 2; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 4;
+  if (hit.item) {
+    const [u0, u1, v0, v1] = overlayBox(hit.item);
+    roundRectPath(ctx, ox + u0 * k - 2, lay.oy + v0 * k - 2, (u1 - u0) * k + 4, (v1 - v0) * k + 4, 4); ctx.stroke();
+    ctx.restore(); return;
+  }
+  const key = groupKey(tagAtCell(model, hit.x, hit.y));
+  if (!key || key === 'el:base' || key === 'backBase' || key === 'el:night') { ctx.restore(); return; }
+  const W = model.W, keys = model.tagList.map(t => groupKey(t) === key);
+  const match = (x, y) => x >= lay.x0 && x < lay.x1 && y >= 0 && y < W && keys[model.tags[x * W + y]];
+  ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,216,77,.38)'; ctx.beginPath();
+  const edges = [];
+  for (let x = lay.x0; x < lay.x1; x++) for (let y = 0; y < W; y++) {
+    if (!match(x, y)) continue;
+    const px = lay.ox + (x - lay.x0) * lay.cx, py = lay.oy + y * lay.cy;
+    ctx.rect(px, py, lay.cx + 0.3, lay.cy + 0.3);
+    if (!match(x - 1, y)) edges.push([px, py, px, py + lay.cy]);
+    if (!match(x + 1, y)) edges.push([px + lay.cx, py, px + lay.cx, py + lay.cy]);
+    if (!match(x, y - 1)) edges.push([px, py, px + lay.cx, py]);
+    if (!match(x, y + 1)) edges.push([px, py + lay.cy, px + lay.cx, py + lay.cy]);
+  }
+  ctx.fill(); ctx.beginPath(); for (const [a, b, c, d] of edges) { ctx.moveTo(a, b); ctx.lineTo(c, d); } ctx.lineWidth = 1.4; ctx.stroke();
+  ctx.restore();
 }

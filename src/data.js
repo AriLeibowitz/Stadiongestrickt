@@ -9,7 +9,7 @@
 const YARN = {
   R: { name: 'Vereinsrot', hex: '#DC052D', shade: '#A80322' },
   W: { name: 'Weiß',       hex: '#F4F1EA', shade: '#CFCAC0' },
-  N: { name: 'Nachtblau',  hex: '#0E2240', shade: '#07142A' },
+  N: { name: 'Schwarz',    hex: '#17171A', shade: '#0B0B0D' },
   B: { name: 'Rautenblau', hex: '#0074C8', shade: '#00589A' },
   G: { name: 'Gold',       hex: '#C9A13B', shade: '#9C7A22' },
 };
