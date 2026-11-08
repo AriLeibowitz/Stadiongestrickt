@@ -382,8 +382,26 @@ const PATCH_ICONS = {
   },
 };
 
+// Foto-Patches (vom Team gestaltet): je Moment in Weiß, Silber und Gold
+const PATCH_IMG = {};
+function loadPatchImages() {
+  if (typeof PATCH_IMAGES_SRC === 'undefined') return Promise.resolve();
+  return Promise.all(Object.entries(PATCH_IMAGES_SRC).map(([key, url]) => new Promise(res => {
+    const im = new Image(); im.onload = () => { PATCH_IMG[key] = im; res(); }; im.onerror = res; im.src = url;
+  })));
+}
+
 function drawMarkReal(ctx, o, ox, oy, k) {
   const A = PATCH_ACCENT[o.version] || PATCH_ACCENT[1], R = o.r || 2.75;
+  const photo = o.tag && PATCH_IMG[`${o.tag.el}-${o.version}`];
+  if (photo) {
+    withLocal(ctx, o, ox, oy, k, () => {
+      ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = Math.max(1.5, k * 0.12); ctx.shadowOffsetY = Math.max(0.6, k * 0.05);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(photo, -R * k, -R * k, 2 * R * k, 2 * R * k);
+    });
+    return;
+  }
   withLocal(ctx, o, ox, oy, k, () => {
     // aufgenäht: flacher Schatten
     ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = Math.max(1.5, k * 0.12); ctx.shadowOffsetY = Math.max(0.6, k * 0.05);

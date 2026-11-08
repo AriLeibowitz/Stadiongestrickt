@@ -298,13 +298,6 @@ function buildFront(ctx) {
   for (const end of [0, 1]) {
     if (act.awayRauten) { el('awayRauten'); const [a, b] = band(end, ...FRONT.rauten); paintRauten(r, a, b, 0, WIDTH_CM, 1.0); }
     if (act.silverBar) { const [a, b] = band(end, 21.3, 21.75); overlay.push({ kind: 'bar', tag: { el: 'silverBar' }, u0: a, u1: b, v0: 0.5, v1: WIDTH_CM - 0.5 }); }
-    if (act.stadiumDots) {
-      el('stadiumDots');
-      const inStripe = lv === 1 || lv === 2;
-      const [a, b] = band(end, ...(lv === 2 ? FRONT.stripes3[1] : FRONT.stripe1)), uc = (a + b) / 2;
-      const n = Math.min(stats.stadiums.size, 24), h = (n - 1) * 0.65;
-      r.paint(inStripe ? 'R' : 'W', c => { for (let i = 0; i < n; i++) { const v = 9 - h / 2 + i * 0.65; c.moveTo(uc + 0.2, v); c.arc(uc, v, 0.2, 0, 7); } c.fill(); }, uc - 1, uc + 1);
-    }
   }
   // Längskanten
   if (act.awaySeam || act.tour) {

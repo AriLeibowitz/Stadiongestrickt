@@ -103,11 +103,15 @@ function renderScarf() {
   const probe = layoutHalf(model, 1000, 'A');
   const units = 1000 / probe.cx;
   const byHeight = Math.max(240, halves.clientHeight - 2);
-  const perHalfW = (hang.clientWidth - 34 - 16 - 40) / 4;
+  const perHalfW = (hang.clientWidth - 8 - 40) / 2;
   const byWidth = (perHalfW - 12) * STITCH_ASPECT * units / STITCHES;
   const lengthPx = Math.floor(Math.min(byHeight, byWidth));
   for (const st of stages()) {
     const side = st.dataset.side, half = st.dataset.half, m = state.scarf[side];
+    if (half === 'full') { // Vorderseite ausgebreitet in voller Länge
+      const lay = drawScarf($('.scarf', st), m, { width: Math.max(320, $('#frontStrip').clientWidth), segs: 1, knit: state.real, real: state.real, markEls: mark });
+      state.lays[side + half] = lay; drawHover($('.hover', st), lay, m, null); continue;
+    }
     const lay = layoutHalf(m, lengthPx, half);
     state.lays[side + half] = lay;
     drawHalf($('.scarf', st), m, lay, { knit: state.real, real: state.real, markEls: mark });
@@ -155,17 +159,19 @@ function bindScarf() {
   for (const st of stages()) {
     const side = st.dataset.side, half = st.dataset.half, cv = $('.scarf', st);
     let last = null;
-    const hide = () => { lensBox.style.display = 'none'; drawHoverHalf($('.hover', st), state.lays[side + half], state.scarf[side], null); last = null; };
+    const full = half === 'full';
+    const clearHover = hit => full ? drawHover($('.hover', st), state.lays[side + half], state.scarf[side], hit) : drawHoverHalf($('.hover', st), state.lays[side + half], state.scarf[side], hit);
+    const hide = () => { lensBox.style.display = 'none'; clearHover(null); last = null; };
     cv.addEventListener('mousemove', ev => {
       const lay = state.lays[side + half], model = state.scarf[side];
       const r = cv.getBoundingClientRect();
-      const h = hitHalf(lay, model, ev.clientX - r.left, ev.clientY - r.top);
+      const h = full ? hitTest(lay, model, ev.clientX - r.left, ev.clientY - r.top) : hitHalf(lay, model, ev.clientX - r.left, ev.clientY - r.top);
       if (!h) { hide(); return; }
       const hit = { ...h, item: itemAt(model, h.x, h.y) };
       lensBox.style.display = 'block';
-      drawLens($('#lens'), model, hit.x, hit.y, true, half, Math.max(3.2, lay.cy * 3.5));
+      drawLens($('#lens'), model, hit.x, hit.y, true, full ? null : half, Math.max(3.2, lay.cy * 3.5));
       const key = hit.item || tagAtCell(model, hit.x, hit.y);
-      if (key !== last) { last = key; drawHoverHalf($('.hover', st), lay, model, hit); $('#tipText').innerHTML = hitText(side, hit); }
+      if (key !== last) { last = key; clearHover(hit); $('#tipText').innerHTML = hitText(side, hit); }
       const bw = 270, bh = lensBox.offsetHeight || 300;
       let x = ev.clientX + 26; if (x + bw > window.innerWidth - 8) x = ev.clientX - bw - 26;
       let y = ev.clientY - bh / 2; y = Math.max(8, Math.min(window.innerHeight - bh - 8, y));
@@ -403,7 +409,7 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', () => {
   // Erst rendern, wenn die eingebettete Schrift geladen ist (sonst stimmt die Beschriftung nicht)
-  const go = () => { try { init(); } catch (e) { console.error(e); } };
+  const go = () => loadPatchImages().then(() => { try { init(); } catch (e) { console.error(e); } });
   if (document.fonts && document.fonts.load) Promise.race([document.fonts.load('700 40px ScarfFont'), new Promise(r => setTimeout(r, 1500))]).then(go, go);
   else go();
 });

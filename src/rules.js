@@ -86,7 +86,6 @@ const ELEMENTS = [
   { id: 'fringeRW', name: 'Rot-weiße Fransen', where: 'Fransen', desc: 'Die Fransen werden abwechselnd rot und weiß.' },
   { id: 'awayRauten', name: 'Rauten-Enden', where: 'Vorderseite, Enden', desc: 'Ein blau-weißes Rautenband direkt an den Fransen.' },
   { id: 'travel', name: 'Reise-Zeile', where: 'Rückseite, Ende A', desc: 'Reisekilometer, Fahrten und Länder der Saison, eingestickt unter dem Namen und hängend lesbar.' },
-  { id: 'stadiumDots', name: 'Stadion-Punkte', where: 'Vorderseite, Enden', desc: 'Eine Punktreihe im mittleren Endstreifen: ein Punkt pro besuchtem Stadion.' },
   { id: 'tour', name: 'Goldene Naht & Fransen', where: 'Vorderseite, Fransen', desc: 'Die Auswärtsnaht wird golden, die Fransen gold-rot.' },
   // Reihe Momente: gestickte Zeichen in 3 Versionen (1×, 2×, 3×)
   { id: 'bStreak', name: 'Patch: Unbesiegbar', mark: { icon: 'zigzag', label: 'UNBESIEGBAR' }, where: 'Rückseite, Ende B', desc: 'Runder gestickter Patch für 10 Spiele in Folge ohne Niederlage. Akzentfarbe: Silber ab 20, Gold ab 30 Spielen.' },
@@ -136,7 +135,6 @@ const MILESTONES = [
   { id: 'a5', cat: 'auswaerts', name: 'Vielfahrer', cond: '5 Auswärtsspiele', target: 5, value: s => s.away, element: 'fringeRW' },
   { id: 'a10', cat: 'auswaerts', name: 'Auswärtsfahrer', cond: '10 Auswärtsspiele', target: 10, value: s => s.away, element: 'awayRauten' },
   { id: 'countries2', cat: 'auswaerts', name: 'Länderpunkte', cond: 'Auswärts in 2 Ländern außerhalb Deutschlands', target: 2, value: s => s.awayCountries.size, element: 'travel' },
-  { id: 'stadiums8', cat: 'auswaerts', name: 'Groundhopper', cond: '8 verschiedene Stadien', target: 8, value: s => s.stadiums.size, element: 'stadiumDots' },
   { id: 'tour17', cat: 'auswaerts', name: 'Komplett-Tour', cond: 'Alle 17 Bundesliga-Auswärtsspiele', target: 17, value: s => s.awayBLOpp.size, element: 'tour' },
   { id: 'streak10', cat: 'momente', name: 'Ungeschlagen', cond: '10 Spiele in Folge ohne Niederlage', target: 10, value: s => s.longestUnbeaten.len, element: 'bStreak' },
   { id: 'fest', cat: 'momente', name: 'Torfestival', cond: '1 Spiel mit 5+ Bayern-Toren', target: 1, value: s => s.fest, element: 'bFest' },

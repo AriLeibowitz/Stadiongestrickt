@@ -13,6 +13,10 @@ js = js.replace("</script", "<\\/script")
 import base64
 font = base64.b64encode((SRC / "fonts" / "BarlowCondensed-Bold.woff2").read_bytes()).decode()
 font_css = f"@font-face{{font-family:'ScarfFont';font-weight:700;font-style:normal;src:url(data:font/woff2;base64,{font}) format('woff2');}}"
+# Moment-Patches (Fotos, je weiß/silber/gold) als Data-URLs
+import json
+imgs = {f.stem: "data:image/webp;base64," + base64.b64encode(f.read_bytes()).decode() for f in sorted((SRC / "patches").glob("*.webp"))}
+js = "const PATCH_IMAGES_SRC = " + json.dumps(imgs) + ";\n" + js
 out = html.replace("/*FONT*/", font_css).replace("/*CSS*/", css).replace("/*JS*/", js)
 
 (ROOT / "dist").mkdir(exist_ok=True)
